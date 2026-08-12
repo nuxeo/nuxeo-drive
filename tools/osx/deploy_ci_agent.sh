@@ -45,6 +45,18 @@ prepare_signing_from_scratch() {
     # Create and get the identity for code signing the app
     # http://www.tiger-222.fr/?d=2019/11/06/09/40/43-installer-un-certificat-pour-la-signature-de-code-automatique-macos
     # https://docs.travis-ci.com/user/common-build-problems/#mac-macos-sierra-1012-code-signing-errors
+    #
+    # $1 selects the certificate-import flow, matching the convention used by
+    # create_package() and the callers in tools/posix/deploy_ci_agent.sh:
+    #   "nuxeo"    -> historical flow: import the .p12 directly with
+    #                 `security import` plus the separate drive.priv key.
+    #   "alfresco" -> split the .p12 with Homebrew OpenSSL 3 (`-legacy`) into
+    #                 individual PEM cert + PKCS#8 key and import each one.
+    #                 Required because SecPKCS12Import cannot parse the
+    #                 Hyland-provided legacy PKCS#12 archive on macOS 14/15
+    #                 ("MAC verification failed" even with the correct
+    #                 password).
+    local flavor="${1:-nuxeo}"
 
     if security list-keychains | grep -q "$(basename "${KEYCHAIN_PATH}")"; then
         # Already created at a previous run
@@ -53,6 +65,10 @@ prepare_signing_from_scratch() {
     fi
 
     echo ">>> [sign] Create the keychain"
+    # Strip any stray CR/LF/tab/space that may have been introduced by the
+    # GitHub secret store — `security` reads the -P argument literally, so a
+    # trailing character would cause "MAC verification failed" on p12 import.
+    KEYCHAIN_PASSWORD="$(printf '%s' "${KEYCHAIN_PASSWORD}" | tr -d '\r\n\t ')"
     security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
     echo ">>> [sign] Make the custom keychain default, so xcodebuild will use it for signing"
@@ -62,44 +78,158 @@ prepare_signing_from_scratch() {
     security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
     echo ">>> [sign] Add certificates to keychain and allow codesign to access them"
+    echo ">>> [sign] Import - AppleIncRootCertificate.cer"
     security import ./AppleIncRootCertificate.cer -t cert -A -k "${KEYCHAIN_PATH}"
-    security import ./developerID_application.p12 -k "${KEYCHAIN_PATH}" -P "${KEYCHAIN_PASSWORD}" -A -T /usr/bin/codesign
-    security import ./nuxeo-drive.priv -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
 
+    if [ "${flavor}" = "alfresco" ]; then
+        # Apple's `security import` (SecPKCS12Import) cannot parse the legacy
+        # PKCS#12 archive shipped by Hyland's signing pipeline and fails with
+        # "MAC verification failed" on both macOS 14 and macOS 15 even when
+        # the password is correct (OpenSSL accepts the same archive +
+        # password with no issue). Work around this by using Homebrew's
+        # OpenSSL 3 with the `-legacy` provider to split the .p12 into
+        # individual PEM cert and unencrypted PKCS#8 key files, then import
+        # each one separately - `security import` handles individual PEM
+        # files without issue.
+        local OPENSSL
+        OPENSSL="$(brew --prefix openssl@3)/bin/openssl"
+        echo ">>> [sign] Extract cert from developerID_application.p12 using ${OPENSSL}"
+        "${OPENSSL}" pkcs12 -in ./developerID_application.p12 -nokeys -clcerts -legacy \
+            -passin "pass:${KEYCHAIN_PASSWORD}" \
+            -out ./developerID_application.cert.pem
+        echo ">>> [sign] Import - developerID_application.cert.pem"
+        security import ./developerID_application.cert.pem -t cert -A -k "${KEYCHAIN_PATH}" -T /usr/bin/codesign
+        rm -f ./developerID_application.cert.pem
+
+        echo ">>> [sign] Extract private key from developerID_application.p12 using ${OPENSSL}"
+        "${OPENSSL}" pkcs12 -in ./developerID_application.p12 -nocerts -nodes -legacy \
+            -passin "pass:${KEYCHAIN_PASSWORD}" \
+            | "${OPENSSL}" pkcs8 -topk8 -nocrypt -out ./developerID_application.key.pem
+        echo ">>> [sign] Import - developerID_application.key.pem"
+        security import ./developerID_application.key.pem -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
+        rm -f ./developerID_application.key.pem
+    else
+        echo ">>> [sign] Import - developerID_application.p12"
+        security import ./developerID_application.p12 -k "${KEYCHAIN_PATH}" -P "${KEYCHAIN_PASSWORD}" -A -T /usr/bin/codesign
+        echo ">>> [sign] Import - drive.priv"
+        security import ./drive.priv -t priv -A -T /usr/bin/codesign -k "${KEYCHAIN_PATH}"
+    fi
+
+    echo ">>> [sign] Prepare Signing"
     prepare_signing
 }
 
 build_extension() {
     # Create the FinderSync extension, if not already done
-    local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
+    local project_path="${WORKSPACE_DRIVE}/tools/osx/drive/"
+    if [ "$1" = "NuxeoFinderSync" ]; then
+        local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive/drive.xcodeproj"
+    else
+        local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive/alfresco-drive.xcodeproj"
+    fi
+
+    local entitlement_name="$1"
+
+    echo ">>> [package] Target entitlement ${entitlement_name}"
 
     echo ">>> [package] Building the FinderSync extension"
-    xcodebuild -project "${extension_path}/drive.xcodeproj" -target "NuxeoFinderSync" -configuration Release build
-    mv -fv "${extension_path}/build/Release/NuxeoFinderSync.appex" "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex"
-    rm -rf "${extension_path}/build"
+    xcodebuild -project "${extension_path}" -target "${entitlement_name}" -configuration Release build
+    mv -fv "${project_path}/build/Release/${entitlement_name}.appex" "${WORKSPACE_DRIVE}/${entitlement_name}.appex"
+    rm -rf "${project_path}/build"
+}
+
+cleanup_local_lsdb_state() {
+    # Local-build only: prevent LaunchServices from routing nxdrive:// to
+    # stale `org.nuxeo.drive` bundles left over from prior test installs
+    # (mounted /Volumes/Nuxeo Drive*, ~/.Trash copies, old DMG mounts, etc.).
+    # This does NOT touch the DMG/.app being built, signing, or notarization.
+    # CI is skipped: ephemeral runners have no stale state.
+
+    if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
+        return
+    fi
+
+    local app="/Applications/Nuxeo Drive.app"
+    local lsreg="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
+
+    if [ ! -x "${lsreg}" ]; then
+        return
+    fi
+
+    echo ">>> [local] Cleaning LaunchServices state for org.nuxeo.drive"
+
+    # Quit any running instance to release its Apple Event registration.
+    pkill -f "Nuxeo Drive.app/Contents/MacOS/ndrive" 2>/dev/null || true
+    sleep 1
+
+    # Detach any mounted Nuxeo Drive DMG volumes.
+    for v in /Volumes/Nuxeo\ Drive*; do
+        [ -d "${v}" ] || continue
+        hdiutil detach "${v}" -force >/dev/null 2>&1 \
+            && echo ">>> [local]   detached: ${v}"
+    done
+
+    # Prune every stale org.nuxeo.drive bundle from the LaunchServices DB,
+    # keeping only the canonical /Applications/Nuxeo Drive.app (if installed).
+    local pass cnt
+    for pass in 1 2 3; do
+        "${lsreg}" -dump 2>/dev/null | awk '
+            /^[ \t]*path:[ \t]*(.+)\(0x[0-9a-f]+\)$/ {
+                match($0, /path:[ \t]*/); raw=substr($0, RSTART+RLENGTH);
+                sub(/[ \t]*\(0x[0-9a-f]+\)[ \t]*$/, "", raw); p=raw; next
+            }
+            /CFBundleIdentifier = "org\.nuxeo\.drive"/ { if (p) print p }
+        ' | sort -u | grep -v "^${app}$" > /tmp/nxd_stale.txt || true
+        cnt=$(wc -l < /tmp/nxd_stale.txt | tr -d ' ')
+        [ "${cnt}" -eq 0 ] && break
+        echo ">>> [local]   pass ${pass}: ${cnt} stale LSDB entries"
+        while IFS= read -r p; do "${lsreg}" -u "${p}" >/dev/null 2>&1 || true; done < /tmp/nxd_stale.txt
+    done
+    rm -f /tmp/nxd_stale.txt
+
+    # Re-register the canonical install (if present) so it's the preferred handler.
+    if [ -d "${app}" ]; then
+        "${lsreg}" -f "${app}" >/dev/null 2>&1 || true
+        echo ">>> [local]   re-registered: ${app}"
+    fi
 }
 
 create_package() {
+    if [ "$1" = "nuxeo" ]; then
+        echo ">>> [package] Creating Nuxeo Drive package"
+        local app_name="Nuxeo Drive"
+        local entitlement_name="NuxeoFinderSync"
+    else
+        echo ">>> [package] Creating Alfresco Drive package"
+        local app_name="Hyland Drive for Alfresco"
+        local entitlement_name="AlfrescoFinderSync"
+    fi
+
     # Create the final DMG
-    local app_name="Nuxeo Drive"
     local bundle_name="${app_name}.app"
     local output_dir="${WORKSPACE_DRIVE}/dist"
     local pkg_path="${output_dir}/${bundle_name}"
     local src_folder_tmp="${WORKSPACE}/dmg_src_folder.tmp"
-    local dmg_tmp="${WORKSPACE}/nuxeo-drive.tmp.dmg"
-    local background_file="${WORKSPACE_DRIVE}/tools/osx/dmgbackground.png"
+    local dmg_tmp="${WORKSPACE}/${1}-drive.tmp.dmg"
+    local background_file="${WORKSPACE_DRIVE}/tools/osx/dmgbackground_${1}.png"
     local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
-    local entitlements="${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements"
-    local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store"
+    local entitlements="${extension_path}/${entitlement_name}/${entitlement_name}.entitlements"
+    local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store_${1}"
     local app_version
 
-    build_extension
+    # Local-build only: prune stale LaunchServices state before producing
+    # the new DMG. No-op on CI. See cleanup_local_lsdb_state().
+    if [ "$1" = "nuxeo" ]; then
+        cleanup_local_lsdb_state
+    fi
+
+    build_extension $entitlement_name
     echo ">>> [package] Adding the extension to the package"
     mkdir "${pkg_path}/Contents/PlugIns"
-    mv -fv "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/"
+    mv -fv "${WORKSPACE_DRIVE}/${entitlement_name}.appex" "${pkg_path}/Contents/PlugIns/"
 
     if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
-        prepare_signing_from_scratch
+        prepare_signing_from_scratch "$1"
     else
         prepare_signing
     fi
@@ -124,20 +254,33 @@ create_package() {
                     --force                          \
                     --deep                           \
                     --entitlements "${entitlements}" \
-                    "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
+                    "${pkg_path}/Contents/PlugIns/${entitlement_name}.appex"
 
         # And we shallow sign the .app
         ${CODESIGN} "${SIGNING_ID}" "${pkg_path}" --force
 
         codesign --display --verbose "${pkg_path}"
         codesign --verbose=4 --deep --strict "${pkg_path}"
-        spctl --assess --verbose "${pkg_path}"
+        # Diagnostic only. `spctl --assess` runs Gatekeeper against the
+        # bundle, which at this point is signed with a valid Developer ID
+        # but has not yet been submitted to Apple's notary service (that
+        # happens later, against the .dmg produced below). Gatekeeper
+        # therefore reports `source=Unnotarized Developer ID` and exits
+        # with code 3 -- which under `set -e` would abort the whole
+        # pipeline before we ever get a chance to notarize. Swallow the
+        # exit code so the output remains visible as a diagnostic without
+        # being fatal.
+        spctl --assess --verbose "${pkg_path}" || true
     fi
 
     echo ">>> [package] Creating the DMG file"
 
-    app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
-    local dmg_path="${output_dir}/nuxeo-drive-${app_version}.dmg"
+    if [ "$app_name" = "Nuxeo Drive" ]; then
+        app_version="$(grep __version__ nxdrive/__init__.py | cut -d'"' -f2)"
+    else
+        app_version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
+    fi
+    local dmg_path="${output_dir}/${1}-drive-${app_version}.dmg"
 
     # Clean-up
     rm -fv "${dmg_path}"
@@ -177,8 +320,8 @@ create_package() {
     rm -rf "${src_folder_tmp}" "${dmg_tmp}" "${pkg_path}"
 
     if [ "${SIGNING_ID:-unset}" != "unset" ]; then
-        ${CODESIGN} "${SIGNING_ID}" --verbose "dist/nuxeo-drive-${app_version}.dmg"
-        ${PYTHON_VENV} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
+        ${CODESIGN} "${SIGNING_ID}" --verbose "dist/${1}-drive-${app_version}.dmg"
+        ${PYTHON_VENV} tools/osx/notarize.py "dist/${1}-drive-${app_version}.dmg"
     fi
 }
 

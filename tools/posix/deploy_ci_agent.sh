@@ -4,7 +4,7 @@
 # Usage: sh tools/$OSI/deploy_ci_agent.sh [ARG]
 #
 # Possible ARG:
-#     --build: build the package
+#     --build-nuxeo: build the package
 #     --check: check AppImage conformity (GNU/Linux only)
 #     --check-upgrade: check the auto-update works
 #     --install: install all dependencies
@@ -31,8 +31,46 @@ PYTHON_VENV="./venv/bin/python -Xutf8 -E -s"
 PYTHON_OPT="${PYTHON_VENV} -OO"
 PIP="${PYTHON_OPT} -m pip install --no-cache-dir --upgrade --progress-bar=off"
 
-build_installer() {
+cleanup_copied_icons() {
+    # Local-build only: remove icons that were copied from
+    # nxdrive/data/icons/<server>/ into nxdrive/drive/data/icons/ before the
+    # build, so they don't appear as changes in `git status`. Only files
+    # whose relative path also exists in the server-specific source folder
+    # are removed; shared icons that don't come from that folder are kept.
+    # No-op on CI (GITHUB_WORKSPACE set): CI runners are ephemeral.
+    if [ "${GITHUB_WORKSPACE:-unset}" != "unset" ]; then
+        return 0
+    fi
+
+    local server_name="$1"
+    local source_folder="${PWD}/nxdrive/data/icons/${server_name}"
+    local destination_folder="${PWD}/nxdrive/drive/data/icons"
+
+    if [ ! -d "${source_folder}" ] || [ ! -d "${destination_folder}" ]; then
+        return 0
+    fi
+
+    echo ">>> [local] Removing copied ${server_name} icons from ${destination_folder}"
+    ( cd "${source_folder}" && find . -type f -print0 ) \
+        | while IFS= read -r -d '' rel; do
+            rm -f "${destination_folder}/${rel#./}"
+        done
+
+    return 0
+}
+
+build_nuxeo_installer() {
     local version
+
+    nuxeo_icon_folder="${PWD}/nxdrive/data/icons/nuxeo/"
+    destination_folder="${PWD}/nxdrive/drive/data/icons/"
+    if [ ! -d "${nuxeo_icon_folder}" ]; then
+        echo ">>> WARNING: Nuxeo icon folder missing : ${nuxeo_icon_folder}. Skipping icons copy."
+    else
+        # Cleaning the destination folder before copying the icons
+        echo ">>> INFO: Copying Nuxeo icons from ${nuxeo_icon_folder} to ${destination_folder}"
+        cp -r "${nuxeo_icon_folder}"* "${destination_folder}"
+    fi
 
     echo ">>> Building the release package"
     ${PYTHON_VENV} -m PyInstaller ndrive.spec --clean --noconfirm
@@ -71,7 +109,68 @@ build_installer() {
         cd -
     fi
 
-    create_package
+    create_package "nuxeo"
+
+    cleanup_copied_icons "nuxeo"
+}
+
+build_alfresco_installer() {
+    local version
+
+    alfresco_icon_folder="${PWD}/nxdrive/data/icons/alfresco/"
+    destination_folder="${PWD}/nxdrive/drive/data/icons/"
+    if [ ! -d "${alfresco_icon_folder}" ]; then
+        echo ">>> WARNING: Alfresco icon folder missing : ${alfresco_icon_folder}. Skipping icons copy."
+    else
+        # Cleaning the destination folder before copying the icons
+        echo ">>> INFO: Copying Alfresco icons from ${alfresco_icon_folder} to ${destination_folder}"
+        cp -r "${alfresco_icon_folder}"* "${destination_folder}"
+    fi
+
+    echo ">>> Building the release package"
+    ${PYTHON_VENV} -m PyInstaller alfresco.spec --clean --noconfirm
+
+    echo ">>> Cleaning the dist folder"
+    # Do some clean-up
+    ${PYTHON_VENV} tools/cleanup_application_tree.py dist/alfresco-drive
+
+    echo ">>> Removing compiled QML files"
+    # Remove compiled QML files
+    find dist -depth -type f -name "*.qmlc" -delete
+
+    echo ">>> Removing empty folders"
+    # Remove empty folders
+    find dist -depth -type d -empty -delete
+
+    if [ "${OSI}" = "osx" ]; then
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
+        ${PYTHON_VENV} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
+
+        # Move problematic folders out of Contents/MacOS
+        ${PYTHON_VENV} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
+
+        # Remove broken symlinks pointing to an inexistent target
+        find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
+    elif [ "${OSI}" = "linux" ]; then
+        remove_excluded_files dist/alfresco-drive
+    fi
+
+    # Stop now if we only want the application to be frozen (for integration tests)
+    if [ "${FREEZE_ONLY:-0}" = "1" ]; then
+        exit 0
+    fi
+
+    if [ "${ZIP_NEEDED:-0}" = "1" ]; then
+        version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
+        cd dist
+        echo ">>> Creating zip archive: alfresco-drive-${OSI}-${version}.zip"
+        zip -9 -q -r "alfresco-drive-${OSI}-${version}.zip" "alfresco-drive"
+        cd -
+    fi
+
+    create_package "alfresco"
+
+    cleanup_copied_icons "alfresco"
 }
 
 check_import() {
@@ -92,7 +191,10 @@ check_import() {
 
 check_upgrade() {
     # Ensure a new version can be released by checking the auto-update process.
-    ${PYTHON_VENV} tools/scripts/check_update_process.py
+    if [ $# -eq 1 ]; then
+        local server_name="$1"
+    fi
+    ${PYTHON_VENV} tools/scripts/check_update_process.py --server="$server_name"
 }
 
 check_vars() {
@@ -419,8 +521,10 @@ main() {
 
     if [ $# -eq 1 ]; then
         case "$1" in
-            "--build") build_installer ;;
-            "--check-upgrade") check_upgrade ;;
+            "--build-nuxeo") build_nuxeo_installer ;;
+            "--build-alfresco") build_alfresco_installer ;;
+            "--check-upgrade-nuxeo") check_upgrade "nuxeo" ;;
+            "--check-upgrade-alfresco") check_upgrade "alfresco" ;;
             "--install" | "--install-release")
                 install_deps
                 if ! check_import "import PyQt6" >/dev/null; then

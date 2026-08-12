@@ -19,6 +19,7 @@ Notes:
 It __must__ be launched before any new release to validate the update process.
 """
 
+import argparse
 import hashlib
 import http.server
 import os
@@ -49,11 +50,11 @@ EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
 
 
-def create_versions(dst, version):
+def create_versions(dst, version, server_name: str):
     """Create the versions.yml file."""
 
     ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
-    name = f"nuxeo-drive-{version}{ext}"
+    name = f"{server_name}-drive-{version}{ext}"
     path = os.path.join(dst, "alpha", name)
     with open(path, "rb") as installer:
         checksum = hashlib.sha256(installer.read()).hexdigest()
@@ -103,19 +104,19 @@ def download_last_ga_release(output_dir, version):
     return output
 
 
-def gen_exe():
+def gen_exe(server_name: str):
     """Generate an executable to install."""
 
     cmd = []
 
     if EXT == "appimage":
-        cmd = "sh tools/linux/deploy_ci_agent.sh --build"
+        cmd = f"sh tools/linux/deploy_ci_agent.sh --build-{server_name}"
     elif EXT == "dmg":
-        cmd = "sh tools/osx/deploy_ci_agent.sh --build"
+        cmd = f"sh tools/osx/deploy_ci_agent.sh --build-{server_name}"
     else:
         cmd = (
             "powershell -ExecutionPolicy Unrestricted"
-            ' . ".\\tools\\windows\\deploy_ci_agent.ps1" -build'
+            f' . ".\\tools\\windows\\deploy_ci_agent.ps1" -build_{server_name}'
         )
 
     print(">>> Command:", cmd, flush=True)
@@ -125,7 +126,7 @@ def gen_exe():
 def get_last_version_number():
     """Get the latest GA release version from the update website."""
 
-    from nxdrive.updater.utils import get_latest_version
+    from ...nxdrive.drive.updater.utils import get_latest_version
 
     url = "https://community.nuxeo.com/static/drive-updates/versions.yml"
     headers = {"User-Agent": f"check-updater/{__version__}"}
@@ -137,18 +138,23 @@ def get_last_version_number():
     return get_latest_version(versions, "release")
 
 
-def get_version():
+def get_version(server_name: str = "nuxeo"):
     """Get the current version."""
 
     if EXT == "dmg":
         try:
-            ndrive_app_location = Path(
-                f"{Path.home()}/Applications/Nuxeo Drive.app/Contents"
+            app_location = Path(
+                f"{Path.home()}/Applications/{server_name.capitalize()} Drive.app/Contents"
             )
-            ndrive_exe_location = ndrive_app_location / "MacOS" / "ndrive"
-            if not ndrive_exe_location.exists():
-                raise Exception(f"Nuxeo Drive not found in {ndrive_exe_location!r}")
-            plist_path = ndrive_app_location / "Info.plist"
+            if server_name == "nuxeo":
+                exe_location = app_location / "MacOS" / "ndrive"
+            else:
+                exe_location = app_location / "MacOS" / "alfresco"
+            if not exe_location.exists():
+                raise Exception(
+                    f"{server_name.capitalize()} Drive not found in {exe_location!r}"
+                )
+            plist_path = app_location / "Info.plist"
             print(f">>> Reading Info.plist from: {plist_path}", flush=True)
             with plist_path.open("rb") as f:
                 plist = plistlib.load(f)
@@ -163,15 +169,15 @@ def get_version():
             raise
 
     file = (
-        expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
+        expandvars(f"C:\\Users\\%username%\\.{server_name}-drive\\VERSION")
         if EXT == "exe"
-        else expanduser("~/.nuxeo-drive/VERSION")
+        else expanduser(f"~/.{server_name}-drive/VERSION")
     )
     with open(file, encoding="utf-8") as f:
         return f.read().strip()
 
 
-def install_drive(installer):
+def install_drive(installer, server_name: str = "nuxeo"):
     """Install Drive onto the system to simulate a real case."""
 
     if EXT == "appimage":
@@ -184,8 +190,8 @@ def install_drive(installer):
         mount_info = subprocess.check_output(cmd, text=True).strip()
         mount_dir = mount_info.splitlines()[-1].split("\t")[-1]
 
-        src = "{}/Nuxeo Drive.app".format(mount_dir)
-        dst = f"{Path.home()}/Applications/Nuxeo Drive.app"
+        src = "{}/{} Drive.app".format(mount_dir, server_name.capitalize())
+        dst = f"{Path.home()}/Applications/{server_name.capitalize()} Drive.app"
         if os.path.isdir(dst):
             try:
                 shutil.rmtree(dst)
@@ -203,7 +209,7 @@ def install_drive(installer):
         subprocess.check_call(cmd)
 
 
-def launch_drive(executable, args=None):
+def launch_drive(executable, server_name: str = "nuxeo", args=None):
     """Launch Drive and wait for auto-update."""
 
     # Be patient, especially on Windows ...
@@ -215,106 +221,112 @@ def launch_drive(executable, args=None):
     if EXT == "appimage":
         cmd = [executable, *args]
     elif EXT == "dmg":
-        cmd = ["open", f"{Path.home()}/Applications/Nuxeo Drive.app"]
+        cmd = [
+            "open",
+            f"{Path.home()}/Applications/{server_name.capitalize()} Drive.app",
+        ]
         if args:
             cmd.append("--args")
             cmd.extend(args)
     else:
-        cmd = [
-            expandvars(
-                "C:\\Users\\%username%\\AppData\\Local\\Nuxeo Drive\\ndrive.exe"
-            ),
-            *args,
-        ]
+        if server_name == "nuxeo":
+            cmd = [
+                expandvars(
+                    "C:\\Users\\%username%\\AppData\\Local\\Nuxeo Drive\\ndrive.exe"
+                ),
+                *args,
+            ]
+        else:
+            cmd = [
+                expandvars(
+                    "C:\\Users\\%username%\\AppData\\Local\\Hyland Drive for Alfresco\\alfresco-drive.exe"
+                ),
+                *args,
+            ]
 
     print(">>> Command:", cmd, flush=True)
     subprocess.check_call(cmd)
 
 
-"""
-def cat_log():
-    ""Cat the log file.""
+# def cat_log():
+#     ""Cat the log file.""
 
-    if EXT == "exe":
-        src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
-    else:
-        src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
+#     if EXT == "exe":
+#         src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
+#     else:
+#         src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
 
-    print("", flush=True)
-    print("", flush=True)
-    print(">>> $ cat", src, flush=True)
-    with open(src, encoding="utf-8") as fh:
-        print(fh.read(), flush=True)
-        print("", flush=True)
-        print("", flush=True)
-"""
-"""
-def cat_log():
-    ""Cat the log file.""
+#     print("", flush=True)
+#     print("", flush=True)
+#     print(">>> $ cat", src, flush=True)
+#     with open(src, encoding="utf-8") as fh:
+#         print(fh.read(), flush=True)
+#         print("", flush=True)
+#         print("", flush=True)
 
-    if EXT == "exe":
-        src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
-    else:
-        src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
+# def cat_log():
+#     ""Cat the log file.""
 
-    print("", flush=True)
-    print("", flush=True)
-    print(">>> $ cat", src, flush=True)
-    print(f"src: {src!r}")
+#     if EXT == "exe":
+#         src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
+#     else:
+#         src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
 
-    src_path = src
-    dir_list = []
+#     print("", flush=True)
+#     print("", flush=True)
+#     print(">>> $ cat", src, flush=True)
+#     print(f"src: {src!r}")
 
-    while True:
-        print(f">>>> inside whule; dir_list: {dir_list!r}")
-        if not os.path.exists(src_path):
-            head, tail = os.path.split(src_path)
-            if "nxdrive.log" not in src_path:
-                dir_list.append(src_path)
-            if not head:
-                break
-            src_path = head
-        else:
-            break
-    print(">>>> outside while")
-    if dir_list:
-        dir_list.reverse()
-        for directory in dir_list:
-            print(f">>>> creating {directory!r}")
-            os.mkdir(directory)
-            print(f">>>> {directory!r} created")
-    print(">>>> All dirs created")
-    with open(src, "a") as f:
-        f.write("")
-        f.close()
-    print(">>>> file operation completed")
-    ""
-    if not os.path.exists(src):
-        dirs = [".nuxeo-drive", ".nuxeo-drive/logs"]
-        for directory in dirs:
-            if not os.path.isdir(directory):
-                os.mkdir(directory)
-        with open(src, "w") as f:
-            f.write("")
-        f.close()
-    ""
-    with open(src, "r", encoding="utf-8") as fh:
-        print(fh.read(), flush=True)
-        print("", flush=True)
-        print("", flush=True)
-    print(">>>> end of function")
-"""
+#     src_path = src
+#     dir_list = []
+
+#     while True:
+#         print(f">>>> inside whule; dir_list: {dir_list!r}")
+#         if not os.path.exists(src_path):
+#             head, tail = os.path.split(src_path)
+#             if "nxdrive.log" not in src_path:
+#                 dir_list.append(src_path)
+#             if not head:
+#                 break
+#             src_path = head
+#         else:
+#             break
+#     print(">>>> outside while")
+#     if dir_list:
+#         dir_list.reverse()
+#         for directory in dir_list:
+#             print(f">>>> creating {directory!r}")
+#             os.mkdir(directory)
+#             print(f">>>> {directory!r} created")
+#     print(">>>> All dirs created")
+#     with open(src, "a") as f:
+#         f.write("")
+#         f.close()
+#     print(">>>> file operation completed")
+#     if not os.path.exists(src):
+#         dirs = [".nuxeo-drive", ".nuxeo-drive/logs"]
+#         for directory in dirs:
+#             if not os.path.isdir(directory):
+#                 os.mkdir(directory)
+#         with open(src, "w") as f:
+#             f.write("")
+#         f.close()
+#     with open(src, "r", encoding="utf-8") as fh:
+#         print(fh.read(), flush=True)
+#         print("", flush=True)
+#         print("", flush=True)
+#     print(">>>> end of function")
 
 
-def set_options():
+def set_options(server_name: str = "nuxeo"):
     """Set given options into the config file."""
 
     if EXT == "exe":
-        home = expandvars("C:\\Users\\%username%\\.nuxeo-drive")
+        home = expandvars(f"C:\\Users\\%username%\\.{server_name}-drive")
         file = f"{home}\\config.ini"
         metrics = f"{home}\\metrics.state"
     else:
-        home = expanduser("~/.nuxeo-drive")
+        home = expanduser(f"~/.{server_name}-drive")
         file = f"{home}/config.ini"
         metrics = f"{home}/metrics.state"
 
@@ -360,25 +372,25 @@ def tests():
     return 1
 
 
-def uninstall_drive():
+def uninstall_drive(server_name: str):
     """Remove Drive from the computer."""
 
     if EXT == "appimage":
         # Nothing to uninstall on GNU/Linux"
-        home = expanduser("~/.nuxeo-drive")
+        home = expanduser(f"~/.{server_name}-drive")
     elif EXT == "dmg":
-        home = expanduser("~/.nuxeo-drive")
-        path = f"{Path.home()}/Applications/Nuxeo Drive.app"
+        home = expanduser(f"~/.{server_name}-drive")
+        path = f"{Path.home()}/Applications/{server_name.capitalize()} Drive.app"
         if os.path.isdir(path):
             try:
                 shutil.rmtree(path)
             except Exception as e:
                 print(e)
     else:
-        home = expandvars("C:\\Users\\%username%\\.nuxeo-drive")
+        home = expandvars(f"C:\\Users\\%username%\\.{server_name}-drive")
         cmd = [
             expandvars(
-                "C:\\Users\\%username%\\AppData\\Local\\Nuxeo Drive\\unins000.exe"
+                f"C:\\Users\\%username%\\AppData\\Local\\{server_name.capitalize()} Drive\\unins000.exe"
             ),
             "/verysilent",
         ]
@@ -421,23 +433,23 @@ def version_decrement(version):
     return ".".join(map(str, numbers))
 
 
-def version_find():
+def version_find(server_name: str):
     """
     Find the current Drive version.
 
     :return tuple: The version and line number where it is defined.
     """
-
+    version_string = "__version__" if server_name == "nuxeo" else "__alfresco_version__"
     path = os.path.join("nxdrive", "__init__.py")
     with open(path, encoding="utf-8") as handler:
         for lineno, line in enumerate(handler.readlines()):
-            if line.startswith("__version__"):
+            if line.startswith(version_string):
                 version = re.findall(r'"(.+)"', line)[0]
                 print(">>> Current version is", version, "at line", lineno, flush=True)
                 return version, lineno
 
 
-def version_update(version, lineno):
+def version_update(server_name: str, version, lineno):
     """Update Drive version."""
 
     path = os.path.join("nxdrive", "__init__.py")
@@ -445,7 +457,8 @@ def version_update(version, lineno):
     with open(path, encoding="utf-8") as handler:
         content = handler.readlines()
 
-    content[lineno] = f'__version__ = "{version}"\n'
+    version_string = "__version__" if server_name == "nuxeo" else "__alfresco_version__"
+    content[lineno] = f'{version_string} = "{version}"\n'
 
     with open(path, "w", encoding="utf-8", newline="\n") as handler:
         handler.write("".join(content))
@@ -482,31 +495,32 @@ def webserver(folder, port=8000):
 #
 
 
-def check_against_me(root):
+def check_against_me(root, server_name: str):
     """Check the auto-updater against itself."""
-    version, lineno = version_find()
+    version, lineno = version_find(server_name)
 
     # Guess the anterior version
     previous = version_decrement(version)
 
     try:
         # Update the version in Drive code source to emulate an old version
-        version_update(previous, lineno)
-        assert version_find() == (previous, lineno)
+        version_update(server_name, previous, lineno)
+        assert version_find(server_name) == (previous, lineno)
 
         # No need to build Windows addons for the version N-1
         os.environ["SKIP_ADDONS"] = "1"
 
-        exe = generate_installer(root, previous, move=True)
+        exe = generate_installer(root, previous, server_name, move=True)
 
-        # And gooo!
-        job(root, version, exe, previous, "dev")
+        # Skip if "alfresco", because local server is not available for this server type
+        if server_name != "alfresco":
+            job(root, version, exe, previous, "dev")
     finally:
         # Restore the original version
-        version_update(version, lineno)
+        version_update(server_name, version, lineno)
 
 
-def check_against_last_release(root):
+def check_against_last_release(root, server_name: str):
     """Check the auto-updater against the latest GA release."""
 
     version, _ = version_find()
@@ -524,24 +538,26 @@ def check_against_last_release(root):
     job(root, version, last_ga, ga_version, "ga")
 
 
-def generate_installer(root, version, move=False):
+def generate_installer(root, version, server_name: str, move=False):
     """Generate the installer for a given version and copy/move it to the web server root."""
 
     # Generate the installer
-    gen_exe()
+    gen_exe(server_name)
 
     # Copy or move all files to the webserver
     dst_folder = os.path.join(root, "alpha")
     ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
-    dst_file = os.path.join(dst_folder, os.path.basename(f"nuxeo-drive-{version}{ext}"))
+    dst_file = os.path.join(
+        dst_folder, os.path.basename(f"{server_name}-drive-{version}{ext}")
+    )
 
     func = shutil.move if move else shutil.copy
-    for file in Path("dist").glob(f"nuxeo-drive-{version}*"):
+    for file in Path("dist").glob(f"{server_name}-drive-{version}*"):
         print(">>>", func.__name__.title(), file, "->", dst_folder, flush=True)
         func(str(file), dst_folder)
 
     # Create, or append to, the versions.yml file
-    create_versions(root, version)
+    create_versions(root, version, server_name)
 
     return dst_file
 
@@ -555,10 +571,10 @@ def job(root, version, executable, previous_version, name):
 
     try:
         # Install Drive on the computer
-        install_drive(executable)
+        install_drive(executable, "nuxeo")
 
         # Set the sync-and-stop option to let Drive update and quit without manual action
-        set_options()
+        set_options("nuxeo")
 
         version_forced = os.getenv("FORCE_USE_LATEST_VERSION", "0") == "1"
         if not version_forced:
@@ -571,6 +587,7 @@ def job(root, version, executable, previous_version, name):
             password = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
             launch_drive(
                 executable,
+                "nuxeo",
                 [
                     "bind-server",
                     username,
@@ -582,7 +599,7 @@ def job(root, version, executable, previous_version, name):
 
         # Launch Drive in its own thread
         print(">>> Testing upgrade", previous_version, "->", version, flush=True)
-        threading.Thread(target=launch_drive, args=(executable,)).start()
+        threading.Thread(target=launch_drive, args=(executable, "nuxeo")).start()
 
         # Start the web server
         webserver(root)
@@ -591,7 +608,7 @@ def job(root, version, executable, previous_version, name):
         # cat_log()
 
         # And assert the version is the good one
-        current_ver = get_version()
+        current_ver = get_version("nuxeo")
         print(f">>> Current version is {current_ver!r}", flush=True)
         """
         assert (
@@ -604,15 +621,17 @@ def job(root, version, executable, previous_version, name):
         if not version_forced:
             # Remove the account
             try:
-                launch_drive(executable, ["clean-folder", f"--local-folder={root}"])
+                launch_drive(
+                    executable, "nuxeo", ["clean-folder", f"--local-folder={root}"]
+                )
             except Exception as exc:
                 print(" !! ERROR:", exc, flush=True)
 
         # Remove the installation
-        uninstall_drive()
+        uninstall_drive("nuxeo")
 
 
-def setup():
+def setup(server_name: str):
     """Setup and cleanup."""
 
     # Cleanup
@@ -620,7 +639,7 @@ def setup():
         shutil.rmtree("dist")
 
     # Remove previous installation
-    uninstall_drive()
+    uninstall_drive(server_name)
 
     # Server tree
     root = tempfile.mkdtemp()
@@ -633,16 +652,30 @@ def setup():
 def main():
     """Main logic."""
 
-    root = setup()
+    parser = argparse.ArgumentParser(description="Fetch server name")
+    parser.add_argument(
+        "--server",
+        action="store",
+        dest="server",
+        default="nuxeo",
+        help="nuxeo/alfresco",
+    )
+    server_name = str(parser.parse_args().server)
+
+    # Run tests if "nuxeo"
+    if server_name == "nuxeo":
+        tests()
+
+    root = setup(server_name)
 
     # Generate the current version executable
-    version, _ = version_find()
-    generate_installer(root, version)
+    version, _ = version_find(server_name)
+    generate_installer(root, version, server_name)
 
     try:
-        check_against_me(root)
+        check_against_me(root, server_name)
         # To enable on all OS when 4.4.0 is GA
-        # check_against_last_release(root)
+        # check_against_last_release(root, server_name)
     finally:
         # Cleanup
         try:
@@ -652,5 +685,4 @@ def main():
 
 
 if __name__ == "__main__":
-    tests()
     sys.exit(main())

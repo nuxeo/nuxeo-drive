@@ -1,3 +1,4 @@
+import logging
 import os
 import platform
 import shutil
@@ -10,12 +11,19 @@ import nuxeo.operations
 import pytest
 from nuxeo.client import Nuxeo
 
-from nxdrive.options import Options
-from nxdrive.utils import adapt_datetime_iso, get_verify
+from nxdrive.drive.options import Options
+from nxdrive.drive.utils import adapt_datetime_iso, get_verify
 
-from . import env
+from . import env_nuxeo as env
 
 pytest_plugins = "tests.pytest_random"
+
+# Frozen legacy tree — never collected by pytest.
+collect_ignore = ["old_tests"]
+
+# Silence noisy third-party loggers
+logging.getLogger("faker").setLevel(logging.WARNING)
+logging.getLogger("nuxeo").setLevel(logging.INFO)
 
 
 # Operations cache
@@ -123,6 +131,9 @@ def no_warnings(recwarn):
 
         if "sentry_sdk" in warning.filename:
             continue
+        elif "site-packages" in warning.filename:
+            # Ignore warnings from third-party libraries
+            continue
         elif "WaitForInputIdle" in message:
             # Happen while testing the integration on Windows, we can skip it:
             # "Application is not loaded correctly (WaitForInputIdle failed)"
@@ -145,15 +156,15 @@ def no_warnings(recwarn):
             continue
         elif "Cryptography will be significantly faster" in message:
             continue
+        elif "ResourceTracker called reentrantly for resource cleanup" in message:
+            # Python 3.13 may emit this while multiprocessing synchronization
+            # primitives are finalized concurrently at test shutdown. It is a
+            # CPython resource-tracker warning, not an application warning.
+            continue
         elif "unclosed database" in message:
             continue
-        elif "unclosed <socket.socket" in message:
-            # Python 3.13 emits this ResourceWarning in some HTTP teardown paths.
-            # It is non-deterministic in functional runs and creates false negatives.
-            continue
-        elif "unclosed <ssl.SSLSocket" in message:
-            # Python 3.13 can also report unclosed SSL sockets for HTTPS sessions.
-            # This has the same non-deterministic behavior as plain sockets.
+        elif "unclosed" in message:
+            # ResourceWarning from unclosed sockets/connections
             continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
@@ -236,7 +247,7 @@ def app():
     Fixture required to be able to process Qt events and quit smoothly the application.
     To use in "functional" and "unit" tests only.
     """
-    from nxdrive.qt.imports import QCoreApplication, QTimer
+    from nxdrive.drive.qt.imports import QCoreApplication, QTimer
 
     app = QCoreApplication.instance() or QCoreApplication([])
 

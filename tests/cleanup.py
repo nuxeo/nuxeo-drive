@@ -1,28 +1,25 @@
-"""Cleanup old test users and workspaces."""
+"""Cleanup old test users and workspaces.
 
-import env
-from nuxeo.client import Nuxeo
+Thin wrapper that delegates to the Nuxeo-specific cleanup module.
+Kept at ``tests/cleanup.py`` for backward compatibility with
+``tox -e clean``.
+"""
 
+import sys
+from pathlib import Path
 
-def remove_old_ws(server: Nuxeo) -> None:
-    docs = server.documents.get_children(path=env.WS_DIR)
-    for doc in docs:
-        if doc.title.startswith(("ndt-", "test_")):
-            doc.delete()
-            print(f"Deleted old {doc}")
+# When invoked as ``python tests/cleanup.py``, Python prepends the script's
+# directory (tests/) to sys.path.  This causes ``tests/nuxeo/`` to shadow the
+# third-party ``nuxeo`` package.  Fix by replacing that entry with the project
+# root so both ``tests`` (as a package) and ``nuxeo`` (third-party) resolve
+# correctly.
+_root = str(Path(__file__).resolve().parent.parent)
+_tests_dir = str(Path(__file__).resolve().parent)
+if sys.path and sys.path[0] == _tests_dir:
+    sys.path[0] = _root
+elif _root not in sys.path:
+    sys.path.insert(0, _root)
 
+import runpy  # noqa: E402
 
-def remove_old_users(server: Nuxeo) -> None:
-    op = server.operations.new("User.Query")
-    op.params = {"username": "ndt-%"}
-    for user in op.execute()["users"]:
-        server.users.delete(user["username"])
-        print(f"Deleted old {user}")
-
-
-auth = (env.NXDRIVE_TEST_USERNAME, env.NXDRIVE_TEST_PASSWORD)
-server = Nuxeo(host=env.NXDRIVE_TEST_NUXEO_URL, auth=auth)
-server.client.set(schemas=["dublincore"])
-
-remove_old_ws(server)
-remove_old_users(server)
+runpy.run_path(_tests_dir + "/nuxeo/cleanup.py", run_name="__main__")

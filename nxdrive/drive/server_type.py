@@ -1,0 +1,256 @@
+"""
+Server type registry.
+
+Each server-type package (``nuxeo/``, ``alfresco/``, …) registers its own
+configuration here.  The ``drive/`` layer queries this registry instead of
+hard-coding server-specific values.
+"""
+
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+
+class FileSystemID(Enum):
+    """File system item ID format used by a server type."""
+
+    UUID = "UUID"  # opaque identifier, e.g. Nuxeo
+    HUMANTEXT = "HUMANTEXT"  # human readable name / path, e.g. Alfresco
+
+
+@dataclass
+class ServerTypeConfig:
+    """Configuration contributed by a server-type package."""
+
+    key: str  # e.g. "NUXEO", "ALFRESCO"
+    home_dir: str  # e.g. ".nuxeo-drive", ".alfresco-drive"
+    log_file: str  # e.g. "nxdrive.log", "aldrive.log"
+    db_prefix: str  # e.g. "ndrive_", "adrive_"
+    engine_type: str  # engine type key e.g. "NXDRIVE", "ALFRESCO"
+    engine_class_path: str = ""  # e.g. "nxdrive.nuxeo.engine.engine.Engine"
+    direct_edit_class_path: str = ""  # e.g. "nxdrive.nuxeo.direct_edit.DirectEdit"
+    direct_download_class_path: str = (
+        ""  # e.g. "nxdrive.nuxeo.direct_download.DirectDownload"
+    )
+    workflow_class_path: str = ""  # e.g. "nxdrive.nuxeo.client.workflow.Workflow"
+    document_info_class_path: str = ""  # e.g. "nxdrive.nuxeo.objects.NuxeoDocumentInfo"
+    oauth2_class_path: str = ""  # e.g. "nxdrive.nuxeo.auth.oauth2.OAuthentication"
+    folders_only_class_path: str = (
+        ""  # e.g. "nxdrive.nuxeo.gui.folders_model.FoldersOnly"
+    )
+    new_account_popup_qml_path: str = ""  # e.g. "nuxeo/gui/qml/NewAccountPopup.qml"
+    relogin_popup_qml_path: str = ""  # e.g. "alfresco/gui/qml/ReLoginPopup.qml"
+    disabled_features: List[str] = field(default_factory=list)
+    auth_factory: Optional[Callable[..., Any]] = None
+
+    # Branding
+    app_name: str = "Drive"  # e.g. "Nuxeo Drive", "Hyland Drive for Alfresco"
+    company: str = "Hyland"
+    bundle_identifier: str = "com.hyland.drive"  # macOS bundle id
+    url_scheme: str = "drive"  # custom URL protocol
+    config_registry_key: str = "Software\\\\Hyland\\\\Drive"  # Windows registry
+    emblem_name: str = "emblem-drive"  # Linux folder emblem icon name
+    local_folder_name: str = "Drive"  # default sync folder name
+    download_exe: str = "drive-{}.exe"  # fatal error download filename (Windows)
+    download_dmg: str = "drive-{}.dmg"  # fatal error download filename (macOS)
+    download_appimage: str = "drive-{}-x86_64.AppImage"  # fatal error download (Linux)
+
+    # Nuxeo-specific (empty for non-Nuxeo server types)
+    sync_root: str = ""  # e.g. "/org.nuxeo.drive.service.impl..."
+    url_patterns: List[str] = field(default_factory=list)  # URL path suffixes to match
+
+    # SSL validation page to probe when checking server connectivity
+    ssl_login_page: str = ""  # e.g. "" (Nuxeo default), "api/discovery" (Alfresco)
+
+    # Startup pages used by authentication flows.
+    startup_page: str = ""
+    browser_startup_page: str = ""
+
+    # Whether the server type supports browser-based token update (OAuth2 redirect)
+    supports_browser_token_update: bool = True
+
+    # If True, this config is returned by detect_by_url when no url_patterns match
+    is_url_fallback: bool = False
+
+    # Version string of the underlying Python client library (e.g. nuxeo.__version__)
+    client_version: str = ""
+
+    # Platform-specific configurations
+    findersync_agent_template: str = ""  # macOS launch agent plist template
+    findersync_bundle_id_suffix: str = (
+        ""  # e.g. "NuxeoFinderSync", "AlfrescoFinderSync"
+    )
+    findersync_appex_name: str = (
+        ""  # e.g. "NuxeoFinderSync.appex", "AlfrescoFinderSync.appex"
+    )
+    addon_installer_name: str = ""  # Windows addon installer exe name
+    update_site_url: str = ""  # Update server URL for this server type
+
+    # Hook called when debug mode is enabled (e.g. to set nuxeo.constants.CHECK_PARAMS)
+    debug_init_hook: Optional[Callable[[], None]] = None
+
+    # Hook to re-authenticate when browser-based token update is not supported
+    # Signature: relogin_handler(engine, password) -> None
+    relogin_handler: Optional[Callable[..., None]] = None
+
+    # Hook for the non-frozen debug auth dialog (server-type specific)
+    # Signature: debug_auth_handler(url, manager, api) -> None
+    debug_auth_handler: Optional[Callable[..., None]] = None
+
+    # Hook for server-specific username/password binding flow.
+    # Signature: password_auth_handler(api, local_folder, server_url, username, password) -> None
+    password_auth_handler: Optional[Callable[..., None]] = None
+
+    # Hook for server-specific OAuth2 password-grant flow.
+    # Signature: oauth2_password_auth_handler(api, local_folder, server_url, username, password) -> None
+    oauth2_password_auth_handler: Optional[Callable[..., None]] = None
+
+    # Hook used by protocol URL parsing to extract a remote path from a
+    # direct-transfer URL payload.
+    # Signature: parse_direct_transfer_remote_path(value: str) -> str
+    parse_direct_transfer_remote_path: Optional[Callable[[str], str]] = None
+
+    # Hook used by protocol URL parsing to normalize the server segment for
+    # direct-download URLs.
+    # Signature: normalize_download_server_path(server_part: str) -> str
+    normalize_download_server_path: Optional[Callable[[str], str]] = None
+
+    # Hook used by protocol URL parsing to normalize/repair incoming protocol
+    # callback URLs before regex matching.
+    # Signature: normalize_protocol_url(url: str) -> str
+    normalize_protocol_url: Optional[Callable[[str], str]] = None
+
+    # Regex fragment used for token callback payload matching.
+    # Example: r"[0-9a-fA-F\\-]+" or r"[^/]+"
+    protocol_token_pattern: str = ""
+
+    # Hook that returns the server-type-specific test server URL env-var value.
+    # Used by QMLDriveApi.default_server_url_value() for developer convenience.
+    # Signature: test_server_url_getter() -> str
+    test_server_url_getter: Optional[Callable[[], str]] = None
+
+    # Hooks to persist/recover browser-auth callback context.
+    # Signatures:
+    #   save_auth_callback_params(api, params: Dict[str, str]) -> None
+    #   load_auth_callback_params(api) -> Dict[str, str]
+    #   clear_auth_callback_params(api) -> None
+    save_auth_callback_params_hook: Optional[Callable[..., None]] = None
+    load_auth_callback_params_hook: Optional[Callable[..., Dict[str, str]]] = None
+    clear_auth_callback_params_hook: Optional[Callable[..., None]] = None
+
+    # File system item ID format used by this server type.
+    # UUID: opaque id (Nuxeo). HUMANTEXT: human readable name / path (Alfresco).
+    fs_item_id_format: FileSystemID = FileSystemID.UUID
+
+
+# ---- internal state --------------------------------------------------------
+
+_registry: Dict[str, ServerTypeConfig] = {}
+_default_key: Optional[str] = None
+
+
+# ---- public API ------------------------------------------------------------
+
+
+def register(config: ServerTypeConfig, *, default: bool = False) -> None:
+    """Register a server-type configuration."""
+    _registry[config.key] = config
+    if default:
+        global _default_key
+        _default_key = config.key
+
+
+def get(key: str) -> ServerTypeConfig:
+    """Return the config for *key*, falling back to the default."""
+    return _registry.get(key, _registry[get_default_key()])
+
+
+def get_default_key() -> str:
+    """Return the key of the default server type."""
+    return _default_key or next(iter(_registry))
+
+
+def all_configs() -> Dict[str, ServerTypeConfig]:
+    """Return all registered configs."""
+    return dict(_registry)
+
+
+def all_home_dirs() -> Tuple[str, ...]:
+    """Return all known home directory names."""
+    return tuple(c.home_dir for c in _registry.values())
+
+
+def all_db_prefixes() -> Tuple[str, ...]:
+    """Return all known database file prefixes."""
+    return tuple(c.db_prefix for c in _registry.values())
+
+
+def all_keys() -> Tuple[str, ...]:
+    """Return all registered server-type keys."""
+    return tuple(_registry.keys())
+
+
+def get_by_engine_type(engine_type: str) -> ServerTypeConfig:
+    """Return the config whose *engine_type* matches, falling back to default."""
+    for config in _registry.values():
+        if config.engine_type == engine_type:
+            return config
+    return _registry[get_default_key()]
+
+
+def detect_by_url(url: str) -> ServerTypeConfig:
+    """Return the config whose *url_patterns* match the URL path suffix.
+
+    Tries each registered config's ``url_patterns`` against the URL
+    path (stripped of trailing slashes).  The first match wins.
+    If nothing matches, the config with ``is_url_fallback=True`` is
+    returned; otherwise the default config is returned.
+    """
+    from urllib.parse import urlparse
+
+    path = urlparse(url).path.rstrip("/")
+    for config in _registry.values():
+        for pattern in config.url_patterns:
+            if path.endswith(f"/{pattern}") or path == pattern:
+                return config
+    # Return the fallback config, or the default
+    for config in _registry.values():
+        if config.is_url_fallback:
+            return config
+    return _registry[get_default_key()]
+
+
+def load_class(class_path: str) -> Optional[type]:
+    """Import and return the class at *class_path*, or ``None`` on failure."""
+    if not class_path:
+        return None
+    import importlib
+
+    module_path, class_name = class_path.rsplit(".", 1)
+    try:
+        module = importlib.import_module(module_path)
+        return getattr(module, class_name)
+    except (ImportError, AttributeError):
+        return None
+
+
+def first_class_path(attr_name: str) -> str:
+    """Return the first non-empty ``attr_name`` class path across registered
+    configs, preferring the default.  Returns an empty string if none of the
+    registered server types contribute an implementation for *attr_name*.
+
+    Used by manager-level singletons (DirectEdit, DirectDownload, Workflow)
+    that must gracefully degrade when the default backend doesn't provide
+    an implementation (e.g. Alfresco-only build).
+    """
+    default_key = get_default_key()
+    default_cfg = _registry.get(default_key)
+    if default_cfg is not None:
+        path = getattr(default_cfg, attr_name, "")
+        if path:
+            return path
+    for cfg in _registry.values():
+        path = getattr(cfg, attr_name, "")
+        if path:
+            return path
+    return ""

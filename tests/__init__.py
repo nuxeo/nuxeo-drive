@@ -20,7 +20,7 @@ nuxeo.constants.CHECK_PARAMS = True
 def configure_logs():
     """Configure the logging module."""
 
-    from nxdrive.logging_config import configure
+    from nxdrive.drive.logging_config import configure
 
     configure(
         console_level="DEBUG",

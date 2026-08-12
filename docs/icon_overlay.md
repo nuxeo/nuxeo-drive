@@ -29,7 +29,86 @@ gio info FILE
 
 ## macOS
 
-TODO
+The Finder folder icon used by Drive is stored as a binary payload in `folder_mac.dat`.
+That payload is then written to `com.apple.ResourceFork` at runtime.
+
+### Generate a full icon-family `.icns`
+
+If your source `.icns` has only one size (for example only 512x512), rebuild it as a full icon family first.
+
+```shell
+cd /path/to/nuxeo-drive
+
+# Source icon: nxdrive/data/icons/alfresco/folder_mac.icns
+rm -rf /tmp/folder_mac_src.iconset /tmp/folder_mac_fixed.iconset
+iconutil -c iconset nxdrive/data/icons/alfresco/folder_mac.icns -o /tmp/folder_mac_src.iconset
+mkdir -p /tmp/folder_mac_fixed.iconset
+
+SRC=/tmp/folder_mac_src.iconset/icon_512x512.png
+sips -z 16 16 "$SRC" --out /tmp/folder_mac_fixed.iconset/icon_16x16.png >/dev/null
+sips -z 32 32 "$SRC" --out /tmp/folder_mac_fixed.iconset/icon_16x16@2x.png >/dev/null
+sips -z 32 32 "$SRC" --out /tmp/folder_mac_fixed.iconset/icon_32x32.png >/dev/null
+sips -z 64 64 "$SRC" --out /tmp/folder_mac_fixed.iconset/icon_32x32@2x.png >/dev/null
+sips -z 128 128 "$SRC" --out /tmp/folder_mac_fixed.iconset/icon_128x128.png >/dev/null
+sips -z 256 256 "$SRC" --out /tmp/folder_mac_fixed.iconset/icon_128x128@2x.png >/dev/null
+sips -z 256 256 "$SRC" --out /tmp/folder_mac_fixed.iconset/icon_256x256.png >/dev/null
+sips -z 512 512 "$SRC" --out /tmp/folder_mac_fixed.iconset/icon_256x256@2x.png >/dev/null
+sips -z 512 512 "$SRC" --out /tmp/folder_mac_fixed.iconset/icon_512x512.png >/dev/null
+sips -z 1024 1024 "$SRC" --out /tmp/folder_mac_fixed.iconset/icon_512x512@2x.png >/dev/null
+
+iconutil -c icns /tmp/folder_mac_fixed.iconset -o nxdrive/data/icons/alfresco/folder_mac_fixed.icns
+```
+
+### Generate `folder_mac.dat` from `.icns`
+
+Use `Rez` to build an `icns` resource, then extract the resource fork payload.
+
+```shell
+cd /path/to/nuxeo-drive
+
+HEX=$(xxd -p -c 32 nxdrive/data/icons/alfresco/folder_mac_fixed.icns | sed 's/^/  $"/; s/$/"/')
+{
+    echo "data 'icns' (-16455) {"
+    echo "$HEX"
+    echo "};"
+} > /tmp/folder_mac_data.r
+
+Rez /tmp/folder_mac_data.r -o /tmp/folder_mac_data.rsrc
+xattr -px com.apple.ResourceFork /tmp/folder_mac_data.rsrc | xxd -r -p > /tmp/folder_mac.dat
+```
+
+Important: do not use `xattr -p` for this extraction; it is text-oriented and can produce a 1-byte output. Use `xattr -px ... | xxd -r -p`.
+
+### Update repo assets
+
+For Alfresco only:
+
+```shell
+cp /tmp/folder_mac.dat nxdrive/data/icons/alfresco/folder_mac.dat
+```
+
+For Nuxeo only:
+
+```shell
+cp /tmp/folder_mac.dat nxdrive/data/icons/nuxeo/folder_mac.dat
+```
+
+To update all variants:
+
+```shell
+cp /tmp/folder_mac.dat nxdrive/data/icons/alfresco/folder_mac.dat
+cp /tmp/folder_mac.dat nxdrive/data/icons/nuxeo/folder_mac.dat
+cp /tmp/folder_mac.dat nxdrive/drive/data/icons/folder_mac.dat
+```
+
+### Verify
+
+```shell
+ls -l nxdrive/data/icons/alfresco/folder_mac.dat
+shasum nxdrive/data/icons/alfresco/folder_mac.dat
+```
+
+`folder_mac.dat` should be much larger than 1 byte.
 
 ## Windows
 

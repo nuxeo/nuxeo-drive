@@ -1,11 +1,16 @@
 # Usage: powershell ".\tools\windows\deploy_ci_agent.ps1" [ARG]
 #
 # Possible ARG:
-#     -build: build the installer
+#     -build_nuxeo: build the Nuxeo installer
+#     -build_alfresco: build the Alfresco installer
+#     -build_nuxeo_dlls: build Nuxeo shell extension DLLs only
+#     -build_alfresco_dlls: build Alfresco shell extension DLLs only
+#     -build_nuxeo_installer_and_sign: build and sign Nuxeo installer artifacts
+#     -build_alfresco_installer_and_sign: build and sign Alfresco installer artifacts
 #     -check_upgrade: check the auto-update works
 #     -install: install all dependencies
 #     -install_release: install all but test dependencies
-#     -start: start Nuxeo Drive
+#     -start: start Drive
 #     -tests: launch the tests suite
 #
 # See /docs/deployment.md for more information.
@@ -18,10 +23,14 @@
 # There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
 #
 param (
-	[switch]$build = $false,
-	[switch]$build_dlls = $false,
-	[switch]$check_upgrade = $false,
-	[switch]$build_installer_and_sign = $false,
+	[switch]$build_nuxeo = $false,
+	[switch]$build_alfresco = $false,
+	[switch]$build_nuxeo_dlls = $false,
+	[switch]$build_alfresco_dlls = $false,
+	[switch]$check_upgrade_nuxeo = $false,
+	[switch]$check_upgrade_alfresco = $false,
+	[switch]$build_nuxeo_installer_and_sign = $false,
+	[switch]$build_alfresco_installer_and_sign = $false,
 	[switch]$install = $false,
 	[switch]$install_release = $false,
 	[switch]$start = $false,
@@ -55,11 +64,16 @@ function Install-PythonRequirements {
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pip list
 }
 
-function add_missing_ddls {
+function add_missing_dlls($server_name) {
 	# Missing DLLS for Windows 7
 	$folder = "C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\x86\"
 	if (Test-Path $folder) {
-		Get-ChildItem $folder | Copy -Verbose -Force -Destination "dist\ndrive"
+		if ($server_name -eq "nuxeo") {
+			Get-ChildItem $folder | Copy -Verbose -Force -Destination "dist\ndrive"
+		}
+		elseif ($server_name -eq "alfresco") {
+			Get-ChildItem $folder | Copy -Verbose -Force -Destination "dist\alfresco-drive"
+		}
 	}
 }
 
@@ -70,9 +84,11 @@ function build($app_version, $script) {
 	if (-Not (Test-Path "$Env:ISCC_PATH")) {
 		$filename = "innosetup-$Env:INNO_SETUP_VERSION.exe"
 		$output = "$Env:WORKSPACE\$filename"
-		$url = "https://mlaan2.home.xs4all.nl/ispack/$filename"
+		$url = "https://github.com/jrsoftware/issrc/releases/download/is-6_1_2/$filename"
 		download $url $output
 		Write-Output ">>> Installing Inno Setup $Env:INNO_SETUP_VERSION"
+		Write-Output ">>> On Local Machine, powershell session must be run as Administrator"
+		Write-Output ">>> On GitHub-CI, the runner is already Administrator"
 		# https://jrsoftware.org/ishelp/index.php?topic=setupcmdline
 		Start-Process $output -argumentlist "`
 			/SP- `
@@ -90,22 +106,66 @@ function build($app_version, $script) {
 	}
 }
 
-function build_dll($msbuild_exe, $project, $platform) {
-	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\NuxeoDriveShellExtensions"
-	& $msbuild_exe $folder\NuxeoDriveShellExtensions.sln /t:$project /p:Configuration=Release /p:Platform=$platform
+function cleanup_copied_icons($server_name) {
+	# Local-build only: remove icons that were copied from
+	# nxdrive\data\icons\<server>\ into nxdrive\drive\data\icons\ before the
+	# build, so they don't appear as changes in `git status`. Only files
+	# whose relative path also exists in the server-specific source folder
+	# are removed; shared icons that don't come from that folder are kept.
+	# No-op on CI (GITHUB_WORKSPACE set): CI runners are ephemeral.
+	if ($Env:GITHUB_WORKSPACE) {
+		return
+	}
+
+	$source_folder = "nxdrive\data\icons\$server_name"
+	$destination_folder = "nxdrive\drive\data\icons"
+
+	if (-Not (Test-Path $source_folder) -Or -Not (Test-Path $destination_folder)) {
+		return
+	}
+
+	Write-Output ">>> [local] Removing copied $server_name icons from $destination_folder"
+	$source_root = (Resolve-Path $source_folder).Path
+	Get-ChildItem -Path $source_folder -Recurse -File | ForEach-Object {
+		$rel = $_.FullName.Substring($source_root.Length).TrimStart('\')
+		$target = Join-Path $destination_folder $rel
+		if (Test-Path -LiteralPath $target -PathType Leaf) {
+			Remove-Item -LiteralPath $target -Force
+		}
+	}
 }
 
-function build_installer {
+function build_dll($server_name, $msbuild_exe, $project, $platform) {
+	$server_name = $server_name.ToLower()
+	if ($server_name -eq "nuxeo") {
+		$server_name = "Nuxeo"
+	}
+	elseif ($server_name -eq "alfresco") {
+		$server_name = "Alfresco"
+	}
+	try {
+		$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}DriveShellExtensions"
+		& $msbuild_exe "$folder\${server_name}DriveShellExtensions.sln" /t:$project /p:Configuration=Release /p:Platform=$platform
+	}
+	catch {
+		Write-Error ">>> Failed to build $folder : $_"
+	}
+}
+
+function build_nuxeo_installer {
+	# Move icons from nxdrive/data/icons/nuxeo to nxdrive/drive/data/icons
+	xcopy "nxdrive\data\icons\nuxeo\*" "nxdrive\drive\data\icons" /e /y /i
+
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
-	# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine
+	# Build DLLs only on GitHub-CI, no need to lose time on the local dev machine
 	if ($Env:GITHUB_WORKSPACE) {
-		build_overlays
+		build_overlays "nuxeo"
 	}
 
-	Write-Output ">>> [$app_version] Freezing the application"
-	freeze_pyinstaller
+	Write-Output ">>> Nuxeo [$app_version] Freezing the application"
+	freeze_pyinstaller "nuxeo"
 
 	# Do some clean-up
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
@@ -113,7 +173,7 @@ function build_installer {
 	# Remove compiled QML files
 	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
 
-	add_missing_ddls
+	add_missing_dlls "nuxeo"
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
@@ -125,21 +185,79 @@ function build_installer {
 	}
 
 	if (-Not ($Env:SKIP_ADDONS)) {
-		build "$app_version" "tools\windows\setup-addons.iss"
+		build "$app_version" "tools\windows\nuxeo_iss\setup-addons.iss"
 		#sign "dist\nuxeo-drive-addons.exe"
 	}
 
-	build "$app_version" "tools\windows\setup.iss"
+	build "$app_version" "tools\windows\nuxeo_iss\setup.iss"
 	#sign "dist\nuxeo-drive-$app_version.exe"
 
-	build "$app_version" "tools\windows\setup-admin.iss"
+	build "$app_version" "tools\windows\nuxeo_iss\setup-admin.iss"
 	#sign "dist\nuxeo-drive-$app_version-admin.exe"
+
+	cleanup_copied_icons "nuxeo"
 }
 
-function build_overlays {
-	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\NuxeoDriveShellExtensions"
-	$util_dll = "NuxeoDriveUtil"
-	$overlay_dll = "NuxeoDriveOverlays"
+function build_alfresco_installer {
+	# Move icons from nxdrive/data/icons/alfresco to nxdrive/drive/data/icons
+	xcopy "nxdrive\data\icons\alfresco\*" "nxdrive\drive\data\icons" /e /y /i
+
+	# Build the installer
+	$app_version = (Get-Content nxdrive/__init__.py) -match "__alfresco_version__" -replace '"', "" -replace "__alfresco_version__ = ", ""
+
+	# Build DLLs only on GitHub-CI, no need to lose time on the local dev machine
+	if ($Env:GITHUB_WORKSPACE) {
+		build_overlays "alfresco"
+	}
+
+	Write-Output ">>> Alfresco [$app_version] Freezing the application"
+	freeze_pyinstaller "alfresco"
+
+	# Do some clean-up
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\alfresco-drive"
+
+	# Remove compiled QML files
+	Get-ChildItem -Path "dist\alfresco-drive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
+
+	add_missing_dlls "alfresco"
+
+	# Stop now if we only want the application to be frozen (for integration tests)
+	if ($Env:FREEZE_ONLY) {
+		return 0
+	}
+
+	if ($Env:ZIP_NEEDED) {
+		zip_files "dist\alfresco-drive-windows-$app_version.zip" "dist\alfresco-drive"
+	}
+
+	if (-Not ($Env:SKIP_ADDONS)) {
+		build "$app_version" "tools\windows\alfresco_iss\setup-addons.iss"
+	}
+
+	build "$app_version" "tools\windows\alfresco_iss\setup.iss"
+
+	build "$app_version" "tools\windows\alfresco_iss\setup-admin.iss"
+
+	cleanup_copied_icons "alfresco"
+}
+
+function build_overlays($server_name) {
+
+	if ($server_name -eq "nuxeo") {
+		$server_name = "Nuxeo"
+	}
+	elseif ($server_name -eq "alfresco") {
+		$server_name = "Alfresco"
+	}
+	else {
+		Write-Output ">>> Unknown server name: $server_name"
+		ExitWithCode 1
+	}
+
+	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}DriveShellExtensions"
+	$util_dll = "${server_name}DriveUtil"
+	$overlay_dll = "${server_name}DriveOverlays"
+	$installer_dll_folder = "$Env:WORKSPACE_DRIVE\tools\windows\$($server_name.ToLower())_iss\dll"
 
 	# Remove old DLLs on GitHub-CI to prevent such errors:
 	#	Rename-Item : Cannot create a file when that file already exists.
@@ -149,12 +267,12 @@ function build_overlays {
 
 	# List of DLLs to build
 	$overlays = @(
-		@{Name = 'NuxeoDriveSynced'; Id = '1'; Icon = 'badge_synced' },
-		@{Name = 'NuxeoDriveSyncing'; Id = '2'; Icon = 'badge_syncing' },
-		@{Name = 'NuxeoDriveConflicted'; Id = '3'; Icon = 'badge_conflicted' },
-		@{Name = 'NuxeoDriveError'; Id = '4'; Icon = 'badge_error' },
-		@{Name = 'NuxeoDriveLocked'; Id = '5'; Icon = 'badge_locked' },
-		@{Name = 'NuxeoDriveUnsynced'; Id = '6'; Icon = 'badge_unsynced' }
+		@{Name = "${server_name}DriveSynced"; Id = '1'; Icon = 'badge_synced' },
+		@{Name = "${server_name}DriveSyncing"; Id = '2'; Icon = 'badge_syncing' },
+		@{Name = "${server_name}DriveConflicted"; Id = '3'; Icon = 'badge_conflicted' },
+		@{Name = "${server_name}DriveError"; Id = '4'; Icon = 'badge_error' },
+		@{Name = "${server_name}DriveLocked"; Id = '5'; Icon = 'badge_locked' },
+		@{Name = "${server_name}DriveUnsynced"; Id = '6'; Icon = 'badge_unsynced' }
 	)
 
 	$x64Path = "%name%_x64.dll"
@@ -174,8 +292,8 @@ function build_overlays {
 
 	# Start build chain
 	Write-Output ">>> Building $util_dll DLL"
-	build_dll $msbuild_exe $util_dll "x64"
-	build_dll $msbuild_exe $util_dll "Win32"
+	build_dll $server_name $msbuild_exe $util_dll "x64"
+	build_dll $server_name $msbuild_exe $util_dll "Win32"
 
 	foreach ($overlay in $overlays) {
 		$id = $overlay["Id"]
@@ -188,8 +306,8 @@ function build_overlays {
 		(Get-Content $ResourcesOriginal).replace('[$overlay.icon$]', $icon) | Set-Content $Resources
 
 		# Compile for x64 and Win32 and rename to the right status
-		build_dll $msbuild_exe $overlay_dll "x64"
-		build_dll $msbuild_exe $overlay_dll "Win32"
+		build_dll $server_name $msbuild_exe $overlay_dll "x64"
+		build_dll $server_name $msbuild_exe $overlay_dll "Win32"
 
 		$Oldx64Name = $x64Path.replace('%name%', $overlay_dll)
 		$Newx64Name = $x64Path.replace('%name%', $name)
@@ -202,6 +320,18 @@ function build_overlays {
 
 	# Delete everything that is not a DLL
 	Get-ChildItem -Path $folder\Release -Recurse -File -Exclude *.dll | Foreach ($_) { Remove-Item $_.Fullname }
+
+	# Copy built DLLs to installer folders while keeping architecture-specific paths.
+	$source_x64 = "$folder\Release\x64"
+	$source_x86 = "$folder\Release\Win32"
+	$target_x64 = "$installer_dll_folder\x64"
+	$target_x86 = "$installer_dll_folder\x86"
+
+	New-Item -ItemType Directory -Force -Path $target_x64 | Out-Null
+	New-Item -ItemType Directory -Force -Path $target_x86 | Out-Null
+
+	Copy-Item -Path "$source_x64\*.dll" -Destination $target_x64 -Force
+	Copy-Item -Path "$source_x86\*.dll" -Destination $target_x86 -Force
 }
 
 function check_import($import) {
@@ -215,9 +345,9 @@ function check_import($import) {
 	return 0
 }
 
-function check_upgrade {
+function check_upgrade($server_name) {
 	# Ensure a new version can be released by checking the auto-update process.
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py --server=$server_name
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -323,9 +453,14 @@ function ExitWithCode($retCode) {
 	exit
 }
 
-function freeze_pyinstaller() {
+function freeze_pyinstaller($server) {
 	# Note: -OO option cannot be set with PyInstaller
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m PyInstaller ndrive.spec --noconfirm
+	if ($server -eq "nuxeo") {
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m PyInstaller ndrive.spec --noconfirm
+	}
+	elseif ($server -eq "alfresco") {
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m PyInstaller alfresco.spec --noconfirm
+	}
 
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
@@ -389,7 +524,7 @@ function install_python {
 	catch {
 		$pythonArch = $false
 	}
-	if (($pythonVersion -and $pythonArch) -and ($pythonVersion -match [regex]::Escape($Env:PYTHON_DRIVE_VERSION) -and $pythonArch -eq 64)) {
+	if (($pythonVersion -and $pythonArch) -and ($pythonVersion -match $Env:PYTHON_DRIVE_VERSION -and $pythonArch -eq 64)) {
 		Write-Output ">>> Required Python version $Env:PYTHON_DRIVE_VERSION ($pythonArch bits) already installed on the system."
 		try {
 			# Split PATH into individual directories
@@ -398,19 +533,31 @@ function install_python {
 			# Filter paths containing '\Python\'
 			$pythonPaths = $paths | Where-Object { $_ -like '*\Python*' }
 
-			# Check for python.exe in those directories
+			# Check each candidate and verify its version matches exactly
+			$foundMatch = $false
 			foreach ($path in $pythonPaths) {
 				$pythonExe = Join-Path -Path $path -ChildPath "python.exe"
-				if ((Test-Path $pythonExe) -and ($path -like "*\$Env:PYTHON_DRIVE_VERSION\*")) {
-					Write-Output "Found python.exe in: $path"
-					$Env:PYTHON_DIR = $path
-				} else {
-					continue
+				if (Test-Path $pythonExe) {
+					$candidateVersion = & $pythonExe --version 2>&1
+					Write-Output "  Candidate: $path -> $candidateVersion"
+					if ($candidateVersion -match "Python $Env:PYTHON_DRIVE_VERSION\b") {
+						$Env:PYTHON_DIR = $path
+						$foundMatch = $true
+						break
+					} else {
+						Write-Output "  => Python Version mismatch, skipping."
+					}
 				}
+			}
+			if (-not $foundMatch) {
+				Write-Output ">>> ERROR: No Python installation matching version $Env:PYTHON_DRIVE_VERSION found in PATH."
+				Write-Output ">>> Available Python paths checked: $($pythonPaths -join ', ')"
+				ExitWithCode 1
 			}
 		}
 		catch {
-			$Env:PYTHON_DIR = ""
+			Write-Output ">>> ERROR: Failed to locate Python $Env:PYTHON_DRIVE_VERSION - $_"
+			ExitWithCode 1
 		}
 	}
 	else {
@@ -503,9 +650,11 @@ function install_python {
 	Write-Output ">>> Setting-up the Python virtual environment"
 
 	if ($exePathPYTHON_DIR -and (Test-Path $exePathPYTHON_DIR)) {
+		Write-Output ">>> Creating venv from: $exePathPYTHON_DIR"
 		& $exePathPYTHON_DIR $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
 	elseif ($exePathPythonLocation -and (Test-Path $exePathPythonLocation)) {
+		Write-Output ">>> Creating venv from: $exePathPythonLocation"
 		& $exePathPythonLocation $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	}
 	else {
@@ -514,6 +663,14 @@ function install_python {
 
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
+	}
+
+	# Verify the venv Python version matches the required version
+	$venvVersion = & $Env:STORAGE_DIR\Scripts\python.exe --version 2>&1
+	Write-Output ">>> Venv Python version: $venvVersion"
+	if (-not ($venvVersion -match $Env:PYTHON_DRIVE_VERSION)) {
+		Write-Output ">>> ERROR: Venv Python version does not match required $Env:PYTHON_DRIVE_VERSION"
+		ExitWithCode 1
 	}
 
 	& $Env:STORAGE_DIR\Scripts\activate.bat
@@ -686,19 +843,25 @@ function sign($file) {
 	}
 }
 
-function build_installer_and_sign {
+function build_nuxeo_installer_and_sign {
+	# Move icons from nxdrive/data/icons/nuxeo to nxdrive/drive/data/icons
+	xcopy "nxdrive\data\icons\nuxeo\*" "nxdrive\drive\data\icons" /e /y /i
+
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
+	# Setting environment variables
+	$Env:APP_NAME = "Nuxeo Drive"
+	$Env:SIGNING_ID = "Nuxeo"
 
 	# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine
 	if ($Env:GITHUB_WORKSPACE) {
-		build_overlays
+		build_overlays "nuxeo"
 	}
 
-	sign_dlls
+	sign_dlls "nuxeo"
 
 	Write-Output ">>> [$app_version] Freezing the application"
-	freeze_pyinstaller
+	freeze_pyinstaller "nuxeo"
 
 	# Do some clean-up
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
@@ -706,7 +869,7 @@ function build_installer_and_sign {
 	# Remove compiled QML files
 	Get-ChildItem -Path "dist\ndrive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
 
-	add_missing_ddls
+	add_missing_dlls "nuxeo"
 	sign "dist\ndrive\ndrive.exe"
 
 	# Stop now if we only want the application to be frozen (for integration tests)
@@ -719,19 +882,80 @@ function build_installer_and_sign {
 	}
 
 	if (-Not ($Env:SKIP_ADDONS)) {
-		build "$app_version" "tools\windows\setup-addons.iss"
+		build "$app_version" "tools\windows\nuxeo_iss\setup-addons.iss"
 		sign "dist\nuxeo-drive-addons.exe"
 	}
 
-	build "$app_version" "tools\windows\setup.iss"
+	build "$app_version" "tools\windows\nuxeo_iss\setup.iss"
 	sign "dist\nuxeo-drive-$app_version.exe"
 
-	build "$app_version" "tools\windows\setup-admin.iss"
+	build "$app_version" "tools\windows\nuxeo_iss\setup-admin.iss"
 	sign "dist\nuxeo-drive-$app_version-admin.exe"
+
+	cleanup_copied_icons "nuxeo"
 }
-function sign_dlls {
-	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\dll"
-	Get-ChildItem $folder -Recurse -Include *.dll | Foreach-Object {
+
+function build_alfresco_installer_and_sign {
+	# Move icons from nxdrive/data/icons/alfresco to nxdrive/drive/data/icons
+	xcopy "nxdrive\data\icons\alfresco\*" "nxdrive\drive\data\icons" /e /y /i
+
+	# Build the installer
+	$app_version = (Get-Content nxdrive/__init__.py) -match "__alfresco_version__" -replace '"', "" -replace "__alfresco_version__ = ", ""
+	# Setting environment variables
+	$Env:APP_NAME = "Hyland Drive for Alfresco"
+	$Env:SIGNING_ID = "Alfresco"
+
+	# Build DDLs only on GitHub-CI, no need to loose time on the local dev machine
+	if ($Env:GITHUB_WORKSPACE) {
+		build_overlays "alfresco"
+	}
+
+	sign_dlls "alfresco"
+
+	Write-Output ">>> [$app_version] Freezing the application"
+	freeze_pyinstaller "alfresco"
+
+	# Do some clean-up
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\alfresco-drive"
+
+	# Remove compiled QML files
+	Get-ChildItem -Path "dist\alfresco-drive" -Recurse -File -Include *.qmlc | Foreach ($_) { Remove-Item -Verbose $_.Fullname }
+
+	add_missing_dlls "alfresco"
+	sign "dist\alfresco-drive\alfresco-drive.exe"
+
+	# Stop now if we only want the application to be frozen (for integration tests)
+	if ($Env:FREEZE_ONLY) {
+		return 0
+	}
+
+	if ($Env:ZIP_NEEDED) {
+		zip_files "dist\alfresco-drive-windows-$app_version.zip" "dist\alfresco-drive"
+	}
+
+	if (-Not ($Env:SKIP_ADDONS)) {
+		build "$app_version" "tools\windows\alfresco_iss\setup-addons.iss"
+		sign "dist\alfresco-drive-addons.exe"
+	}
+
+	build "$app_version" "tools\windows\alfresco_iss\setup.iss"
+	sign "dist\alfresco-drive-$app_version.exe"
+
+	build "$app_version" "tools\windows\alfresco_iss\setup-admin.iss"
+	sign "dist\alfresco-drive-$app_version-admin.exe"
+
+	cleanup_copied_icons "alfresco"
+}
+
+function sign_dlls($server_name) {
+	$server_name = $server_name.ToLower()
+	if ($server_name -ne "nuxeo" -and $server_name -ne "alfresco") {
+		Write-Output ">>> Unknown server name for DLL signing: $server_name"
+		ExitWithCode 1
+	}
+
+	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\${server_name}_iss\dll"
+	Get-ChildItem $folder -Recurse -File -Include *.dll | Foreach-Object {
 		sign $_.FullName
 	}
 }
@@ -762,29 +986,41 @@ function main {
 	check_vars
 	install_python
 
-	if ($build) {
-		build_installer
+	if ($build_nuxeo) {
+		build_nuxeo_installer
 	}
- elseif ($build_dlls) {
-		build_overlays
+	elseif ($build_alfresco) {
+		build_alfresco_installer
 	}
- elseif ($build_installer_and_sign) {
-		build_installer_and_sign
+ 	elseif ($build_nuxeo_dlls) {
+		build_overlays "nuxeo"
 	}
- elseif ($check_upgrade) {
-		check_upgrade
+	elseif ($build_alfresco_dlls) {
+		build_overlays "alfresco"
 	}
- elseif ($install -or $install_release) {
+ 	elseif ($build_nuxeo_installer_and_sign) {
+		build_nuxeo_installer_and_sign
+	}
+	elseif ($build_alfresco_installer_and_sign) {
+		build_alfresco_installer_and_sign
+	}
+ 	elseif ($check_upgrade_nuxeo) {
+		check_upgrade "nuxeo"
+	}
+	elseif ($check_upgrade_alfresco) {
+		check_upgrade "alfresco"
+	}
+ 	elseif ($install -or $install_release) {
 		install_deps
 		if ((check_import "import PyQt6") -ne 1) {
 			Write-Output ">>> No PyQt6. Installation failed."
 			ExitWithCode 1
 		}
 	}
- elseif ($start) {
+ 	elseif ($start) {
 		start_nxdrive
 	}
- elseif ($tests) {
+ 	elseif ($tests) {
 		launch_tests
 	}
 }

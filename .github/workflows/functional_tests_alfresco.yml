@@ -1,0 +1,122 @@
+name: Alfresco functional tests
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/functional_tests_alfresco.yml"
+      - "nxdrive/alfresco/**/*.py"
+      - "nxdrive/drive/**/*.py"
+      - "tests/alfresco/**/*.py"
+      - "tests/env_alfresco.py"
+      - "tools/deps/*.txt"
+  push:
+    branches: [master]
+    paths:
+      - "nxdrive/alfresco/**/*.py"
+      - "nxdrive/drive/**/*.py"
+      - "tests/alfresco/**/*.py"
+
+env:
+  ALFRESCO_URL: ${{ secrets.ALFRESCO_TEST_URL }}
+  ALFRESCO_USER: ${{ secrets.ALFRESCO_TEST_USERNAME }}
+  ALFRESCO_PASSWORD: ${{ secrets.ALFRESCO_TEST_PASSWORD }}
+
+jobs:
+  alfresco-functional-tests-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.13 # XXX_PYTHON
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+      - uses: actions/cache@v5
+        with:
+          path: .tox
+          key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+      - name: Install system dependencies
+        run: |
+          sudo apt install xclip
+          Xvfb :99 -screen 0 1920x1080x24+32 &
+      - name: Install Linux dependencies
+        run: bash .github/workflows/linux_dependencies.sh
+      - name: Install tox
+        run: python -m pip install -r tools/deps/requirements-tox.txt
+      - name: Alfresco functional tests
+        run: tox -e alfresco-ft
+        env:
+          DISPLAY: ":99"
+      - name: Upload coverage to Codecov
+        if: ${{ success() || failure() }}
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          files: ./coverage.xml
+          flags: alfresco-functional
+          env_vars: OS,PYTHON
+
+  alfresco-functional-tests-macos:
+    runs-on: "macos-15-intel"
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.13 # XXX_PYTHON
+      - uses: actions/cache@v5
+        with:
+          path: ~/Library/Caches/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+      - uses: actions/cache@v5
+        with:
+          path: .tox
+          key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+      - name: Install tox
+        run: python -m pip install -r tools/deps/requirements-tox.txt
+      - name: Alfresco functional tests
+        run: tox -e alfresco-ft
+      - name: Upload coverage to Codecov
+        if: ${{ success() || failure() }}
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          files: ./coverage.xml
+          flags: alfresco-functional
+          env_vars: OS,PYTHON
+
+  alfresco-functional-tests-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.13 # XXX_PYTHON
+      - uses: actions/cache@v5
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+          restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
+      - name: Install tox
+        run: python -m pip install -r tools/deps/requirements-tox.txt
+      - name: Alfresco functional tests
+        run: tox -e alfresco-ft
+      - name: Upload coverage to Codecov
+        if: ${{ success() || failure() }}
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          files: ./coverage.xml
+          flags: alfresco-functional
+          env_vars: OS,PYTHON

@@ -7,7 +7,7 @@ from pathlib import Path
 from time import sleep
 from typing import Union
 
-from nxdrive.utils import normalized_path, safe_long_path, unset_path_readonly
+from nxdrive.drive.utils import normalized_path, safe_long_path, unset_path_readonly
 
 
 def clean_dir(_dir: Path, retry: int = 1, max_retries: int = 5) -> None:

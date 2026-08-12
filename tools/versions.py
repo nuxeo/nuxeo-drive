@@ -59,14 +59,15 @@ def create(version, category):
     # Compute installers checksum
     checksum_appimage = checksum_dmg = checksum_exe = checksum_exe_admin = None
     folder = os.getenv("ARTIFACTS_FOLDER", "dist/")
+    server = os.getenv("SERVER", "nuxeo")
     paths = (
-        "{}nuxeo-drive-{}-x86_64.AppImage",
-        "{}nuxeo-drive-{}.dmg",
-        "{}nuxeo-drive-{}.exe",
-        "{}nuxeo-drive-{}-admin.exe",
+        "{}{}-drive-{}-x86_64.AppImage",
+        "{}{}-drive-{}.dmg",
+        "{}{}-drive-{}.exe",
+        "{}{}-drive-{}-admin.exe",
     )
     for path in paths:
-        path = path.format(folder, version)
+        path = path.format(folder, server, version)
         if not os.path.isfile(path):
             continue
 
