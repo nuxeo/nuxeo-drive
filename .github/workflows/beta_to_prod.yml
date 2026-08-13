@@ -37,3 +37,162 @@ jobs:
 
       - name: Ready for promotion
         run: bash tools/deploy.sh ${{ github.event.inputs.betaVersion }}
+
+  beta-to-prod-s3:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      S3_BUCKET: drive.software-channels.hyland.com
+      # Public base URL used when building links inside the generated
+      # index.html pages.
+      ROOT_URL: https://drive.software-channels.hyland.com
+      S3_PREFIX: nuxeo/drive-updates/
+    permissions:
+      id-token: write # Required for OIDC authentication with AWS
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.13 # XXX_PYTHON
+
+      - name: Install python dependencies
+        run: python -m pip install pyyaml
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6.2.2
+        with:
+          role-to-assume: arn:aws:iam::744709874192:role/AlfrescoCI/nuxeo-drive-software-channel-upload
+          aws-region: us-east-1
+
+      - name: Fetch versions.yml
+        run: |
+          bucket="$S3_BUCKET"
+          key="${S3_PREFIX}versions.yml"
+          aws_err_file="$(mktemp)"
+
+          if aws s3api get-object --bucket "$bucket" --key "$key" versions.yml 2>"$aws_err_file"; then
+            echo ">>> versions.yml found in S3 and downloaded"
+          else
+            aws_error="$(cat "$aws_err_file")"
+
+            if echo "$aws_error" | grep -Eq 'NoSuchKey|404|Not Found'; then
+              echo ">>> versions.yml not found in S3, creating an empty one"
+              : > versions.yml
+              aws s3 cp versions.yml "s3://$bucket/$key"
+            elif echo "$aws_error" | grep -q 'AccessDenied'; then
+              echo ">>> Access denied while reading s3://$bucket/$key"
+              echo "$aws_error"
+              rm -f "$aws_err_file"
+              exit 1
+            else
+              echo ">>> Unexpected AWS error while reading s3://$bucket/$key"
+              echo "$aws_error"
+              rm -f "$aws_err_file"
+              exit 1
+            fi
+          fi
+
+          rm -f "$aws_err_file"
+
+      - name: Move beta packages to release
+        shell: bash --noprofile --norc -o pipefail {0} # Required to capture exit codes and messages
+        run: |
+          beta_version="${{ github.event.inputs.betaVersion }}"
+          files=(
+            "nuxeo-drive-$beta_version.exe"
+            "nuxeo-drive-$beta_version-admin.exe"
+            "nuxeo-drive-$beta_version.dmg"
+            "nuxeo-drive-$beta_version-x86_64.AppImage"
+            "nuxeo-drive-addons.exe"
+          )
+
+          failed=0
+          for file in "${files[@]}"; do
+            src="s3://$S3_BUCKET/${S3_PREFIX}beta/$file"
+            dst="s3://$S3_BUCKET/${S3_PREFIX}release/$file"
+
+            echo ">>> Moving $file from beta to release"
+            output=$(aws s3 mv "$src" "$dst" 2>&1)
+            exit_code=$?
+
+            if [ $exit_code -ne 0 ]; then
+              echo ">>> !! Error moving $file, attempting copy instead !!"
+              echo "$output"
+              output=$(aws s3 cp "$src" "$dst" 2>&1)
+              exit_code=$?
+              if [ $exit_code -ne 0 ]; then
+                echo ">>> !! Error copying $file to release !!"
+                echo "$output"
+                failed=1
+              else
+                echo ">>> $file copied to release successfully"
+                echo ">>> !! Make sure to clean-up $file in beta S3 manually !!"
+              fi
+            else
+              echo ">>> $file moved to release successfully"
+            fi
+          done
+
+          if [ $failed -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Promote beta version in versions.yml
+        run: |
+          beta_version="${{ github.event.inputs.betaVersion }}"
+          echo ">>> Promoting beta version $beta_version to release in versions.yml"
+          python tools/versions.py --promote "$beta_version" --type "release"
+          echo ">>> Copying updated versions.yml to S3"
+          aws s3 cp versions.yml "s3://$S3_BUCKET/$S3_PREFIX" --cache-control "no-cache, max-age=0, must-revalidate"
+          echo ">>> Removing versions.yml from local workspace"
+          rm -f versions.yml
+
+      - name: Generate and upload index.html pages
+        # Don't fail the promotion if index generation/upload fails; the
+        # pages are informational and can be uploaded manually from the
+        # artifact produced by the next step.
+        continue-on-error: true
+        run: |
+          # Promotion moves files out of beta/ into release/, so both
+          # folder listings need to be refreshed. The root index is always
+          # regenerated to keep its timestamp current.
+          python tools/generate_s3_index.py \
+            --bucket "$S3_BUCKET" \
+            --prefix "$S3_PREFIX" \
+            --root-url "$ROOT_URL" \
+            --product-name "Nuxeo Drive" \
+            --folders alpha beta release \
+            --update-folders beta release \
+            --extra-files versions.yml \
+            --output-dir index_pages
+
+          cache_ctl="no-cache, max-age=0, must-revalidate"
+
+          aws s3 cp index_pages/index.html \
+            "s3://$S3_BUCKET/${S3_PREFIX}index.html" \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "$cache_ctl"
+
+          for folder in beta release; do
+            aws s3 cp "index_pages/${folder}/index.html" \
+              "s3://$S3_BUCKET/${S3_PREFIX}${folder}/index.html" \
+              --content-type "text/html; charset=utf-8" \
+              --cache-control "$cache_ctl"
+          done
+
+      - name: Upload generated index.html pages as artifact
+        # Run even if the previous step failed so we always have a copy that
+        # can be uploaded to S3 manually if needed.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuxeo-s3-index-pages
+          path: index_pages/
+          if-no-files-found: warn

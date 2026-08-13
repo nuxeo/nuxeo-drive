@@ -41,8 +41,6 @@ jobs:
           echo "dockerNamespace=${{ github.event.inputs.dockerNamespace }}" >> $GITHUB_OUTPUT
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.inputs.branch }}
 
       #
       # Global
@@ -269,8 +267,6 @@ jobs:
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.inputs.branch }}
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -287,13 +283,10 @@ jobs:
           path: dist/
           merge-multiple: true
 
-      - name: Install curl
-        run: sudo apt-get update && sudo apt-get install -y curl
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6.2.2
         with:
-          role-to-assume: arn:aws:iam::744709874192:role/AlfrescoCI/nuxeo-drive-software-channel-upload
+          role-to-assume: arn:aws:iam::744709874192:role/AlfrescoCI/alfresco-drive-software-channel-upload
           aws-region: us-east-1
 
       - name: Fetch versions.yml
@@ -333,6 +326,9 @@ jobs:
             aws s3 cp dist/ "s3://$S3_BUCKET/alfresco/drive-updates/alpha/" --recursive
           elif [ "$release" = "release" ]; then
             aws s3 cp dist/ "s3://$S3_BUCKET/alfresco/drive-updates/beta/" --recursive
+          else
+            echo ">>> Invalid release type: $release"
+            exit 1
           fi
 
       - name: Update versions.yml
@@ -380,6 +376,7 @@ jobs:
             --bucket "$S3_BUCKET" \
             --prefix "$S3_PREFIX" \
             --root-url "$ROOT_URL" \
+            --product-name "Hyland Drive for Alfresco" \
             --folders alpha beta release \
             --update-folders "$update_folder" \
             --extra-files versions.yml \
