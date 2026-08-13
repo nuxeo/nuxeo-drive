@@ -877,9 +877,14 @@ def requests_verify(ca_bundle: Optional[Path], ssl_no_verify: bool) -> Any:
 
 def _cryptor(key: bytes, iv: bytes) -> "Cipher":
     """Instantiate a new AES (de|en)cryptor."""
-    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms
 
-    return Cipher(algorithms.AES(key), mode=modes.CFB8(iv))
+    try:
+        from cryptography.hazmat.decrepit.ciphers.modes import CFB8
+    except ImportError:  # cryptography < 47
+        from cryptography.hazmat.primitives.ciphers.modes import CFB8
+
+    return Cipher(algorithms.AES(key), mode=CFB8(iv))
 
 
 def encrypt(plaintext: Union[bytes, str], key: Union[bytes, str]) -> bytes:
