@@ -1,6 +1,6 @@
 name: Beta to production
 permissions:
-  contents: read
+  contents: write # Required to publish release tag
   pull-requests: read
 
 on:
@@ -196,3 +196,14 @@ jobs:
           name: nuxeo-s3-index-pages
           path: index_pages/
           if-no-files-found: warn
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ github.event.inputs.betaVersion }}"
+          gh release create "release-$version" \
+            --verify-tag \
+            --title "Release $version" \
+            --generate-notes \
+            --latest
