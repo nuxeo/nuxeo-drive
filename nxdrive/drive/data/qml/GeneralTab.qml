@@ -63,6 +63,14 @@ Rectangle {
             enabled: isFrozen && !isAlpha
         }
 
+        NuxeoSwitch {
+            text: qsTr("USE_ANALYTICS") + tl.tr
+            checked: manager.use_analytics()
+            onClicked: manager.set_analytics(checked)
+            Layout.leftMargin: -5
+            enabled: isFrozen && !isAlpha
+        }
+
         RowLayout {
             id: languageContainer
 

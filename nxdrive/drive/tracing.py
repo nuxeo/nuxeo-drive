@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any, Dict, Set
 
@@ -17,7 +18,21 @@ def should_ignore(event: _Event) -> bool:
     if not Options.use_sentry:
         return True
 
-    # Compute a "fingerprint" of the stacktrace. Peusdo-code:
+    exception_values = event.get("exception", {}).get("values", [])
+    if exception_values:
+        frames = exception_values[0].get("stacktrace", {}).get("frames", [])
+    else:
+        thread_values = event.get("threads", {}).get("values", [])
+        frames = [
+            frame
+            for thread in thread_values
+            for frame in thread.get("stacktrace", {}).get("frames", [])
+        ]
+
+    if not frames:
+        return False
+
+    # Compute a "fingerprint" of the stacktrace. Pseudo-code:
     # hash(
     #     "nxdrive/engine/activity.py:262",
     #     "nxdrive/engine/watcher/local_watcher.py:99",
@@ -26,12 +41,7 @@ def should_ignore(event: _Event) -> bool:
     #     "nxdrive/engine/workers.py:196",
     # )
     fingerprint = hash(
-        tuple(
-            sorted(
-                f"{err['filename']}:{err['lineno']}"
-                for err in event["exception"]["values"][0]["stacktrace"]["frames"]
-            )
-        )
+        tuple(sorted(f"{err['filename']}:{err['lineno']}" for err in frames))
     )
     if fingerprint in _EVENTS:
         return True
@@ -52,12 +62,15 @@ def before_send(event: _Event, _: _Hint, /) -> Any:
 def setup_sentry(app_version: str) -> None:
     """Setup Sentry."""
 
+    if not (Options.use_sentry or Options.use_analytics):
+        return
+
     if os.getenv("SKIP_SENTRY", "0") == "1":
         return
 
     sentry_dsn: str = os.getenv(
         "SENTRY_DSN",
-        "https://c4daa72433b443b08bd25e0c523ecef5@o223531.ingest.sentry.io/1372714",
+        "https://b025db54cb1face8405a66da3ea78705@o4511315922976768.ingest.us.sentry.io/4511579252129792",
     )
     if not sentry_dsn:
         return
@@ -65,6 +78,7 @@ def setup_sentry(app_version: str) -> None:
     import platform
 
     import sentry_sdk
+    from sentry_sdk.integrations.logging import LoggingIntegration
 
     from .metrics.utils import current_os
 
@@ -74,6 +88,9 @@ def setup_sentry(app_version: str) -> None:
         release=app_version,
         attach_stacktrace=True,
         before_send=before_send,
+        integrations=[
+            LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
+        ],
         # Set traces_sample_rate to 1.0 to capture 100%
         # of transactions for performance monitoring.
         traces_sample_rate=1.0,

@@ -745,7 +745,6 @@ class Engine(_EngineBase):
             last_local_selected_doc_type,
         )
         if new_folder:
-            self.send_metric("direct_transfer", "new_folder", "1")
             expected_session_uid = self.dao.get_count("uid != 0", table="Sessions") + 1
             if not new_folder_type or new_folder_type == self.doc_container_type:
                 item = self._create_remote_folder(
@@ -851,7 +850,6 @@ class Engine(_EngineBase):
                 DT_SESSION_STATUS: "done",
             }
         )
-        self.send_metric("direct_transfer", "session_items", str(session.total_items))
 
     def direct_transfer(
         self,

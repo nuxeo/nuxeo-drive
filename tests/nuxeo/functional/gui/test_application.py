@@ -1144,65 +1144,7 @@ def test_show_metrics_acceptance(app_obj, tmp_path):
 
         metrics_file = tmp_path / "metrics.state"
         assert metrics_file.is_file()
+        assert app.manager.dao.get_bool("use_sentry") is Options.use_sentry
+        assert app.manager.dao.get_bool("use_analytics") is Options.use_analytics
     finally:
         Options.nxdrive_home = original_home
-
-
-@not_linux(reason="Qt does not work correctly on linux")
-def test_show_metrics_acceptance_content(app_obj, tmp_path):
-    """show_metrics_acceptance records analytics state into metrics.state."""
-    app = app_obj
-
-    original_home = Options.nxdrive_home
-    original_analytics = Options.use_analytics
-    Options.nxdrive_home = tmp_path
-    Options.use_analytics = True
-    try:
-        with patch("nxdrive.drive.gui.application.QDialog"):
-            _real_show_metrics_acceptance(app)
-
-        metrics_file = tmp_path / "metrics.state"
-        assert metrics_file.is_file()
-        content = metrics_file.read_text(encoding="utf-8")
-        assert "analytics" in content
-    finally:
-        Options.nxdrive_home = original_home
-        Options.use_analytics = original_analytics
-
-
-@not_linux(reason="Qt does not work correctly on linux")
-def test_show_metrics_acceptance_analytics_choice(app_obj, tmp_path):
-    """analytics_choice callback is triggered when analytics checkbox is checked."""
-    from PyQt6.QtWidgets import QCheckBox as RealQCheckBox
-
-    app = app_obj
-    captured_checkboxes: list = []
-
-    def tracking_checkbox(text=""):
-        cb = RealQCheckBox(text)
-        captured_checkboxes.append(cb)
-        return cb
-
-    original_home = Options.nxdrive_home
-    original_analytics = Options.use_analytics
-    Options.nxdrive_home = tmp_path
-    Options.use_analytics = False
-
-    dialog_mock = MagicMock()
-
-    def fake_exec():
-        # cb_analytics is the second checkbox; trigger analytics_choice
-        if len(captured_checkboxes) >= 2:
-            captured_checkboxes[1].setChecked(True)
-
-    dialog_mock.exec = fake_exec
-    try:
-        with patch(
-            "nxdrive.drive.gui.application.QCheckBox", side_effect=tracking_checkbox
-        ), patch("nxdrive.drive.gui.application.QDialog", return_value=dialog_mock):
-            _real_show_metrics_acceptance(app)
-
-        assert Options.use_analytics is True
-    finally:
-        Options.nxdrive_home = original_home
-        Options.use_analytics = original_analytics

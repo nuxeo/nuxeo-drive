@@ -1505,7 +1505,7 @@ class Application(QApplication):
             partial(self.refresh_completed_sessions_items, engine.dao)
         )
 
-        engine.newSyncEnded.connect(self.manager.tracker.send_sync_event)
+        engine.newSyncEnded.connect(self.manager.sentry_metrics.send_sync_event)
         engine.newSyncEnded.connect(engine.remote.metrics.push_sync_event)
 
         self.change_systray_icon()
@@ -2394,22 +2394,22 @@ class Application(QApplication):
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        def analytics_choice(state: Qt.CheckState) -> None:
-            Options.use_analytics = bool(state)
-
         def errors_choice(state: Qt.CheckState) -> None:
             Options.use_sentry = bool(state)
 
-        # Checkboxes
-        em_analytics = QCheckBox(tr("SHARE_METRICS_ERROR_REPORTING"))
-        em_analytics.setChecked(True)
-        em_analytics.stateChanged.connect(errors_choice)
-        em_analytics.setChecked(False)
-        layout.addWidget(em_analytics)
+        def analytics_choice(state: Qt.CheckState) -> None:
+            Options.use_analytics = bool(state)
 
-        cb_analytics = QCheckBox(tr("SHARE_METRICS_ANALYTICS"))
-        cb_analytics.stateChanged.connect(analytics_choice)
-        layout.addWidget(cb_analytics)
+        # Checkboxes
+        error_reporting = QCheckBox(tr("SHARE_METRICS_ERROR_REPORTING"))
+        error_reporting.setChecked(False)
+        error_reporting.stateChanged.connect(errors_choice)
+        layout.addWidget(error_reporting)
+
+        advanced_analytics = QCheckBox(tr("SHARE_METRICS_ANALYTICS"))
+        advanced_analytics.setChecked(False)
+        advanced_analytics.stateChanged.connect(analytics_choice)
+        layout.addWidget(advanced_analytics)
 
         # Buttons
         buttons = QDialogButtonBox()
@@ -2425,15 +2425,7 @@ class Application(QApplication):
         server_type = Options.server_type
         self.manager.dao.update_config("server_type", server_type)
 
-        states = []
-        if Options.use_analytics:
-            states.append("analytics")
-        if Options.use_sentry:
-            states.append("sentry")
-
-        (Options.nxdrive_home / "metrics.state").write_text(
-            "\n".join(states), encoding="utf-8"
-        )
+        self.manager.set_metrics_preferences(Options.use_sentry, Options.use_analytics)
 
     @pyqtSlot(str)
     def show_tasks_window(self, engine_uid: str, /) -> None:

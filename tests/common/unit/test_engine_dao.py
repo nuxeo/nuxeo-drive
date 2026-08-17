@@ -115,9 +115,14 @@ def test_configuration_get_bool(engine_dao):
         # Boolean parameter set to False
         dao.store_bool(name, False)
         assert dao.get_bool(name) is False
+
+        assert dao.has_config(name) is True
         assert dao.get_bool(name, default=True) is False
         assert dao.get_bool(name, default=False) is False
         assert dao.get_bool(name, default="nothing") is False
+
+        dao.delete_config(name)
+        assert dao.has_config(name) is False
 
         # Unknown parameter
         assert dao.get_bool("unk") is False

@@ -591,7 +591,6 @@ class CliHandler:
         from nxdrive.drive.feature import apply_server_type_restrictions
 
         from ..drive.utils import find_resource
-        from .tracing import setup_sentry
 
         supported_server_list = find_resource(
             "server_list", file="supported_server_list.txt"
@@ -641,10 +640,6 @@ class CliHandler:
         if is_alpha:
             set_log_level_file("DEBUG")
             Options.is_alpha = True
-
-        # Setup Sentry even if the user did not allow it because it can be tweaked
-        # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
-        setup_sentry(app_version)
 
         # Short-circuit for --version / -v: print cleanly with no logs or config loading.
         if any(a in ("-v", "--version") for a in argv):

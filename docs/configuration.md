@@ -621,11 +621,12 @@ See Nuxeo Drive Update Site for more details.
 
 #### `use-analytics`
 
-Share anonymous usage analytics to help the developers build the best experience for you.
+Share advanced usage statistics and timings through Sentry. This does not enable
+error reporting.
 
 - Default value (bool): `False`
 - Version added: 4.1.0
-- Version changed: 4.4.5, a minimal set of GDPR-information is sent even if set to `False` (see [NXDRIVE-2254](https://hyland.atlassian.net/browse/NXDRIVE-2254))
+- Version changed: 7.1.0, metrics are sent to Sentry instead of Google Analytics
 
 #### `use-idempotent-requests`
 
@@ -646,10 +647,10 @@ If enabled, those requests will be impacted:
 #### `use-sentry`
 
 Allow sharing error reports when something unusual happens.
-This parameter is critical for the product's health, please do not not turn it off.
 
-- Default value (bool): `True`
+- Default value (bool): `False`
 - Version added: 4.1.0
+- Version changed: 7.1.0, Sentry is initialized only after explicit user consent
 
 ## Behaviors
 

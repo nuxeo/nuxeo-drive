@@ -412,11 +412,6 @@ def test_small_state_helpers_and_metrics(base_engine):
         "unsynchronized_files": 7,
     }
 
-    base_engine.send_metric("category", "action", "label")
-    base_engine.manager.tracker.send_metric.assert_called_once_with(
-        "category", "action", "label"
-    )
-
 
 def test_get_threads_exports_each_worker(base_engine):
     first = MagicMock()
@@ -1211,9 +1206,6 @@ def test_check_https_keeps_https_server(base_engine):
     with option_values(is_frozen=True):
         base_engine._check_https()
     base_engine.manager.proxy.settings.assert_not_called()
-    base_engine.manager.tracker.send_metric.assert_called_once_with(
-        "server", "protocol", "https"
-    )
 
 
 def test_check_https_upgrades_http_when_probe_succeeds(base_engine):
@@ -1234,9 +1226,6 @@ def test_check_https_upgrades_http_when_probe_succeeds(base_engine):
     base_engine.dao.update_config.assert_called_once_with(
         "server_url", "https://server.example/"
     )
-    base_engine.manager.tracker.send_metric.assert_called_once_with(
-        "server", "protocol", "http->https"
-    )
 
 
 def test_check_https_keeps_http_when_probe_fails(base_engine):
@@ -1253,9 +1242,6 @@ def test_check_https_keeps_http_when_probe_fails(base_engine):
 
     assert base_engine.server_url == "http://production.example/"
     base_engine.dao.update_config.assert_not_called()
-    base_engine.manager.tracker.send_metric.assert_called_once_with(
-        "server", "protocol", "http"
-    )
 
 
 def test_cancel_action_on_ignores_nonprocessors_and_stops_matching_worker(base_engine):

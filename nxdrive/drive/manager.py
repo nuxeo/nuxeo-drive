@@ -29,7 +29,6 @@ from nxdrive.drive.constants import (
 )
 from nxdrive.drive.dao.manager import ManagerDAO
 from nxdrive.drive.engine.engine import Engine
-from nxdrive.drive.engine.tracker import Tracker
 from nxdrive.drive.engine.workers import Runner
 from nxdrive.drive.exceptions import (
     AddonForbiddenError,
@@ -43,6 +42,7 @@ from nxdrive.drive.exceptions import (
     StartupPageConnectionError,
 )
 from nxdrive.drive.feature import Feature
+from nxdrive.drive.metrics.sentry import SentryMetrics
 from nxdrive.drive.metrics.utils import current_os, user_agent
 from nxdrive.drive.notification import DefaultNotificationService
 from nxdrive.drive.objects import Binder, EngineDef, Metrics, Session
@@ -93,8 +93,6 @@ class Manager(QObject):
     restartNeeded = pyqtSignal()
     featureUpdate = pyqtSignal(str, bool)
 
-    # Direct Transfer statistics
-    # args: folderish document, document size
     directTransferStats = pyqtSignal(bool, int)
 
     _instances: Dict[Path, CallableProxyType] = {}
@@ -210,8 +208,10 @@ class Manager(QObject):
             self.set_config("deletion_behavior", "unsync")
 
         # Check for metrics approval
+        self._sentry_initialized = False
         self.preferences_metrics_chosen = False
         self.check_metrics_preferences()
+        self._setup_sentry()
 
         # Apply feature restrictions based on the configured server type
         self._apply_server_type_config()
@@ -224,8 +224,8 @@ class Manager(QObject):
         # Create the server's configuration getter verification thread
         self._create_db_backup_worker()
 
-        # Setup analytics tracker
-        self.tracker = self.create_tracker()
+        # Create the advanced analytics worker
+        self.sentry_metrics = self.create_sentry_metrics()
 
         # Create the FinderSync/Explorer listener thread
         self._create_extension_listener()
@@ -329,8 +329,6 @@ class Manager(QObject):
             "auto_update": Feature.auto_update and self.get_auto_update(),
             "channel": self.get_update_channel(),
             "device_id": self.device_id,
-            "tracker_id": self.tracker.uid,
-            "tracking": Options.use_analytics,
             "sentry": Options.use_sentry,
             "qt_version": QT_VERSION_STR,
             "python_version": platform.python_version(),
@@ -352,13 +350,46 @@ class Manager(QObject):
         self.open_local_file("https://doc.nuxeo.com/nxdoc/nuxeo-drive/")
 
     def check_metrics_preferences(self) -> None:
-        """Should we setup and use Sentry and/or Google Analytics?"""
+        """Load persisted error reporting and advanced analytics preferences."""
         state_file = Options.nxdrive_home / "metrics.state"
         if state_file.is_file():
             lines = state_file.read_text(encoding="utf-8").splitlines()
-            Options.use_sentry = "sentry" in lines
-            Options.use_analytics = "analytics" in lines
+
+            for option, token in (
+                ("use_sentry", "sentry"),
+                ("use_analytics", "analytics"),
+            ):
+                if not self.dao.has_config(option):
+                    value = token in lines
+                    self.dao.store_bool(option, value)
+                else:
+                    value = self.dao.get_bool(option)
+                setattr(Options, option, value)
+
+            self._write_metrics_state()
             self.preferences_metrics_chosen = True
+
+    def _setup_sentry(self) -> None:
+        if not (Options.use_sentry or Options.use_analytics):
+            return
+        if self._sentry_initialized:
+            return
+
+        from nxdrive.drive.tracing import setup_sentry
+
+        setup_sentry(self.version)
+        self._sentry_initialized = True
+
+    def _write_metrics_state(self) -> None:
+        states = []
+        if Options.use_analytics:
+            states.append("analytics")
+        if Options.use_sentry:
+            states.append("sentry")
+
+        (Options.nxdrive_home / "metrics.state").write_text(
+            "\n".join(states), encoding="utf-8"
+        )
 
     def _apply_server_type_config(self) -> None:
         """Read server_type from the config DB and disable features
@@ -399,18 +430,11 @@ class Manager(QObject):
     def _create_dao(self) -> None:
         self.dao = ManagerDAO(self._get_db())
 
-    def create_tracker(self) -> Tracker:
-        """Create the Google Analytics tracker."""
-
-        tracker = Tracker(self)
-
-        # Start the tracker when we launch
-        self.started.connect(tracker.thread.start)
-
-        # Connect Direct Transfer metrics
-        self.directTransferStats.connect(tracker.send_direct_transfer)
-
-        return tracker
+    def create_sentry_metrics(self) -> SentryMetrics:
+        worker = SentryMetrics(self)
+        self.started.connect(worker.thread.start)  # type: ignore[attr-defined]
+        self.directTransferStats.connect(worker.send_direct_transfer)
+        return worker
 
     def _create_server_config_updater(self) -> ServerOptionsUpdater:
         worker = ServerOptionsUpdater(self)
@@ -454,9 +478,8 @@ class Manager(QObject):
         # Start only when the configuration has been retrieved
         self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
 
-        # Connect to the Tracker metrics
-        worker.openDocument.connect(self.tracker.send_directedit_open)
-        worker.editDocument.connect(self.tracker.send_directedit_edit)
+        worker.openDocument.connect(self.sentry_metrics.send_direct_edit_open)
+        worker.editDocument.connect(self.sentry_metrics.send_direct_edit_edit)
 
         return worker
 
@@ -554,7 +577,7 @@ class Manager(QObject):
         for name in (
             "server_config_updater",
             "updater",
-            "tracker",
+            "sentry_metrics",
             "db_backup_worker",
             "sync_and_quit_worker",
             "direct_edit",
@@ -676,9 +699,6 @@ class Manager(QObject):
             else:
                 self.engines[engine.uid].online.connect(self._force_autoupdate)
                 self.initEngine.emit(self.engines[engine.uid])
-
-        if self.engines:
-            self.tracker.send_metric("account", "count", str(len(self.engines)))
 
     def reload_client_global_headers(self) -> None:
         """Reinject up-to-date custom global headers into all registered clients.
@@ -863,7 +883,26 @@ class Manager(QObject):
 
     @pyqtSlot(bool)  # from GeneralTab.qml
     def set_sentry(self, value: bool, /) -> None:
-        self.set_config("use_sentry", value)
+        self.set_metrics_preferences(value, Options.use_analytics)
+
+    @pyqtSlot(result=bool)  # from GeneralTab.qml
+    def use_analytics(self) -> bool:
+        """Return True if advanced analytics are enabled."""
+        return self.dao.get_bool("use_analytics", default=Options.use_analytics)
+
+    @pyqtSlot(bool)  # from GeneralTab.qml
+    def set_analytics(self, value: bool, /) -> None:
+        self.set_metrics_preferences(Options.use_sentry, value)
+
+    def set_metrics_preferences(self, sentry: bool, analytics: bool, /) -> None:
+        Options.set("use_sentry", sentry, setter="manual", fail_on_error=False)
+        Options.set("use_analytics", analytics, setter="manual", fail_on_error=False)
+        self.dao.store_bool("use_sentry", Options.use_sentry)
+        self.dao.store_bool("use_analytics", Options.use_analytics)
+        self._write_metrics_state()
+        self._setup_sentry()
+        if Options.use_analytics:
+            self.sentry_metrics.force_poll()
 
     @pyqtSlot(result=str)  # from ChannelPopup.qml and Systray.qml
     def get_update_channel(self) -> str:

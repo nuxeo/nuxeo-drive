@@ -2,7 +2,7 @@ import sqlite3
 from copy import deepcopy
 from pathlib import Path, PureWindowsPath
 from types import SimpleNamespace
-from unittest.mock import MagicMock, Mock, call
+from unittest.mock import MagicMock, Mock, call, patch
 from urllib.parse import urlsplit
 
 import pytest
@@ -54,6 +54,9 @@ def make_dao(config=None, *, migration_success=True):
     def delete_config(key):
         values.pop(key, None)
 
+    def has_config(key):
+        return key in values
+
     def get_bool(key, *, default=False):
         return bool(values.get(key, default))
 
@@ -63,6 +66,7 @@ def make_dao(config=None, *, migration_success=True):
     dao.get_config.side_effect = get_config
     dao.update_config.side_effect = update_config
     dao.delete_config.side_effect = delete_config
+    dao.has_config.side_effect = has_config
     dao.get_bool.side_effect = get_bool
     dao.store_bool.side_effect = store_bool
     dao.values = values
@@ -118,9 +122,9 @@ def manager_obj(app, tmp_path):
     manager.dao = make_dao()
     manager.osi = MagicMock()
     manager.proxy = MagicMock()
-    manager.tracker = MagicMock()
     manager.updater = MagicMock()
     manager.server_config_updater = MagicMock(first_run=False)
+    manager.sentry_metrics = MagicMock()
     manager.db_backup_worker = None
     manager.direct_download = None
     manager.engines = {}
@@ -129,6 +133,7 @@ def manager_obj(app, tmp_path):
     manager.delete_users_from_tasks_cache = [str]
     manager.is_paused = False
     manager._started = False
+    manager._sentry_initialized = False
     return manager
 
 
@@ -139,8 +144,8 @@ def patch_constructor_dependencies(monkeypatch, dao):
     osi = MagicMock()
     osi.nature = "mock"
     proxy = MagicMock(name="proxy")
-    tracker = MagicMock()
     db_backup_worker = MagicMock()
+    sentry_metrics = MagicMock()
     sync_and_quit_worker = SimpleNamespace(thread=MagicMock())
     autolock = MagicMock()
     direct_edit = MagicMock()
@@ -175,7 +180,7 @@ def patch_constructor_dependencies(monkeypatch, dao):
     monkeypatch.setattr(Manager, "check_metrics_preferences", Mock())
     monkeypatch.setattr(Manager, "_apply_server_type_config", apply_server_config)
     monkeypatch.setattr(Manager, "_create_db_backup_worker", create_db_backup)
-    monkeypatch.setattr(Manager, "create_tracker", lambda self: tracker)
+    monkeypatch.setattr(Manager, "create_sentry_metrics", lambda self: sentry_metrics)
     monkeypatch.setattr(Manager, "_create_extension_listener", extension_listener)
     monkeypatch.setattr(Manager, "load", load)
     monkeypatch.setattr(Manager, "_create_autolock_service", lambda self: autolock)
@@ -209,8 +214,8 @@ def patch_constructor_dependencies(monkeypatch, dao):
         notification=notification_service,
         osi=osi,
         proxy=proxy,
-        tracker=tracker,
         db_backup_worker=db_backup_worker,
+        sentry_metrics=sentry_metrics,
         sync_and_quit_worker=sync_and_quit_worker,
         autolock=autolock,
         direct_edit=direct_edit,
@@ -242,8 +247,8 @@ def test_constructor_initializes_non_frozen_manager(app, tmp_path, monkeypatch):
     assert manager.old_version is None
     assert manager.proxy is deps.proxy
     assert manager.osi is deps.osi
-    assert manager.tracker is deps.tracker
     assert manager.db_backup_worker is deps.db_backup_worker
+    assert manager.sentry_metrics is deps.sentry_metrics
     assert manager.autolock_service is deps.autolock
     assert manager.direct_edit is deps.direct_edit
     assert manager.direct_download is deps.direct_download
@@ -425,7 +430,6 @@ def test_guess_synchronization_state_only_migrates_old_nuxeo(manager_obj):
 
 
 def test_metrics_restart_help_and_preferences(manager_obj, tmp_path, monkeypatch):
-    manager_obj.tracker.uid = "tracker"
     manager_obj.get_auto_start = Mock(return_value=True)
     manager_obj.get_auto_update = Mock(return_value=True)
     manager_obj.get_update_channel = Mock(return_value="beta")
@@ -433,14 +437,13 @@ def test_metrics_restart_help_and_preferences(manager_obj, tmp_path, monkeypatch
     monkeypatch.setattr(manager_module, "current_os", Mock(return_value="Test OS"))
     monkeypatch.setattr(manager_module, "machine", Mock(return_value="arm64"))
     Feature.auto_update = True
-    Options.use_analytics = True
+    Options.use_analytics = False
     Options.use_sentry = False
 
     metrics = manager_obj.get_metrics()
 
     assert metrics["auto_start"] is True
     assert metrics["auto_update"] is True
-    assert metrics["tracker_id"] == "tracker"
     assert metrics["os"] == "Test OS"
     assert metrics["machine"] == "arm64"
     assert (
@@ -459,11 +462,61 @@ def test_metrics_restart_help_and_preferences(manager_obj, tmp_path, monkeypatch
     manager_obj.check_metrics_preferences()
     assert manager_obj.preferences_metrics_chosen is False
 
-    (tmp_path / "metrics.state").write_text("sentry\nanalytics\n", encoding="utf-8")
+    (tmp_path / "metrics.state").write_text("analytics\nsentry\n", encoding="utf-8")
     manager_obj.check_metrics_preferences()
     assert manager_obj.preferences_metrics_chosen is True
     assert Options.use_sentry is True
     assert Options.use_analytics is True
+    assert manager_obj.dao.values["use_sentry"] is True
+    assert manager_obj.dao.values["use_analytics"] is True
+
+
+def test_metrics_database_value_repairs_state_file(manager_obj, tmp_path):
+    Options.is_frozen = True
+    Options.is_alpha = False
+    Options.nxdrive_home = tmp_path
+    Options.use_sentry = True
+    Options.use_analytics = False
+    manager_obj.dao.values["use_sentry"] = False
+    manager_obj.dao.values["use_analytics"] = True
+    manager_obj.preferences_metrics_chosen = False
+    (tmp_path / "metrics.state").write_text("sentry\n", encoding="utf-8")
+
+    manager_obj.check_metrics_preferences()
+
+    assert manager_obj.preferences_metrics_chosen is True
+    assert Options.use_sentry is False
+    assert Options.use_analytics is True
+    assert (tmp_path / "metrics.state").read_text(encoding="utf-8") == "analytics"
+
+
+def test_sentry_initializes_once_after_consent(manager_obj):
+    Options.use_sentry = False
+    Options.use_analytics = False
+
+    with patch("nxdrive.drive.tracing.setup_sentry") as setup_sentry:
+        manager_obj._setup_sentry()
+        setup_sentry.assert_not_called()
+
+        Options.use_analytics = True
+        manager_obj._setup_sentry()
+        manager_obj._setup_sentry()
+
+    setup_sentry.assert_called_once_with(manager_obj.version)
+    assert manager_obj._sentry_initialized is True
+
+
+def test_sentry_metrics_factory(manager_obj, monkeypatch):
+    worker = MagicMock()
+    monkeypatch.setattr(manager_module, "SentryMetrics", Mock(return_value=worker))
+
+    assert manager_obj.create_sentry_metrics() is worker
+    manager_module.SentryMetrics.assert_called_once_with(manager_obj)
+
+    manager_obj.started.emit()
+    worker.thread.start.assert_called_once_with()
+    manager_obj.directTransferStats.emit(False, 42)
+    worker.send_direct_transfer.assert_called_once_with(False, 42)
 
 
 def test_apply_server_type_config_from_database(manager_obj, monkeypatch):
@@ -494,7 +547,7 @@ def test_apply_server_type_config_persists_first_launch_choice(manager_obj):
     manager_obj.set_config.assert_not_called()
 
 
-def test_os_database_and_tracker_factories(manager_obj, tmp_path, monkeypatch):
+def test_os_and_database_factories(manager_obj, tmp_path, monkeypatch):
     Options.is_frozen = True
     manager_obj._handle_os()
     manager_obj.osi.register_protocol_handlers.assert_called_once_with()
@@ -506,15 +559,6 @@ def test_os_database_and_tracker_factories(manager_obj, tmp_path, monkeypatch):
     manager_obj._create_dao()
     assert manager_obj.dao is fake_dao
     dao_factory.assert_called_once_with(tmp_path / "manager.db")
-
-    tracker = MagicMock()
-    monkeypatch.setattr(manager_module, "Tracker", Mock(return_value=tracker))
-    created = manager_obj.create_tracker()
-    assert created is tracker
-    manager_obj.started.emit()
-    tracker.thread.start.assert_called_once_with()
-    manager_obj.directTransferStats.emit(True, 12)
-    tracker.send_direct_transfer.assert_called_once_with(True, 12)
 
 
 def test_worker_factories(manager_obj, tmp_path, monkeypatch):
@@ -556,7 +600,6 @@ def test_direct_edit_factory_respects_feature_and_registry(
     manager_obj.direct_edit_folder = tmp_path / "edit"
     manager_obj.autolock_service = MagicMock()
     manager_obj.server_config_updater = MagicMock()
-    manager_obj.tracker = MagicMock()
     loader = Mock()
     monkeypatch.setattr(st, "load_class", loader)
     monkeypatch.setattr(st, "first_class_path", Mock(return_value="worker.Path"))
@@ -579,10 +622,10 @@ def test_direct_edit_factory_respects_feature_and_registry(
         worker.thread.start
     )
     worker.openDocument.connect.assert_called_once_with(
-        manager_obj.tracker.send_directedit_open
+        manager_obj.sentry_metrics.send_direct_edit_open
     )
     worker.editDocument.connect.assert_called_once_with(
-        manager_obj.tracker.send_directedit_edit
+        manager_obj.sentry_metrics.send_direct_edit_edit
     )
 
 
@@ -705,7 +748,6 @@ def test_stop_cleans_started_engines_downloads_and_os(manager_obj):
         for name in (
             "server_config_updater",
             "updater",
-            "tracker",
             "db_backup_worker",
             "sync_and_quit_worker",
             "direct_edit",
@@ -871,7 +913,6 @@ def test_load_selects_registered_nuxeo_and_alfresco_factories(manager_obj, tmp_p
         manager_obj._force_autoupdate
     )
     assert initialized == [nuxeo_engine, alfresco_engine]
-    manager_obj.tracker.send_metric.assert_called_once_with("account", "count", "2")
 
 
 def test_reload_headers_database_paths_and_force_update(manager_obj, tmp_path):
@@ -1053,7 +1094,7 @@ def test_generate_csv_async_success_and_failure(manager_obj, tmp_path, monkeypat
     assert engine.dao.sessionUpdated.emit.call_args_list == [call(False), call(True)]
 
 
-def test_auto_start_icons_sentry_channels_and_log_levels(manager_obj):
+def test_auto_start_icons_sentry_channels_and_log_levels(manager_obj, tmp_path):
     manager_obj.osi.startup_enabled.return_value = True
     assert manager_obj.get_auto_start() is True
     manager_obj.osi.startup_enabled.side_effect = OSError("unavailable")
@@ -1077,9 +1118,24 @@ def test_auto_start_icons_sentry_channels_and_log_levels(manager_obj):
     assert icon_updates == [False]
 
     manager_obj.dao.values["use_sentry"] = False
+    manager_obj.dao.values["use_analytics"] = False
     assert manager_obj.use_sentry() is False
+    assert manager_obj.use_analytics() is False
+    Options.is_frozen = True
+    Options.is_alpha = False
+    Options.nxdrive_home = tmp_path
     manager_obj.set_sentry(True)
-    manager_obj.set_config.assert_called_with("use_sentry", True)
+    assert Options.use_sentry is True
+    assert manager_obj.dao.values["use_sentry"] is True
+    assert (tmp_path / "metrics.state").read_text(encoding="utf-8") == "sentry"
+
+    manager_obj.set_analytics(True)
+    assert Options.use_analytics is True
+    assert manager_obj.dao.values["use_analytics"] is True
+    assert (tmp_path / "metrics.state").read_text(encoding="utf-8") == (
+        "analytics\nsentry"
+    )
+    manager_obj.sentry_metrics.force_poll.assert_called_once_with()
 
     manager_obj.dao.values["channel"] = "beta"
     assert manager_obj.get_update_channel() == "beta"

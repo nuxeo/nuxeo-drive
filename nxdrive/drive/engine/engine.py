@@ -333,9 +333,6 @@ class Engine(QObject):
         if started:
             self.start()
 
-    def send_metric(self, category: str, action: str, label: str, /) -> None:
-        self.manager.tracker.send_metric(category, action, label)  # type: ignore
-
     def stop_processor_on(self, path: Path, /) -> None:
         for worker in self.queue_manager.get_processors_on(path):
             log.debug(
@@ -537,7 +534,9 @@ class Engine(QObject):
         meth = (
             self.dao.get_download
             if nature == "download"
-            else self.dao.get_dt_upload if is_direct_transfer else self.dao.get_upload
+            else self.dao.get_dt_upload
+            if is_direct_transfer
+            else self.dao.get_upload
         )
         func = partial(meth, uid=uid)  # type: ignore
         self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)
@@ -1078,7 +1077,6 @@ class Engine(QObject):
     @if_frozen
     def _check_https(self) -> None:
         if self.server_url.startswith("https"):
-            self.send_metric("server", "protocol", "https")
             return
         url = self.server_url.replace("http://", "https://")
         try:
@@ -1090,12 +1088,10 @@ class Engine(QObject):
             if not devenv:
                 err += " For information, this is the encountered SSL error:"
             log.warning(err, exc_info=not devenv)
-            self.send_metric("server", "protocol", "http")
         else:
             self.server_url = url
             self.dao.update_config("server_url", self.server_url)
             log.info(f"Updated server URL to {self.server_url!r}")
-            self.send_metric("server", "protocol", "http->https")
 
     def cancel_action_on(self, pair_id: int, /) -> None:
         for thread in self._threads:

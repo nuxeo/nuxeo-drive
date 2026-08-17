@@ -18,10 +18,7 @@ from watchdog.events import FileCreatedEvent, FileDeletedEvent
 
 from nxdrive.drive.constants import ROOT, UNACCESSIBLE_HASH
 from nxdrive.drive.engine.watcher import local_watcher as local_watcher_module
-from nxdrive.drive.engine.watcher.local_watcher import (
-    DriveFSEventHandler,
-    LocalWatcher,
-)
+from nxdrive.drive.engine.watcher.local_watcher import DriveFSEventHandler, LocalWatcher
 from nxdrive.drive.exceptions import ThreadInterrupt
 
 NOW = datetime(2024, 1, 2, 3, 4, 5)
@@ -523,9 +520,6 @@ def test_known_pair_windows_requeues_nonterminal_state(watcher):
         refreshed.folderish,
         refreshed.pair_state,
         pair=refreshed,
-    )
-    watcher.engine.send_metric.assert_called_once_with(
-        "sync", "error", "WINDOWS_RO_FOLDER"
     )
 
 

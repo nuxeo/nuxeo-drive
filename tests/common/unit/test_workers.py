@@ -266,7 +266,6 @@ def test_engine_worker_giveup_error():
     ew.giveup_error(doc_pair, "TEST_ERROR", exception=exc)
     ew.dao.increase_error.assert_called_once()
     ew.engine.queue_manager.push_error.assert_called_once()
-    ew.engine.send_metric.assert_called_once_with("sync", "error", "TEST_ERROR")
 
 
 def test_engine_worker_giveup_error_no_exception():

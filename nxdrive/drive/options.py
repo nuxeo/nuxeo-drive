@@ -339,7 +339,7 @@ class MetaOptions(type):
         "server_type": (None, "default"),
         "use_analytics": (False, "default"),
         "use_idempotent_requests": (True, "default"),
-        "use_sentry": (True, "default"),
+        "use_sentry": (False, "default"),
         "xxx_broken_update": (None, "default"),
     }
 
@@ -644,14 +644,6 @@ def validate_client_version(value: str, /) -> str:
     )
 
 
-def validate_use_sentry(value: bool, /) -> bool:
-    if Options.is_frozen and not Options.is_alpha:
-        return value
-    raise ValueError(
-        "Sentry is forcibly enabled on alpha versions or when the app is ran from sources"
-    )
-
-
 def _validate_deletion_behavior(value: str, /) -> str:
     if value in ("unsync", "delete_server"):
         return value
@@ -722,15 +714,14 @@ Options.checkers["chunk_limit"] = validate_chunk_limit
 Options.checkers["chunk_size"] = validate_chunk_size
 Options.checkers["client_version"] = validate_client_version
 Options.checkers["deletion_behavior"] = _validate_deletion_behavior
-Options.checkers["use_sentry"] = validate_use_sentry
 Options.checkers["sync_root_max_level"] = validate_sync_root_max_level_limits
 Options.checkers["tmp_file_limit"] = validate_tmp_file_limit
 Options.checkers["ca_bundle"] = validate_ca_bundle_path
 Options.checkers["cert_file"] = validate_cert_path
 Options.checkers["cert_key_file"] = validate_cert_path
-Options.checkers["direct_transfer_file_upper_limit"] = (
-    validate_direct_transfer_file_upper_limit
-)
-Options.checkers["direct_transfer_folder_upper_limit"] = (
-    validate_direct_transfer_folder_upper_limit
-)
+Options.checkers[
+    "direct_transfer_file_upper_limit"
+] = validate_direct_transfer_file_upper_limit
+Options.checkers[
+    "direct_transfer_folder_upper_limit"
+] = validate_direct_transfer_folder_upper_limit

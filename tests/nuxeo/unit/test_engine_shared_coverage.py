@@ -23,8 +23,6 @@ def mock_manager():
     manager = Mock()
     manager.version = "1.0.0"
     manager.home = Path("/tmp/nuxeo-drive")
-    manager.tracker = Mock()
-    manager.tracker.send_metric = Mock()
     manager.update_engine_path = Mock()
     manager.get_deletion_behavior = Mock(return_value=DelAction.DEL_SERVER)
     manager.directEdit = Mock()
@@ -185,7 +183,6 @@ def mock_engine(mock_manager, mock_dao, mock_remote, mock_queue_manager, tmp_pat
     engine.open_edit = Engine.open_edit.__get__(engine, Engine)
     engine.open_remote = Engine.open_remote.__get__(engine, Engine)
     engine.resume = Engine.resume.__get__(engine, Engine)
-    engine.send_metric = Engine.send_metric.__get__(engine, Engine)
     engine._resume_transfers = Engine._resume_transfers.__get__(engine, Engine)
     engine.resume_transfer = Engine.resume_transfer.__get__(engine, Engine)
     engine.resume_session = Engine.resume_session.__get__(engine, Engine)
@@ -641,20 +638,18 @@ class TestDirectTransfer:
         remote_parent_title = "Remote Title"
         new_folder = "New Folder"
 
-        with patch.object(mock_engine, "send_metric") as mock_metric:
-            with patch("nxdrive.drive.engine.engine.Options") as mock_options:
-                mock_options.database_batch_size = 50
+        with patch("nxdrive.drive.engine.engine.Options") as mock_options:
+            mock_options.database_batch_size = 50
 
-                mock_engine._direct_transfer(
-                    local_paths,
-                    remote_parent_path,
-                    remote_parent_ref,
-                    remote_parent_title,
-                    new_folder=new_folder,
-                )
+            mock_engine._direct_transfer(
+                local_paths,
+                remote_parent_path,
+                remote_parent_ref,
+                remote_parent_title,
+                new_folder=new_folder,
+            )
 
         # Verify folder creation was attempted
-        mock_metric.assert_called_once_with("direct_transfer", "new_folder", "1")
         mock_engine.remote.upload_folder.assert_called_once()
 
     def test_direct_transfer_only_create_folder(self, mock_engine):
@@ -665,14 +660,13 @@ class TestDirectTransfer:
         remote_parent_title = "Remote Title"
         new_folder = "New Folder"
 
-        with patch.object(mock_engine, "send_metric"):
-            mock_engine._direct_transfer(
-                local_paths,
-                remote_parent_path,
-                remote_parent_ref,
-                remote_parent_title,
-                new_folder=new_folder,
-            )
+        mock_engine._direct_transfer(
+            local_paths,
+            remote_parent_path,
+            remote_parent_ref,
+            remote_parent_title,
+            new_folder=new_folder,
+        )
 
         # Should create folder but not plan any items
         mock_engine.remote.upload_folder.assert_called_once()
@@ -721,14 +715,12 @@ class TestHandleSessionStatus:
             {"facets": ["Folderish"]},
         ]
 
-        with patch.object(mock_engine, "send_metric") as mock_metric:
-            mock_engine.handle_session_status(session)
+        mock_engine.handle_session_status(session)
 
         mock_engine.directTransferSessionFinished.emit.assert_called_once_with(
             mock_engine.uid, "ref-123", "/remote/path"
         )
         mock_engine.remote.metrics.send.assert_called_once()
-        mock_metric.assert_called_once_with("direct_transfer", "session_items", "10")
 
     def test_handle_session_status_not_done(self, mock_engine):
         """Test handling non-completed session."""

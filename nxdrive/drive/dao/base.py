@@ -312,6 +312,13 @@ class BaseDAO(QObject):
 
         self.update_config(name, int(value))
 
+    def has_config(self, name: str, /) -> bool:
+        c = self._get_read_connection().cursor()
+        return (
+            c.execute("SELECT 1 FROM Configuration WHERE name = ?", (name,)).fetchone()
+            is not None
+        )
+
     def get_config(self, name: str, /, *, default: Any = None) -> Any:
         c = self._get_read_connection().cursor()
         obj = c.execute(

@@ -620,9 +620,6 @@ class FoldersDialog(DialogMixin):
             )
         )
 
-        if folders:
-            self.engine.send_metric("direct_transfer", "dupe_folder", "1")
-
         return folders
 
     def get_known_type_key(self, is_folder: bool, type: str, /) -> str:

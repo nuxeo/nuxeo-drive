@@ -8,6 +8,7 @@ import pytest
 
 from nxdrive.drive.gui import application as application_module
 from nxdrive.drive.gui.application import Application
+from nxdrive.drive.options import Options
 from nxdrive.drive.qt.imports import Qt
 
 
@@ -48,6 +49,37 @@ def test_dark_mode_without_style_hints_is_light():
     application = make_application()
     with patch.object(Application, "styleHints", return_value=None):
         assert application.is_dark_mode() is False
+
+
+def test_metrics_acceptance_persists_choices_through_manager():
+    manager = Mock()
+    application = make_application(manager=manager, icon=Mock())
+    dialog = Mock()
+    calls = []
+    dialog.exec.side_effect = lambda: calls.append("dialog closed")
+    manager.set_metrics_preferences.side_effect = (
+        lambda sentry, analytics: calls.append(
+            f"choices persisted: {sentry}, {analytics}"
+        )
+    )
+
+    with (
+        patch.object(application_module, "QDialog", return_value=dialog),
+        patch.object(application_module, "QVBoxLayout", return_value=Mock()),
+        patch.object(application_module, "QLabel", return_value=Mock()),
+        patch.object(application_module, "QCheckBox", return_value=Mock()),
+        patch.object(application_module, "QDialogButtonBox", return_value=Mock()),
+        patch.object(application_module.Translator, "get", return_value="text"),
+    ):
+        application.show_metrics_acceptance()
+
+    manager.set_metrics_preferences.assert_called_once_with(
+        Options.use_sentry, Options.use_analytics
+    )
+    assert calls == [
+        "dialog closed",
+        f"choices persisted: {Options.use_sentry}, {Options.use_analytics}",
+    ]
 
 
 def test_workflow_engine_list_feature_guard_and_registered_workflow():
