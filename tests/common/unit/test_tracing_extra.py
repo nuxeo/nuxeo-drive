@@ -31,6 +31,7 @@ def test_setup_sentry_returns_without_consent(monkeypatch):
 def test_setup_sentry_initializes_for_advanced_analytics(monkeypatch):
     Options.use_analytics = True
     Options.use_sentry = False
+    monkeypatch.setenv("SKIP_SENTRY", "0")
     monkeypatch.setenv("SENTRY_DSN", "https://public@example.invalid/1")
     scope = SimpleNamespace(_contexts={})
 
@@ -129,3 +130,17 @@ def test_before_send_accepts_and_deduplicates_error_log_events():
     assert tracing.before_send(event, {}) is None
 
     tracing._EVENTS.clear()
+
+
+def test_before_send_accepts_frames_without_locations():
+    event = {
+        "threads": {
+            "values": [{"stacktrace": {"frames": [{"function": "worker"}]}}]
+        }
+    }
+
+    tracing._EVENTS.clear()
+
+    assert tracing.before_send(event, {}) is event
+    assert tracing.before_send(event, {}) is event
+    assert not tracing._EVENTS

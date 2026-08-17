@@ -352,22 +352,29 @@ class Manager(QObject):
     def check_metrics_preferences(self) -> None:
         """Load persisted error reporting and advanced analytics preferences."""
         state_file = Options.nxdrive_home / "metrics.state"
-        if state_file.is_file():
-            lines = state_file.read_text(encoding="utf-8").splitlines()
+        preferences = (
+            ("use_sentry", "sentry"),
+            ("use_analytics", "analytics"),
+        )
+        stored = {option: self.dao.has_config(option) for option, _ in preferences}
+        if not state_file.is_file() and not any(stored.values()):
+            return
 
-            for option, token in (
-                ("use_sentry", "sentry"),
-                ("use_analytics", "analytics"),
-            ):
-                if not self.dao.has_config(option):
-                    value = token in lines
-                    self.dao.store_bool(option, value)
-                else:
-                    value = self.dao.get_bool(option)
-                setattr(Options, option, value)
+        lines = (
+            state_file.read_text(encoding="utf-8").splitlines()
+            if state_file.is_file()
+            else []
+        )
+        for option, token in preferences:
+            if stored[option]:
+                value = self.dao.get_bool(option)
+            else:
+                value = token in lines
+                self.dao.store_bool(option, value)
+            setattr(Options, option, value)
 
-            self._write_metrics_state()
-            self.preferences_metrics_chosen = True
+        self._write_metrics_state()
+        self.preferences_metrics_chosen = True
 
     def _setup_sentry(self) -> None:
         if not (Options.use_sentry or Options.use_analytics):

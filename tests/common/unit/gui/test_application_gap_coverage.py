@@ -82,6 +82,57 @@ def test_metrics_acceptance_persists_choices_through_manager():
     ]
 
 
+@Options.mock()
+def test_metrics_acceptance_checkboxes_update_options():
+    manager = Mock()
+    application = make_application(manager=manager, icon=Mock())
+    dialog = Mock()
+    checkboxes = []
+
+    class CheckBox:
+        def __init__(self, text):
+            self.text = text
+            self.checked = False
+            self.stateChanged = Mock()
+            self.stateChanged.connect.side_effect = self._connect
+            self._callback = None
+
+        def _connect(self, callback):
+            self._callback = callback
+
+        def setChecked(self, checked):
+            self.checked = checked
+            if self._callback:
+                state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+                self._callback(state)
+
+    def checkbox_factory(text):
+        checkbox = CheckBox(text)
+        checkboxes.append(checkbox)
+        return checkbox
+
+    def select_both():
+        assert len(checkboxes) == 2
+        checkboxes[0].setChecked(True)
+        checkboxes[1].setChecked(True)
+
+    dialog.exec.side_effect = select_both
+
+    with (
+        patch.object(application_module, "QDialog", return_value=dialog),
+        patch.object(application_module, "QVBoxLayout", return_value=Mock()),
+        patch.object(application_module, "QLabel", return_value=Mock()),
+        patch.object(application_module, "QCheckBox", side_effect=checkbox_factory),
+        patch.object(application_module, "QDialogButtonBox", return_value=Mock()),
+        patch.object(application_module.Translator, "get", return_value="text"),
+    ):
+        application.show_metrics_acceptance()
+
+    assert Options.use_sentry is True
+    assert Options.use_analytics is True
+    manager.set_metrics_preferences.assert_called_once_with(True, True)
+
+
 def test_workflow_engine_list_feature_guard_and_registered_workflow():
     manager = Mock()
     application = make_application(

@@ -490,6 +490,24 @@ def test_metrics_database_value_repairs_state_file(manager_obj, tmp_path):
     assert (tmp_path / "metrics.state").read_text(encoding="utf-8") == "analytics"
 
 
+def test_metrics_database_restores_missing_state_file(manager_obj, tmp_path):
+    Options.nxdrive_home = tmp_path
+    Options.use_sentry = False
+    Options.use_analytics = False
+    manager_obj.dao.values["use_sentry"] = True
+    manager_obj.dao.values["use_analytics"] = True
+    manager_obj.preferences_metrics_chosen = False
+
+    manager_obj.check_metrics_preferences()
+
+    assert manager_obj.preferences_metrics_chosen is True
+    assert Options.use_sentry is True
+    assert Options.use_analytics is True
+    assert (tmp_path / "metrics.state").read_text(encoding="utf-8") == (
+        "analytics\nsentry"
+    )
+
+
 def test_sentry_initializes_once_after_consent(manager_obj):
     Options.use_sentry = False
     Options.use_analytics = False

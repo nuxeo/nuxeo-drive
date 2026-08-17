@@ -29,7 +29,12 @@ def should_ignore(event: _Event) -> bool:
             for frame in thread.get("stacktrace", {}).get("frames", [])
         ]
 
-    if not frames:
+    frame_locations = sorted(
+        f"{frame['filename']}:{frame['lineno']}"
+        for frame in frames
+        if frame.get("filename") is not None and frame.get("lineno") is not None
+    )
+    if not frame_locations:
         return False
 
     # Compute a "fingerprint" of the stacktrace. Pseudo-code:
@@ -40,9 +45,7 @@ def should_ignore(event: _Event) -> bool:
     #     "nxdrive/engine/watcher/local_watcher.py:283",
     #     "nxdrive/engine/workers.py:196",
     # )
-    fingerprint = hash(
-        tuple(sorted(f"{err['filename']}:{err['lineno']}" for err in frames))
-    )
+    fingerprint = hash(tuple(frame_locations))
     if fingerprint in _EVENTS:
         return True
     _EVENTS.add(fingerprint)
