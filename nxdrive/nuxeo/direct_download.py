@@ -11,7 +11,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from nxdrive.drive.constants import DirectDownloadStatus
-from nxdrive.drive.direct_download import DirectDownload as _DirectDownloadBase
+from nxdrive.drive.direct_download import (
+    DirectDownload as _DirectDownloadBase,
+    DownloadPaused,
+)
 from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
 from nxdrive.drive.options import Options  # backward compatibility for tests
 from nxdrive.drive.utils import safe_filename
@@ -701,12 +704,24 @@ class DirectDownload(_DirectDownloadBase):
                     if not chunk:
                         continue
 
-                    # Check for cancellation during download
-                    if record_uid and self._is_single_download_cancelled(record_uid):
+                    # Check for cancellation / pause during download.
+                    # Both checks are non-blocking: pause returns the
+                    # worker thread to the pool immediately so the
+                    # rest of the batch can keep flowing, and the
+                    # download will be re-submitted by
+                    # ``DirectDownload.resume_download`` when the user
+                    # clicks Resume.
+                    if record_uid:
                         if self._stop:
                             return
-                        log.info(f"Download cancelled for {filename}")
-                        raise RuntimeError(f"Download cancelled for {filename}")
+                        if self._is_single_download_cancelled(record_uid):
+                            log.info(f"Download cancelled for {filename}")
+                            raise RuntimeError(
+                                f"Download cancelled for {filename}"
+                            )
+                        if self._is_paused(record_uid):
+                            log.info(f"Download paused for {filename}")
+                            raise DownloadPaused(record_uid)
 
                     f.write(chunk)
                     bytes_downloaded += len(chunk)

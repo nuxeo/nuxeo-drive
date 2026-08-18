@@ -492,33 +492,33 @@ def test_batch_cancellation_states_are_deterministic(direct_download):
     direct_download._get_download_record = Mock(side_effect=[missing, cancelled])
     assert direct_download._is_download_cancelled([0, 1]) is True
 
+    # PAUSED must NOT count as cancelled under the parallel executor:
+    # blocking here used to pin a worker thread indefinitely.
     paused = _record(2, DirectDownloadStatus.PAUSED)
-    resumed = _record(2, DirectDownloadStatus.IN_PROGRESS)
-    direct_download._get_download_record.side_effect = [paused, resumed]
-    with patch("nxdrive.drive.direct_download.time.sleep") as sleep:
-        assert direct_download._is_download_cancelled([2]) is False
-    sleep.assert_called_once_with(1.0)
+    direct_download._get_download_record = Mock(return_value=paused)
+    assert direct_download._is_download_cancelled([2]) is False
 
-    direct_download._get_download_record.side_effect = [paused]
-    direct_download._stop = True
-    assert direct_download._is_download_cancelled([2]) is True
+    direct_download._get_download_record = Mock(
+        return_value=_record(3, DirectDownloadStatus.CANCELLED)
+    )
+    assert direct_download._is_download_cancelled([3]) is True
 
 
 def test_single_cancellation_states_are_deterministic(direct_download):
     direct_download._get_download_record = Mock(return_value=None)
     assert direct_download._is_single_download_cancelled(1) is False
 
+    # PAUSED is not cancellation; the worker returns immediately and
+    # waits for a Resume click to re-submit.
     paused = _record(2, DirectDownloadStatus.PAUSED)
-    cancelled = _record(2, DirectDownloadStatus.CANCELLED)
-    direct_download._get_download_record.side_effect = [paused, cancelled]
-    with patch("nxdrive.drive.direct_download.time.sleep") as sleep:
-        assert direct_download._is_single_download_cancelled(2) is True
-    sleep.assert_called_once_with(1.0)
+    direct_download._get_download_record = Mock(return_value=paused)
+    assert direct_download._is_single_download_cancelled(2) is False
+    assert direct_download._is_paused(2) is True
 
-    direct_download._get_download_record.side_effect = None
-    direct_download._get_download_record.return_value = paused
-    direct_download._stop = True
-    assert direct_download._is_single_download_cancelled(2) is True
+    cancelled = _record(3, DirectDownloadStatus.CANCELLED)
+    direct_download._get_download_record = Mock(return_value=cancelled)
+    assert direct_download._is_single_download_cancelled(3) is True
+    assert direct_download._is_paused(3) is False
 
 
 def test_progress_persists_aggregate_and_emits_per_file_values(

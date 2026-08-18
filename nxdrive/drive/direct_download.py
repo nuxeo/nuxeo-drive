@@ -30,9 +30,20 @@ if TYPE_CHECKING:
     from nxdrive.drive.engine.engine import Engine  # noqa
     from nxdrive.drive.manager import Manager  # noqa
 
-__all__ = ("DirectDownload",)
+__all__ = ("DirectDownload", "DownloadPaused")
 
 log = getLogger(__name__)
+
+
+# Re-export ``DownloadPaused`` so callers of the Direct-Download layer
+# (including the Nuxeo subclass) can grab both the worker class and the
+# pause sentinel from a single module.  The exception itself is defined
+# alongside the other transfer-lifecycle errors in
+# ``nxdrive.drive.exceptions``; it is raised from the chunk loop when
+# the user pauses a mid-flight transfer and is caught in
+# :meth:`DirectDownload._run_doc`, which releases the executor thread
+# so the pool stays healthy while the record waits for a Resume click.
+from nxdrive.drive.exceptions import DownloadPaused  # noqa: E402
 
 
 @dataclass
@@ -530,12 +541,17 @@ class DirectDownload(Worker):
         """
         Worker-pool entry point for one document.
 
-        Runs the full per-doc pipeline (cancel gate → status flip →
-        enrichment → ``_process_download``) and, on completion, tries
-        to finalize the enclosing batch if it was the last one out.
+        Runs the full per-doc pipeline (pause / cancel gate → status
+        flip → enrichment → ``_process_download``) and, on completion,
+        tries to finalize the enclosing batch if it was the last one
+        out.
 
-        Cancellation and shutdown are treated as "skipped" and do not
-        count towards the batch success / failure totals.
+        Cancellation, pause, and shutdown are treated as "skipped" and
+        do not count towards the batch success / failure totals. In
+        particular, pause returns immediately instead of blocking the
+        executor thread; the record stays in ``PAUSED`` state and will
+        be re-submitted by :meth:`resume_download` when the user clicks
+        the Resume button.
         """
         record_uid = int(doc["_record_uid"])
         error_name = doc.get("filename") or doc.get("doc_id") or "unknown"
@@ -545,7 +561,12 @@ class DirectDownload(Worker):
             if self._stop:
                 return
 
-            # Honour PAUSED / CANCELLED persisted across restarts.
+            # Fast, non-blocking pause / cancel checks. Neither one
+            # spins on ``time.sleep`` any more; the parallel executor
+            # needs its threads back.
+            if self._is_paused(record_uid):
+                log.info(f"Download {record_uid} is paused, skipping")
+                return
             if self._is_single_download_cancelled(record_uid):
                 log.info(f"Download {record_uid} cancelled, skipping")
                 return
@@ -574,6 +595,15 @@ class DirectDownload(Worker):
                 self._process_download(doc, batch.batch_folder)
                 outcome = "ok"
 
+            except DownloadPaused:
+                # Mid-transfer pause. Leave the record in PAUSED state
+                # (the DAO was updated when the user clicked pause) and
+                # release the worker thread so the pool stays healthy.
+                log.info(
+                    f"Download {record_uid} paused mid-transfer, "
+                    "will resume on user request"
+                )
+
             except Exception as exc:
                 outcome = "failed"
                 log.exception("Document download failed")
@@ -596,7 +626,7 @@ class DirectDownload(Worker):
                     batch.successful += 1
                 elif outcome == "failed":
                     batch.failed += 1
-                # "skipped" (stop / cancelled) is intentionally uncounted.
+                # "skipped" (stop / pause / cancelled) is intentionally uncounted.
                 batch.remaining -= 1
                 should_finalize = batch.remaining <= 0 and not batch.finalized
                 if should_finalize:
@@ -614,42 +644,93 @@ class DirectDownload(Worker):
         """
         Archive and finalize a batch once every one of its documents
         has settled. Fires ``batchCompleted`` at the end.
+
+        Only records that made it through the transfer
+        (``IN_PROGRESS`` at finalization time) are zipped and marked
+        ``COMPLETED``. Paused / cancelled / failed records are left
+        alone so a single paused document does not block the rest of
+        the batch from moving to Downloads.
         """
         record_uids = list(batch.record_uids)
 
-        archive_path: Optional[Path] = None
-        can_finalize_batch = self._can_finalize_batch(record_uids)
-        if can_finalize_batch:
-            archive_path = self._create_zip_archive(batch.batch_folder)
+        finalizable_uids: List[int] = []
+        for uid in record_uids:
+            record = self._get_download_record(uid)
+            if record and record.status == DirectDownloadStatus.IN_PROGRESS:
+                finalizable_uids.append(uid)
 
-        for record_uid in record_uids:
-            record = self._get_download_record(record_uid)
-            if (
-                can_finalize_batch
-                and record
-                and record.status
-                in (
-                    DirectDownloadStatus.IN_PROGRESS,
-                    DirectDownloadStatus.PENDING,
-                )
-            ):
-                self._update_download_status(
-                    record_uid,
-                    DirectDownloadStatus.COMPLETED,
-                    download_path=(
-                        str(archive_path) if archive_path else str(batch.batch_folder)
-                    ),
-                )
+        archive_path: Optional[Path] = None
+        if finalizable_uids:
+            archive_path = self._create_zip_archive(batch.batch_folder)
+        else:
+            # Nothing transferred — just drop the (possibly empty) batch folder.
+            self._cleanup_batch_folder(batch.batch_folder)
+
+        for uid in finalizable_uids:
+            self._update_download_status(
+                uid,
+                DirectDownloadStatus.COMPLETED,
+                download_path=(
+                    str(archive_path) if archive_path else str(batch.batch_folder)
+                ),
+            )
 
         if archive_path:
             zip_file_name = archive_path.name
-            for record_uid in record_uids:
-                self._update_download_path(record_uid, str(archive_path), zip_file_name)
+            for uid in finalizable_uids:
+                self._update_download_path(uid, str(archive_path), zip_file_name)
 
         with self._batches_lock:
             self._batches.pop(batch.batch_id, None)
 
         self.batchCompleted.emit(batch.successful, batch.failed)
+
+    # ------------------------------------------------------------------ resume single record
+
+    def resume_download(self, record_uid: int, /) -> bool:
+        """
+        Re-submit a paused / interrupted single record to the worker
+        pool. Called from the GUI API when the user clicks Resume.
+
+        Returns ``True`` when a task was submitted, ``False`` if the
+        record could not be located or the engine went away.
+        """
+        record: Optional[DirectDownloadRecord] = self._get_download_record(record_uid)
+        if record is None:
+            log.warning(f"Cannot resume download {record_uid}: record not found")
+            return False
+
+        # Reconstruct the doc dictionary. We only need enough to route
+        # the download; ``_run_doc`` will re-enrich sizes as needed.
+        doc: Dict[str, Any] = {
+            "server_url": record.server_url,
+            "doc_id": record.doc_uid,
+            "filename": record.doc_name,
+            "_record_uid": record_uid,
+        }
+
+        # Pull the engine's username so ``_get_engine`` can pick the
+        # right binder on multi-account setups.
+        for engine in self._manager.engines.copy().values():
+            if engine.dao is None:
+                continue
+            candidate = engine.dao.get_direct_download(record_uid)
+            if candidate is not None:
+                try:
+                    doc["user"] = engine.get_binder().username
+                except Exception:
+                    doc["user"] = ""
+                break
+
+        # Reuse the original batch folder when it still exists so any
+        # partial data survives the resume. Otherwise start fresh.
+        if record.zip_file:
+            candidate_folder = self._folder / record.zip_file
+            if candidate_folder.is_dir():
+                doc["_batch_folder"] = record.zip_file
+
+        self._process_batch([doc])
+        return True
 
 
     # ------------------------------------------------------------------ zip / destination
@@ -819,37 +900,30 @@ class DirectDownload(Worker):
         return None
 
     def _is_download_cancelled(self, record_uids: List[int], /) -> bool:
-        """Check if any download in the batch has been cancelled or paused.
-        If paused, wait until resumed or cancelled."""
+        """Return True as soon as any download in the batch is cancelled.
+
+        Historically this method also polled while a record was
+        ``PAUSED`` — that busy-wait pinned the (single) worker thread
+        indefinitely.  With the parallel executor we can no longer
+        afford to block: pause is now a cheap non-blocking check
+        (see :meth:`_is_paused`) and resume goes through
+        :meth:`resume_download`.
+        """
         for uid in record_uids:
             record = self._get_download_record(uid)
-            if not record:
-                continue
-            if record.status == DirectDownloadStatus.CANCELLED:
+            if record and record.status == DirectDownloadStatus.CANCELLED:
                 return True
-            # If paused, wait until resumed or cancelled
-            while record and record.status == DirectDownloadStatus.PAUSED:
-                if self._stop:
-                    return True
-                time.sleep(1.0)
-                record = self._get_download_record(uid)
-                if record and record.status == DirectDownloadStatus.CANCELLED:
-                    return True
         return False
 
     def _is_single_download_cancelled(self, uid: int, /) -> bool:
-        """Check if a single download has been cancelled or paused.
-        If paused, wait until resumed or cancelled."""
+        """Return True if this record has been cancelled. Non-blocking."""
         record = self._get_download_record(uid)
-        if not record:
-            return False
-        # If paused, wait until resumed or cancelled
-        while record and record.status == DirectDownloadStatus.PAUSED:
-            if self._stop:
-                return True
-            time.sleep(1.0)
-            record = self._get_download_record(uid)
         return bool(record and record.status == DirectDownloadStatus.CANCELLED)
+
+    def _is_paused(self, uid: int, /) -> bool:
+        """Return True if the record is currently PAUSED. Non-blocking."""
+        record = self._get_download_record(uid)
+        return bool(record and record.status == DirectDownloadStatus.PAUSED)
 
     def _update_download_path(
         self, uid: int, download_path: str, zip_file: str = None, /
