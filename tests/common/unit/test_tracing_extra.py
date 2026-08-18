@@ -134,9 +134,7 @@ def test_before_send_accepts_and_deduplicates_error_log_events():
 
 def test_before_send_accepts_frames_without_locations():
     event = {
-        "threads": {
-            "values": [{"stacktrace": {"frames": [{"function": "worker"}]}}]
-        }
+        "threads": {"values": [{"stacktrace": {"frames": [{"function": "worker"}]}}]}
     }
 
     tracing._EVENTS.clear()
