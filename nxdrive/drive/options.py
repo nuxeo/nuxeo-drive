@@ -743,6 +743,4 @@ Options.checkers["direct_transfer_file_upper_limit"] = (
 Options.checkers["direct_transfer_folder_upper_limit"] = (
     validate_direct_transfer_folder_upper_limit
 )
-Options.checkers["direct_download_max_workers"] = (
-    validate_direct_download_max_workers
-)
+Options.checkers["direct_download_max_workers"] = validate_direct_download_max_workers

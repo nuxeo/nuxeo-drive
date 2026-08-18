@@ -27,6 +27,8 @@ from nxdrive.drive.qt.imports import pyqtSignal, pyqtSlot
 from nxdrive.drive.utils import simplify_url
 
 if TYPE_CHECKING:
+    from concurrent.futures import Future  # noqa
+
     from nxdrive.drive.engine.engine import Engine  # noqa
     from nxdrive.drive.manager import Manager  # noqa
 
@@ -621,9 +623,7 @@ class DirectDownload(Worker):
                 try:
                     self._finalize_batch(batch)
                 except Exception:
-                    log.exception(
-                        f"Failed to finalize batch {batch.batch_id!r}"
-                    )
+                    log.exception(f"Failed to finalize batch {batch.batch_id!r}")
 
     def _finalize_batch(self, batch: _Batch, /) -> None:
         """

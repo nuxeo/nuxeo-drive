@@ -716,9 +716,7 @@ class DirectDownload(_DirectDownloadBase):
                             return
                         if self._is_single_download_cancelled(record_uid):
                             log.info(f"Download cancelled for {filename}")
-                            raise RuntimeError(
-                                f"Download cancelled for {filename}"
-                            )
+                            raise RuntimeError(f"Download cancelled for {filename}")
                         if self._is_paused(record_uid):
                             log.info(f"Download paused for {filename}")
                             raise DownloadPaused(record_uid)
