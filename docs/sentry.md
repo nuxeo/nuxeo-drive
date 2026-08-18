@@ -89,20 +89,18 @@ For every captured exception frame, Sentry can include:
 - Current source-code line.
 - Source-code lines before and after the current line.
 - Whether the frame is classified as application code.
-- Local variable names and values.
 
 A plain `log.error()` or `log.critical()` call has no active exception payload.
 Because `attach_stacktrace=True`, its event instead includes the current thread
 and stack frames at the logging call. A `log.exception()` call made inside an
 exception handler includes the active exception and its traceback.
 
-Local-variable collection is enabled by the SDK default
-`include_local_variables=True`. Local variables are the highest-risk part of
-this payload: depending on the failing code, they can contain local file paths,
-server URLs, document or account metadata, request data, access tokens,
-credentials, or fragments of file content. Absolute paths can also reveal the
-operating-system account name. Nuxeo Drive does not apply additional redaction
-to these values before sending the event.
+Local-variable collection is explicitly disabled with
+`include_local_variables=False`. Stack frames therefore do not include their
+`vars` mappings, reducing the risk of sending tokens, credentials, document
+metadata, request data, or file-content fragments that happened to be in scope
+when an error occurred. Paths and other sensitive values can still appear in
+exception messages, log messages, command-line arguments, or breadcrumbs.
 
 ### Runtime and operating-system context
 

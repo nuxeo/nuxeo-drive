@@ -94,6 +94,7 @@ def test_setup_sentry_initializes_client_and_runtime_context(monkeypatch):
         environment="test-environment",
         release="9.8.7",
         attach_stacktrace=True,
+        include_local_variables=False,
         before_send=tracing.before_send,
         integrations=[logging_integration.return_value],
         traces_sample_rate=1.0,

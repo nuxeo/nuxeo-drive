@@ -90,6 +90,7 @@ def setup_sentry(app_version: str) -> None:
         environment=os.getenv("SENTRY_ENV", "production"),
         release=app_version,
         attach_stacktrace=True,
+        include_local_variables=False,
         before_send=before_send,
         integrations=[
             LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
