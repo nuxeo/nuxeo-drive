@@ -11,12 +11,13 @@ import shutil
 import time
 import uuid
 import zipfile
+from concurrent.futures import Future, ThreadPoolExecutor
+from dataclasses import dataclass, field
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
-from queue import Empty, Queue
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from nxdrive.drive.constants import APP_NAME, DirectDownloadStatus
 from nxdrive.drive.engine.workers import Worker
@@ -34,6 +35,29 @@ __all__ = ("DirectDownload",)
 log = getLogger(__name__)
 
 
+@dataclass
+class _Batch:
+    """
+    Bookkeeping for a single Direct Download batch running on the
+    worker pool. One instance is created per URL click (or per
+    resumed group at startup) and lives until every document in the
+    batch has been finalized (COMPLETED / FAILED / CANCELLED).
+
+    Access to the mutable counters is protected by ``lock``.
+    """
+
+    batch_id: str
+    batch_folder: Path
+    record_uids: List[int] = field(default_factory=list)
+    remaining: int = 0
+    total: int = 0
+    successful: int = 0
+    failed: int = 0
+    selected_items_str: str = ""
+    finalized: bool = False
+    lock: Lock = field(default_factory=Lock)
+
+
 class DirectDownload(Worker):
     """Server-agnostic Direct Download worker.
 
@@ -41,6 +65,13 @@ class DirectDownload(Worker):
     ``_process_download()``, ``_download_folder()``, ``_get_children()``,
     ``_get_download_url()``, ``_download_file()``, ``_calculate_folder_size()``,
     ``_create_download_record()``.
+
+    Concurrency: documents are dispatched to a bounded thread pool
+    (see ``Options.direct_download_max_workers``), so multiple
+    documents — potentially from different user-clicked batches — can
+    be streamed in parallel. Per-batch finalisation (zip archive,
+    move to Downloads, status flip to COMPLETED) fires once every
+    document in that batch has settled.
     """
 
     # Signals for download events
@@ -53,19 +84,32 @@ class DirectDownload(Worker):
     batchStarting = pyqtSignal(int)  # number of documents in batch
     batchCompleted = pyqtSignal(int, int)  # successful count, failed count
 
-    def __init__(self, manager: "Manager", folder: Path, /) -> None:
+    def __init__(
+        self,
+        manager: "Manager",
+        folder: Path,
+        /,
+        *,
+        executor: Optional[Any] = None,
+    ) -> None:
         super().__init__("DirectDownload")
 
         self._manager = manager
         self._folder = folder
         self.lock = Lock()
 
-        # Queue holds batches of documents (List[Dict]) from single URL requests
-        self._download_queue: Queue = Queue()
         self._stop = False
 
         # List to track all download batch folders (download_<timestamp>)
+        # Guarded by ``_folders_lock`` because worker-pool threads may
+        # append or remove entries concurrently on batch start/cleanup.
         self._download_folders: List[str] = []
+        self._folders_lock = Lock()
+
+        # In-flight batches keyed by ``batch_id`` (== batch folder name).
+        # Guarded by ``_batches_lock``.
+        self._batches: Dict[str, _Batch] = {}
+        self._batches_lock = Lock()
 
         # Ensure persisted active downloads are requeued only once per app run.
         self._resumed_persisted_downloads = False
@@ -73,6 +117,20 @@ class DirectDownload(Worker):
         # Ensure the download folder exists
         self._folder.mkdir(parents=True, exist_ok=True)
         log.info(f"Direct Download folder: {self._folder}")
+
+        # Bounded thread pool that streams documents in parallel. Tests
+        # can inject a synchronous stand-in through the ``executor``
+        # keyword to keep behaviour deterministic.
+        if executor is not None:
+            self._executor: Any = executor
+            self._owns_executor = False
+        else:
+            max_workers = max(1, int(Options.direct_download_max_workers or 1))
+            self._executor = ThreadPoolExecutor(
+                max_workers=max_workers,
+                thread_name_prefix="DirectDownload",
+            )
+            self._owns_executor = True
 
         # Connect to the manager's directDownload signal
         self._manager.directDownload.connect(self.download)
@@ -89,7 +147,8 @@ class DirectDownload(Worker):
     @property
     def download_folders(self) -> List[str]:
         """Return the list of all download batch folder names."""
-        return self._download_folders.copy()
+        with self._folders_lock:
+            return list(self._download_folders)
 
     # ------------------------------------------------------------------ folder management
 
@@ -106,8 +165,8 @@ class DirectDownload(Worker):
         batch_folder = self._folder / folder_name
         batch_folder.mkdir(parents=True, exist_ok=False)
 
-        # Add to the list of download folders
-        self._download_folders.append(folder_name)
+        with self._folders_lock:
+            self._download_folders.append(folder_name)
 
         return batch_folder
 
@@ -146,7 +205,8 @@ class DirectDownload(Worker):
 
         if not self._folder.exists():
             self._folder.mkdir(parents=True, exist_ok=True)
-            self._download_folders.clear()
+            with self._folders_lock:
+                self._download_folders.clear()
             return
 
         # Check for active direct download sessions upon application shutdown
@@ -167,8 +227,8 @@ class DirectDownload(Worker):
             except Exception:
                 log.exception(f"Error removing {item}")
 
-        # Clear the list of download folders
-        self._download_folders.clear()
+        with self._folders_lock:
+            self._download_folders.clear()
 
         log.info("Direct Download folder cleaned up")
 
@@ -181,10 +241,10 @@ class DirectDownload(Worker):
         try:
             if batch_folder.exists() and batch_folder.is_dir():
                 shutil.rmtree(batch_folder, ignore_errors=True)
-                # Remove from the list of download folders
                 folder_name = batch_folder.name
-                if folder_name in self._download_folders:
-                    self._download_folders.remove(folder_name)
+                with self._folders_lock:
+                    if folder_name in self._download_folders:
+                        self._download_folders.remove(folder_name)
                 log.info(f"Cleaned up batch folder: {batch_folder}")
         except Exception as exc:
             log.warning(f"Failed to cleanup batch folder {batch_folder}: {exc}")
@@ -195,28 +255,28 @@ class DirectDownload(Worker):
     def download(self, documents: List[Dict[str, str]], /) -> None:
         """
         Handle direct download request for one or more documents.
-        All documents from a single URL request are queued together as a batch.
 
-        :param documents: List of document dictionaries containing:
-            - server_url: The server URL
-            - user: The username
-            - repo: The repository name
-            - doc_id: The document ID
-            - filename: The filename
-            - download_url: The download URL path
+        All documents from a single URL request are treated as one
+        batch for zip-archive purposes, but are dispatched to the
+        worker pool **individually** so multiple documents (and
+        multiple batches) can stream in parallel.
+
+        A PENDING database record is inserted **synchronously** for
+        every document before the futures are submitted, so the UI
+        renders the new download immediately — even while other
+        downloads are still in progress.
         """
         if not documents:
             log.warning("No documents to download")
             return
 
-        # Queue the entire batch as a single entry
-        self._download_queue.put(documents)
+        self._process_batch(documents)
 
     def resume_persisted_downloads(self) -> None:
         """
         Requeue active downloads stored in databases after an application restart.
         Active records (PENDING / IN_PROGRESS / PAUSED) are grouped by their
-        original batch identifier and pushed back into the in-memory queue.
+        original batch identifier and re-submitted to the worker pool.
         Existing records are reused to preserve history, status and progress.
         """
         if self._resumed_persisted_downloads:
@@ -270,11 +330,11 @@ class DirectDownload(Worker):
                 resumed_count += 1
 
         for documents in batches.values():
-            self._download_queue.put(documents)
+            self._process_batch(documents)
 
         if resumed_count:
             log.info(
-                f"Requeued {resumed_count} persisted direct download(s) in {len(batches)} batch(es)"
+                f"Resubmitted {resumed_count} persisted direct download(s) in {len(batches)} batch(es)"
             )
 
     # ------------------------------------------------------------------ engine lookup
@@ -315,132 +375,254 @@ class DirectDownload(Worker):
     # ------------------------------------------------------------------ main loop
 
     def _execute(self) -> None:
-        """Main execution loop for the worker thread."""
-        while not self._stop:
-            self._interact()
+        """Idle loop.
 
-            # Process queued download batches
+        With the worker pool now driving downloads, this thread only
+        exists to honour pause/resume/stop through ``_interact``. It
+        does no work itself.
+        """
+        while not self._stop:
             try:
-                batch = self._download_queue.get(timeout=1.0)
-                self._process_batch(batch)
-            except Empty:
-                continue
+                self._interact()
             except Exception:
-                log.exception("Error processing download queue")
+                # ``_interact`` raises ThreadInterrupt on stop — bail
+                # out cleanly instead of spamming the log.
+                return
+            time.sleep(0.1)
+
 
     # ------------------------------------------------------------------ batch processing
 
     def _process_batch(self, documents: List[Dict[str, str]], /) -> None:
         """
-        Process a batch of documents from a single URL request.
-        Creates a timestamped folder for this batch.
-        Creates database records for each download.
+        Turn a list of documents into an in-flight batch and dispatch
+        each document as a separate task on the worker pool.
+
+        The pending database rows are inserted **synchronously** here
+        (before submission) so the UI shows every requested download
+        as soon as the user clicks the link, even while other
+        downloads are still running.
 
         :param documents: List of document dictionaries to download
         """
+        if not documents:
+            return
+
         batch_size = len(documents)
 
         # Reuse the original temp folder when resuming persisted downloads so
         # that already-downloaded files are not fetched again.
-        old_batch_folder_name: Optional[str] = (
-            documents[0].get("_batch_folder") if documents else None
-        )
+        old_batch_folder_name: Optional[str] = documents[0].get("_batch_folder")
         if old_batch_folder_name:
             candidate = self._folder / old_batch_folder_name
             if candidate.is_dir():
                 batch_folder = candidate
-                if old_batch_folder_name not in self._download_folders:
-                    self._download_folders.append(old_batch_folder_name)
+                with self._folders_lock:
+                    if old_batch_folder_name not in self._download_folders:
+                        self._download_folders.append(old_batch_folder_name)
             else:
                 batch_folder = self._create_batch_folder()
         else:
             batch_folder = self._create_batch_folder()
 
-        # Collect selected item names for display
         # Use doc_id as fallback if filename is None or empty
         selected_item_names = [
             doc.get("filename") or doc.get("doc_id", "unknown") for doc in documents
         ]
         selected_items_str = ", ".join(selected_item_names)
 
-        # Emit batch starting signal
-        self.batchStarting.emit(batch_size)
-
-        successful = 0
-        failed = 0
-
-        # Track database record UIDs for this batch
-        download_records: List[int] = []
-
         # Use batch folder name as the batch identifier for grouping
         batch_id = batch_folder.name
 
-        for doc in documents:
-            # Check if batch was cancelled before starting each doc
-            if self._is_download_cancelled(download_records):
-                log.info("Batch cancelled, stopping further downloads")
-                break
+        batch = _Batch(
+            batch_id=batch_id,
+            batch_folder=batch_folder,
+            selected_items_str=selected_items_str,
+        )
 
-            # Reuse persisted database record on restart; else create a new one.
+        # Insert / adopt records synchronously so the UI can show every
+        # requested download immediately.
+        prepared_docs: List[Dict[str, Any]] = []
+        for doc in documents:
             existing_record_uid = doc.get("_record_uid")
             if existing_record_uid:
                 record_uid = int(existing_record_uid)
             else:
-                # Create database record for this download with batch_id for grouping
-                record_uid = self._create_download_record(
+                record_uid = self._insert_pending_record(
                     doc, selected_items=selected_items_str, batch_id=batch_id
                 )
 
-            if record_uid:
-                download_records.append(record_uid)
+            if not record_uid:
+                # Failed to persist — still count as a batch member so
+                # ``batchCompleted`` totals stay consistent.
+                self.downloadError.emit(
+                    str(doc.get("filename") or doc.get("doc_id") or "unknown"),
+                    "Failed to create download record",
+                )
+                batch.failed += 1
+                continue
 
-                # Respect paused/cancelled state for persisted records.
-                if self._is_single_download_cancelled(record_uid):
-                    log.info(f"Download {record_uid} cancelled, skipping")
-                    continue
+            doc["_record_uid"] = record_uid
+            batch.record_uids.append(record_uid)
+            prepared_docs.append(doc)
+
+        batch.total = len(prepared_docs)
+        batch.remaining = len(prepared_docs)
+
+        # Nothing to do — either an empty batch or every insert failed.
+        if batch.total == 0:
+            self.batchStarting.emit(batch_size)
+            self.batchCompleted.emit(batch.successful, batch.failed)
+            self._cleanup_batch_folder(batch_folder)
+            return
+
+        with self._batches_lock:
+            self._batches[batch_id] = batch
+
+        # Announce the batch to the UI before dispatching.
+        self.batchStarting.emit(batch_size)
+
+        for doc in prepared_docs:
+            self._submit_doc(doc, batch)
+
+    def _submit_doc(self, doc: Dict[str, Any], batch: _Batch, /) -> "Future":
+        """Submit one document to the worker pool. Overridable for tests."""
+        return self._executor.submit(self._run_doc, doc, batch)
+
+    def _insert_pending_record(
+        self,
+        doc: Dict[str, str],
+        /,
+        *,
+        selected_items: str = None,
+        batch_id: str = None,
+    ) -> Optional[int]:
+        """
+        Insert a minimal PENDING record for *doc* and return its UID.
+
+        The base implementation falls back to the legacy
+        :meth:`_create_download_record` hook so subclasses that have
+        not yet been migrated keep working. Subclasses should override
+        this with a fast, remote-call-free INSERT.
+        """
+        return self._create_download_record(
+            doc, selected_items=selected_items, batch_id=batch_id
+        )
+
+    def _enrich_record(
+        self,
+        record_uid: int,
+        doc: Dict[str, str],
+        engine: "Engine",
+        /,
+    ) -> None:
+        """
+        Populate metadata (sizes, folder counts, folderish flag) on a
+        previously-inserted PENDING record. Runs on a worker thread.
+
+        The base class is a no-op; subclasses override to perform the
+        remote fetch and folder recursion here so that the GUI slot
+        stays fast.
+        """
+        return None
+
+    def _run_doc(self, doc: Dict[str, Any], batch: _Batch, /) -> None:
+        """
+        Worker-pool entry point for one document.
+
+        Runs the full per-doc pipeline (cancel gate → status flip →
+        enrichment → ``_process_download``) and, on completion, tries
+        to finalize the enclosing batch if it was the last one out.
+
+        Cancellation and shutdown are treated as "skipped" and do not
+        count towards the batch success / failure totals.
+        """
+        record_uid = int(doc["_record_uid"])
+        error_name = doc.get("filename") or doc.get("doc_id") or "unknown"
+        outcome = "skipped"
+
+        try:
+            if self._stop:
+                return
+
+            # Honour PAUSED / CANCELLED persisted across restarts.
+            if self._is_single_download_cancelled(record_uid):
+                log.info(f"Download {record_uid} cancelled, skipping")
+                return
 
             try:
-                # Update status to IN_PROGRESS
-                if record_uid:
-                    self._update_download_status(
-                        record_uid, DirectDownloadStatus.IN_PROGRESS
-                    )
-                    self._update_download_path(
-                        record_uid, str(self._get_download_destination())
-                    )
+                self._update_download_status(
+                    record_uid, DirectDownloadStatus.IN_PROGRESS
+                )
+                self._update_download_path(
+                    record_uid, str(self._get_download_destination())
+                )
 
-                doc["_record_uid"] = record_uid
-                self._process_download(doc, batch_folder)
-                successful += 1
+                server_url = doc.get("server_url", "")
+                engine = self._get_engine(server_url, user=doc.get("user"))
+                if engine is not None:
+                    try:
+                        self._enrich_record(record_uid, doc, engine)
+                    except Exception:
+                        # Enrichment is best-effort; keep going even if
+                        # the remote lookup blew up.
+                        log.exception(
+                            f"Failed to enrich record {record_uid}; "
+                            "continuing with placeholder metadata"
+                        )
+
+                self._process_download(doc, batch.batch_folder)
+                outcome = "ok"
 
             except Exception as exc:
+                outcome = "failed"
                 log.exception("Document download failed")
-                failed += 1
-
                 # Surface the per-doc failure to the UI. Without this,
                 # ``_process_download``'s early ``except`` around
                 # ``get_info`` is the *only* place ``downloadError``
-                # fires, so downstream failures (e.g. a document with no
-                # resolvable blob) silently vanish from the user's view.
-                error_name = doc.get("filename") or doc.get("doc_id") or "unknown"
+                # fires, so downstream failures (e.g. a document with
+                # no resolvable blob) silently vanish from the user's
+                # view.
                 self.downloadError.emit(str(error_name), str(exc))
+                self._update_download_status(
+                    record_uid,
+                    DirectDownloadStatus.FAILED,
+                    last_error=str(exc),
+                )
 
-                # Update status to FAILED
-                if record_uid:
-                    self._update_download_status(
-                        record_uid, DirectDownloadStatus.FAILED, last_error=str(exc)
+        finally:
+            with batch.lock:
+                if outcome == "ok":
+                    batch.successful += 1
+                elif outcome == "failed":
+                    batch.failed += 1
+                # "skipped" (stop / cancelled) is intentionally uncounted.
+                batch.remaining -= 1
+                should_finalize = batch.remaining <= 0 and not batch.finalized
+                if should_finalize:
+                    batch.finalized = True
+
+            if should_finalize:
+                try:
+                    self._finalize_batch(batch)
+                except Exception:
+                    log.exception(
+                        f"Failed to finalize batch {batch.batch_id!r}"
                     )
 
-        # Finalize based on the current batch state. Global active-session checks
-        # are still used during shutdown cleanup, but they must not block a batch
-        # from archiving itself once its own downloads are done.
-        archive_path: Optional[Path] = None
-        can_finalize_batch = self._can_finalize_batch(download_records)
-        if can_finalize_batch:
-            archive_path = self._create_zip_archive(batch_folder)
+    def _finalize_batch(self, batch: _Batch, /) -> None:
+        """
+        Archive and finalize a batch once every one of its documents
+        has settled. Fires ``batchCompleted`` at the end.
+        """
+        record_uids = list(batch.record_uids)
 
-        # Mark successful downloads as COMPLETED only after archive is created
-        for record_uid in download_records:
+        archive_path: Optional[Path] = None
+        can_finalize_batch = self._can_finalize_batch(record_uids)
+        if can_finalize_batch:
+            archive_path = self._create_zip_archive(batch.batch_folder)
+
+        for record_uid in record_uids:
             record = self._get_download_record(record_uid)
             if (
                 can_finalize_batch
@@ -455,18 +637,20 @@ class DirectDownload(Worker):
                     record_uid,
                     DirectDownloadStatus.COMPLETED,
                     download_path=(
-                        str(archive_path) if archive_path else str(batch_folder)
+                        str(archive_path) if archive_path else str(batch.batch_folder)
                     ),
                 )
 
-        # Update download paths and zip_file name to the final archive location
         if archive_path:
-            zip_file_name = archive_path.name if archive_path else None
-            for record_uid in download_records:
+            zip_file_name = archive_path.name
+            for record_uid in record_uids:
                 self._update_download_path(record_uid, str(archive_path), zip_file_name)
 
-        # Emit batch completed signal
-        self.batchCompleted.emit(successful, failed)
+        with self._batches_lock:
+            self._batches.pop(batch.batch_id, None)
+
+        self.batchCompleted.emit(batch.successful, batch.failed)
+
 
     # ------------------------------------------------------------------ zip / destination
 
@@ -819,4 +1003,19 @@ class DirectDownload(Worker):
     def stop(self) -> None:
         """Stop the worker."""
         self._stop = True
+
+        # Best-effort shutdown of the worker pool. Any in-flight
+        # streaming download bails out via the per-chunk cancellation
+        # check in ``_download_file``; anything not yet started is
+        # cancelled outright.
+        if self._owns_executor:
+            try:
+                self._executor.shutdown(wait=False, cancel_futures=True)
+            except TypeError:
+                # ``cancel_futures`` was added in Python 3.9; ignore on
+                # older stubs.
+                self._executor.shutdown(wait=False)
+            except Exception:
+                log.exception("Failed to shutdown Direct Download executor")
+
         super().stop()

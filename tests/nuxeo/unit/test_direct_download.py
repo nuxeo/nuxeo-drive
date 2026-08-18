@@ -239,6 +239,13 @@ class TestDirectDownloadCreateRecord:
         engine = Mock()
         engine.uid = "eng-1"
         engine.dao.save_direct_download.return_value = 42
+        # ``_enrich_record`` re-reads the record before deciding whether
+        # to update; give it one that still needs sizes filled in.
+        placeholder = Mock()
+        placeholder.total_bytes = 0
+        placeholder.doc_size = 0
+        placeholder.doc_name = "placeholder.txt"
+        engine.dao.get_direct_download.return_value = placeholder
         engine.remote.fetch.return_value = {
             "facets": [],
             "properties": {

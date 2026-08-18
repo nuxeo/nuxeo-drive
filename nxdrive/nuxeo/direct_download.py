@@ -60,12 +60,52 @@ class DirectDownload(_DirectDownloadBase):
         batch_id: str = None,
     ) -> Optional[int]:
         """
-        Create a database record for a download.
+        Create and enrich a database record for a download.
+
+        This is the legacy single-call entry point kept for
+        backward-compatibility with tests and any callers that still
+        want to do the insert *and* the remote-info enrichment in one
+        step (e.g. ``resume_persisted_downloads`` fallbacks). New code
+        paths should call :meth:`_insert_pending_record` synchronously
+        from the GUI slot and :meth:`_enrich_record` from the worker
+        pool so the UI shows the row immediately.
 
         :param doc: Document dictionary with download information
         :param selected_items: Comma-separated list of selected file/folder names
         :param batch_id: Batch identifier for grouping downloads (e.g., batch folder name)
         :return: The UID of the created record, or None if failed
+        """
+        uid = self._insert_pending_record(
+            doc, selected_items=selected_items, batch_id=batch_id
+        )
+        if uid is None:
+            return None
+
+        server_url = doc.get("server_url", "")
+        user = doc.get("user")
+        engine = self._get_engine(server_url, user=user)
+        if engine is not None:
+            self._enrich_record(uid, doc, engine)
+
+        return uid
+
+    def _insert_pending_record(
+        self,
+        doc: Dict[str, str],
+        /,
+        *,
+        selected_items: str = None,
+        batch_id: str = None,
+    ) -> Optional[int]:
+        """
+        Insert a minimal PENDING download record and return its UID.
+
+        This is the fast, GUI-thread-safe half of record creation: it
+        performs only a single INSERT (no remote calls, no folder
+        recursion) so the UI can show the queued download as soon as
+        the user clicks the link. The expensive metadata enrichment
+        (fetching the document, walking folder sizes) is deferred to
+        :meth:`_enrich_record`, which runs on a worker pool thread.
         """
         try:
             server_url = doc.get("server_url", "")
@@ -76,65 +116,85 @@ class DirectDownload(_DirectDownloadBase):
                 log.warning("No engine or DAO available for download record")
                 return None
 
-            # Fetch document info for additional details
             doc_id = doc.get("doc_id", "")
             doc_name = doc.get("filename") or doc_id or "unknown"
-            doc_size = 0
-            is_folder = False
-            folder_count = 0
-            file_count = 1
 
-            # Creating a record instantly with PENDING status
             record = DirectDownloadRecord(
                 uid=None,
                 doc_uid=doc_id,
                 doc_name=doc_name,
-                doc_size=doc_size,
+                doc_size=0,
                 download_path=None,
                 server_url=server_url,
                 status=DirectDownloadStatus.PENDING,
                 bytes_downloaded=0,
-                total_bytes=doc_size,
+                total_bytes=0,
                 progress_percent=0.0,
                 created_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
                 started_at=None,
                 completed_at=None,
-                is_folder=is_folder,
-                folder_count=folder_count,
-                file_count=file_count,
+                is_folder=False,
+                folder_count=0,
+                file_count=1,
                 retry_count=0,
                 last_error=None,
                 engine=engine.uid,
-                zip_file=batch_id,  # Use batch_id for grouping downloads
+                zip_file=batch_id,
                 selected_items=selected_items,
             )
-            uid = engine.dao.save_direct_download(record)
+            return engine.dao.save_direct_download(record)
 
-            try:
-                doc_info = engine.remote.fetch(doc_id)
-                is_folder = "Folderish" in doc_info.get("facets", [])
-                doc_name = doc_info.get("properties", {}).get("dc:title", doc_name)
+        except Exception:
+            log.exception("Failed to insert pending download record")
+            return None
 
-                if is_folder:
-                    # For folders, calculate total size, folder count and file count recursively
-                    # folder_count includes the main folder itself (add 1)
-                    doc_size, subfolder_count, file_count = self._calculate_folder_size(
-                        engine, doc_id
-                    )
-                    folder_count = subfolder_count + 1  # Include the main folder itself
-                else:
-                    # Get file size from properties
-                    props = doc_info.get("properties", {})
-                    file_content = props.get("file:content")
-                    if file_content and isinstance(file_content, dict):
-                        # length is returned as string, convert to int
-                        doc_size = int(file_content.get("length", 0) or 0)
-                    folder_count = 0
-                    file_count = 1
-            except Exception as e:
-                log.exception(f"Could not fetch doc info for {doc_id}: {e}")
+    def _enrich_record(
+        self,
+        record_uid: int,
+        doc: Dict[str, str],
+        engine: "Engine",
+        /,
+    ) -> None:
+        """
+        Populate the sizes / folderish flag on a previously-inserted
+        PENDING record. Safe to call from a worker pool thread.
 
-            # Update the record with the fetched details
+        Silently no-ops if the record has already been deleted or if
+        the remote lookup fails — the download will still proceed and
+        progress will be reported once bytes start flowing.
+        """
+        if engine is None or engine.dao is None:
+            return
+
+        record = engine.dao.get_direct_download(record_uid)
+        if record is None:
+            return
+
+        # If the record has already been enriched (e.g. by a resumed
+        # session), keep the persisted totals.
+        if record.total_bytes and record.doc_size:
+            return
+
+        doc_id = doc.get("doc_id", "")
+        try:
+            doc_info = engine.remote.fetch(doc_id)
+            is_folder = "Folderish" in doc_info.get("facets", [])
+            doc_name = doc_info.get("properties", {}).get("dc:title", record.doc_name)
+
+            if is_folder:
+                doc_size, subfolder_count, file_count = self._calculate_folder_size(
+                    engine, doc_id
+                )
+                folder_count = subfolder_count + 1
+            else:
+                props = doc_info.get("properties", {})
+                file_content = props.get("file:content")
+                doc_size = 0
+                if file_content and isinstance(file_content, dict):
+                    doc_size = int(file_content.get("length", 0) or 0)
+                folder_count = 0
+                file_count = 1
+
             record.doc_name = doc_name
             record.doc_size = doc_size
             record.total_bytes = doc_size
@@ -142,12 +202,8 @@ class DirectDownload(_DirectDownloadBase):
             record.folder_count = folder_count
             record.file_count = file_count
             engine.dao.update_direct_download(record)
-
-            return uid
-
-        except Exception:
-            log.exception("Failed to create download record")
-            return None
+        except Exception as exc:
+            log.exception(f"Could not enrich record {record_uid} for {doc_id}: {exc}")
 
     def _calculate_folder_size(
         self, engine: "Engine", folder_id: str, /

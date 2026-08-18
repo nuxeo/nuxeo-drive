@@ -1,5 +1,6 @@
 """Focused tests for the server-agnostic Direct Download worker."""
 
+from concurrent.futures import Future
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
@@ -11,6 +12,28 @@ from nxdrive.drive.direct_download import DirectDownload
 from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
 
 
+class _SyncExecutor:
+    """Inline executor used to drive the worker pool synchronously in
+    unit tests. Every ``submit`` runs the callable immediately on the
+    current thread and returns a completed ``Future``.
+    """
+
+    def __init__(self):
+        self.calls = []
+
+    def submit(self, fn, /, *args, **kwargs):
+        self.calls.append((fn, args, kwargs))
+        fut: Future = Future()
+        try:
+            fut.set_result(fn(*args, **kwargs))
+        except BaseException as exc:  # pragma: no cover - propagated via future
+            fut.set_exception(exc)
+        return fut
+
+    def shutdown(self, wait=True, *, cancel_futures=False):  # noqa: D401
+        return None
+
+
 @pytest.fixture()
 def manager():
     manager = Mock()
@@ -20,8 +43,13 @@ def manager():
 
 
 @pytest.fixture()
-def direct_download(manager, tmp_path):
-    return DirectDownload(manager, tmp_path / "staging")
+def sync_executor():
+    return _SyncExecutor()
+
+
+@pytest.fixture()
+def direct_download(manager, tmp_path, sync_executor):
+    return DirectDownload(manager, tmp_path / "staging", executor=sync_executor)
 
 
 def _record(
@@ -74,7 +102,8 @@ def test_construction_wires_manager_and_initializes_state(direct_download, manag
     assert direct_download.download_folder.is_dir()
     assert direct_download.download_folders == []
     assert direct_download._resumed_persisted_downloads is False
-    assert direct_download._download_queue.empty()
+    assert direct_download._batches == {}
+    assert direct_download._owns_executor is False
     manager.directDownload.connect.assert_called_once_with(direct_download.download)
 
 
@@ -190,17 +219,19 @@ def test_resume_persisted_downloads_groups_batches_resets_progress_and_runs_once
         "second": second,
     }
 
+    submitted_batches = []
+    direct_download._process_batch = Mock(
+        side_effect=lambda docs: submitted_batches.append(list(docs))
+    )
+
     direct_download.resume_persisted_downloads()
 
     first.dao.update_direct_download_status.assert_called_once_with(
         1, DirectDownloadStatus.PENDING
     )
-    batches = [
-        direct_download._download_queue.get_nowait(),
-        direct_download._download_queue.get_nowait(),
-    ]
-    grouped = next(batch for batch in batches if len(batch) == 2)
-    single = next(batch for batch in batches if len(batch) == 1)
+    assert len(submitted_batches) == 2
+    grouped = next(batch for batch in submitted_batches if len(batch) == 2)
+    single = next(batch for batch in submitted_batches if len(batch) == 1)
     assert [doc["_record_uid"] for doc in grouped] == [1, 2]
     assert {doc["_batch_folder"] for doc in grouped} == {"download_batch"}
     assert single == [
@@ -215,19 +246,11 @@ def test_resume_persisted_downloads_groups_batches_resets_progress_and_runs_once
     ]
 
     direct_download.resume_persisted_downloads()
-    assert direct_download._download_queue.empty()
+    assert direct_download._process_batch.call_count == 2
     assert first.dao.get_direct_downloads.call_count == 1
 
 
-def test_execute_processes_empty_and_error_states_without_threads(direct_download):
-    batch = [{"doc_id": "doc"}]
-    direct_download._download_queue = Mock()
-    direct_download._download_queue.get.side_effect = [
-        __import__("queue").Empty(),
-        batch,
-        batch,
-    ]
-    direct_download._process_batch = Mock(side_effect=[None, RuntimeError("failed")])
+def test_execute_is_a_stoppable_idle_loop(direct_download):
     interactions = 0
 
     def interact():
@@ -237,8 +260,11 @@ def test_execute_processes_empty_and_error_states_without_threads(direct_downloa
             direct_download._stop = True
 
     direct_download._interact = interact
-    direct_download._execute()
-    assert direct_download._process_batch.call_args_list == [call(batch), call(batch)]
+    # Avoid actually sleeping between iterations in the test.
+    with patch("nxdrive.drive.direct_download.time.sleep") as sleep:
+        direct_download._execute()
+    assert interactions == 3
+    assert sleep.call_count >= 2
 
 
 def test_process_batch_reuses_existing_folder_and_completes_persisted_record(
@@ -255,7 +281,6 @@ def test_process_batch_reuses_existing_folder_and_completes_persisted_record(
     }
     record = _record(7, DirectDownloadStatus.IN_PROGRESS, batch=batch.name)
     archive = tmp_path / "report.txt"
-    direct_download._is_download_cancelled = Mock(return_value=False)
     direct_download._is_single_download_cancelled = Mock(return_value=False)
     direct_download._get_download_record = Mock(return_value=record)
     direct_download._process_download = Mock()
@@ -291,7 +316,6 @@ def test_process_batch_missing_resume_folder_and_cancelled_record_skip_download(
     direct_download._create_batch_folder = Mock(
         return_value=direct_download.download_folder / "replacement"
     )
-    direct_download._is_download_cancelled = Mock(return_value=False)
     direct_download._is_single_download_cancelled = Mock(return_value=True)
     direct_download._can_finalize_batch = Mock(return_value=False)
     direct_download._process_download = Mock()
@@ -304,10 +328,11 @@ def test_process_batch_missing_resume_folder_and_cancelled_record_skip_download(
     direct_download._create_zip_archive.assert_not_called()
 
 
-def test_process_batch_stops_after_batch_cancellation(direct_download, tmp_path):
+def test_process_batch_dispatches_each_doc_through_the_executor(
+    direct_download, sync_executor, tmp_path
+):
     docs = [{"doc_id": "one"}, {"doc_id": "two"}]
-    direct_download._create_download_record = Mock(return_value=1)
-    direct_download._is_download_cancelled = Mock(side_effect=[False, True])
+    direct_download._create_download_record = Mock(side_effect=[10, 20])
     direct_download._is_single_download_cancelled = Mock(return_value=False)
     direct_download._process_download = Mock()
     direct_download._get_download_destination = Mock(return_value=tmp_path)
@@ -317,8 +342,12 @@ def test_process_batch_stops_after_batch_cancellation(direct_download, tmp_path)
 
     direct_download._process_batch(docs)
 
-    direct_download._process_download.assert_called_once()
-    assert direct_download._create_download_record.call_count == 1
+    # Each doc gets its own executor submission and its own
+    # ``_process_download`` call — no early bail-out at the batch
+    # level. Cancellation is a per-doc concern now.
+    assert len(sync_executor.calls) == 2
+    assert direct_download._process_download.call_count == 2
+    assert direct_download._create_download_record.call_count == 2
 
 
 def test_process_batch_failure_persists_error_and_avoids_completion(
@@ -353,10 +382,13 @@ def test_process_batch_failure_persists_error_and_avoids_completion(
     )
 
 
-def test_empty_batch_creates_and_finalizes_an_empty_staging_folder(direct_download):
+def test_empty_batch_returns_without_touching_the_worker_pool(
+    direct_download, sync_executor
+):
     direct_download._create_zip_archive = Mock(return_value=None)
     direct_download._process_batch([])
-    direct_download._create_zip_archive.assert_called_once()
+    direct_download._create_zip_archive.assert_not_called()
+    assert sync_executor.calls == []
 
 
 def test_archive_real_files_copy_zip_empty_and_duplicate(direct_download, tmp_path):
