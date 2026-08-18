@@ -115,6 +115,7 @@ def test_setup_sentry_initializes_client_and_runtime_context(monkeypatch):
         attach_stacktrace=True,
         include_local_variables=False,
         before_send=tracing.before_send,
+        before_send_metric=tracing.before_send_metric,
         integrations=[logging_integration.return_value],
         traces_sample_rate=1.0,
     )
@@ -165,64 +166,76 @@ def test_before_send_accepts_frames_without_locations():
     assert not tracing._EVENTS
 
 
-def test_before_send_sanitizes_first_run_event():
-    event = {
-        "event_id": "event-id",
-        "timestamp": "2026-08-18T12:00:00Z",
-        "server_name": "sensitive-hostname",
-        "modules": {"secret-package": "1.0"},
-        "breadcrumbs": {"values": [{"message": "sensitive breadcrumb"}]},
-        "contexts": {"runtime": {"version": "3.13"}},
-        "extra": {
-            tracing._FIRST_RUN_MARKER: {
-                "application_version": "9.8.7",
-                "server_name": "NUXEO",
-                "os_version": "macOS 15.6.0",
-                "user_id": "123e4567-e89b-12d3-a456-426614174000",
-            },
-            "secret": "must be removed",
-        },
-    }
-
-    assert tracing.before_send(event, {}) == {
-        "event_id": "event-id",
-        "timestamp": "2026-08-18T12:00:00Z",
-        "level": "info",
-        "message": tracing._FIRST_RUN_MESSAGE,
-        "release": "9.8.7",
-        "tags": {
+def test_before_send_metric_sanitizes_first_run_metric():
+    metric = {
+        "name": tracing._FIRST_RUN_METRIC,
+        "type": "counter",
+        "value": 1.0,
+        "attributes": {
             "drive.server": "NUXEO",
             "os.version": "macOS 15.6.0",
+            "sentry.release": "9.8.7",
+            "user.id": "123e4567-e89b-12d3-a456-426614174000",
+            "server.address": "sensitive-hostname",
+            "sdk.name": "sentry.python",
         },
-        "user": {"id": "123e4567-e89b-12d3-a456-426614174000"},
+    }
+
+    assert tracing.before_send_metric(metric, {}) is metric
+    assert metric["attributes"] == {
+        "drive.server": "NUXEO",
+        "os.version": "macOS 15.6.0",
+        "sentry.release": "9.8.7",
+        "user.id": "123e4567-e89b-12d3-a456-426614174000",
     }
 
 
-def test_capture_first_run_event(monkeypatch):
+def test_before_send_metric_preserves_advanced_analytics_attributes():
+    metric = {
+        "name": "drive.sync.duration",
+        "attributes": {
+            "handler": "upload",
+            "sentry.environment": "production",
+        },
+    }
+
+    assert tracing.before_send_metric(metric, {}) is metric
+    assert metric["attributes"] == {
+        "handler": "upload",
+        "sentry.environment": "production",
+    }
+
+
+def test_capture_first_run_metric(monkeypatch):
     monkeypatch.setattr(tracing, "setup_sentry", lambda *args, **kwargs: True)
     monkeypatch.setattr(
         tracing, "uuid4", lambda: "123e4567-e89b-12d3-a456-426614174000"
     )
 
-    with patch.object(sentry_sdk, "capture_event") as capture_event, patch.object(
+    with patch.object(sentry_sdk.metrics, "count") as count, patch.object(
         metrics_utils, "current_os", return_value="Test OS 1.2.3"
     ):
-        assert tracing.capture_first_run_event("9.8.7", "ALFRESCO") is True
+        assert tracing.capture_first_run_metric("9.8.7", "ALFRESCO") is True
 
-    capture_event.assert_called_once_with(
-        {
-            "level": "info",
-            "message": tracing._FIRST_RUN_MESSAGE,
-            "extra": {
-                tracing._FIRST_RUN_MARKER: {
-                    "application_version": "9.8.7",
-                    "server_name": "ALFRESCO",
-                    "os_version": "Test OS 1.2.3",
-                    "user_id": "123e4567-e89b-12d3-a456-426614174000",
-                }
-            },
-        }
+    count.assert_called_once_with(
+        tracing._FIRST_RUN_METRIC,
+        1,
+        attributes={
+            "drive.server": "ALFRESCO",
+            "os.version": "Test OS 1.2.3",
+            "sentry.release": "9.8.7",
+            "user.id": "123e4567-e89b-12d3-a456-426614174000",
+        },
     )
+
+
+def test_capture_first_run_metric_returns_false_when_setup_is_blocked(monkeypatch):
+    monkeypatch.setattr(tracing, "setup_sentry", lambda *args, **kwargs: False)
+
+    with patch.object(sentry_sdk.metrics, "count") as count:
+        assert tracing.capture_first_run_metric("9.8.7", "ALFRESCO") is False
+
+    count.assert_not_called()
 
 
 @Options.mock()

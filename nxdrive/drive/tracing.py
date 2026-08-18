@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Dict, Set, cast
+from typing import TYPE_CHECKING, Any, Dict, Set
 from uuid import uuid4
 
 from .options import Options
@@ -8,15 +8,22 @@ from .options import Options
 if TYPE_CHECKING:
     from sentry_sdk._types import Event as _Event
     from sentry_sdk._types import Hint as _Hint
+    from sentry_sdk.types import Metric as _Metric
 else:
     _Event = Dict[str, Any]
     _Hint = Dict[str, Any]
+    _Metric = Dict[str, Any]
 
 # Sentry events already sent
 _EVENTS: Set[int] = set()
 
-_FIRST_RUN_MARKER = "_drive_first_run"
-_FIRST_RUN_MESSAGE = "Drive application first run"
+_FIRST_RUN_METRIC = "drive.first_run"
+_FIRST_RUN_ATTRIBUTES = (
+    "drive.server",
+    "os.version",
+    "sentry.release",
+    "user.id",
+)
 _FATAL_ERROR_MARKER = "_drive_fatal_error"
 _FATAL_ERROR_MESSAGE = "Drive fatal error"
 
@@ -35,25 +42,16 @@ def _close_temporary_client(client: Any, /) -> None:
             scope.set_client(None)
 
 
-def _sanitize_first_run_event(event: _Event) -> _Event:
-    details = cast(
-        Dict[str, str], event.get("extra", {}).get(_FIRST_RUN_MARKER, {})
-    )
-    return cast(
-        _Event,
-        {
-            "event_id": event.get("event_id"),
-            "timestamp": event.get("timestamp"),
-            "level": "info",
-            "message": _FIRST_RUN_MESSAGE,
-            "release": details.get("application_version"),
-            "tags": {
-                "drive.server": details.get("server_name"),
-                "os.version": details.get("os_version"),
-            },
-            "user": {"id": details.get("user_id")},
-        },
-    )
+def before_send_metric(metric: _Metric, _: _Hint, /) -> _Metric:
+    """Remove automatic SDK attributes from the consent-independent metric."""
+    if metric.get("name") == _FIRST_RUN_METRIC:
+        attributes = metric.get("attributes", {})
+        metric["attributes"] = {
+            name: attributes[name]
+            for name in _FIRST_RUN_ATTRIBUTES
+            if name in attributes
+        }
+    return metric
 
 
 def should_ignore(event: _Event) -> bool:
@@ -99,9 +97,6 @@ def should_ignore(event: _Event) -> bool:
 
 def before_send(event: _Event, _: _Hint, /) -> Any:
     """Alter an event before sending to the Sentry server."""
-    if _FIRST_RUN_MARKER in event.get("extra", {}):
-        return _sanitize_first_run_event(event)
-
     extra = event.get("extra", {})
     if _FATAL_ERROR_MARKER in extra:
         extra.pop(_FATAL_ERROR_MARKER, None)
@@ -147,6 +142,7 @@ def setup_sentry(app_version: str, /, *, force: bool = False) -> bool:
         attach_stacktrace=True,
         include_local_variables=False,
         before_send=before_send,
+        before_send_metric=before_send_metric,
         integrations=[
             LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
         ],
@@ -168,8 +164,8 @@ def setup_sentry(app_version: str, /, *, force: bool = False) -> bool:
     return True
 
 
-def capture_first_run_event(app_version: str, server_name: str, /) -> bool:
-    """Capture the non-sensitive event emitted once per installation."""
+def capture_first_run_metric(app_version: str, server_name: str, /) -> bool:
+    """Capture the non-sensitive metric emitted once per installation."""
     if not setup_sentry(app_version, force=True):
         return False
 
@@ -177,19 +173,15 @@ def capture_first_run_event(app_version: str, server_name: str, /) -> bool:
 
     from .metrics.utils import current_os
 
-    sentry_sdk.capture_event(
-        {
-            "level": "info",
-            "message": _FIRST_RUN_MESSAGE,
-            "extra": {
-                _FIRST_RUN_MARKER: {
-                    "application_version": app_version,
-                    "server_name": server_name,
-                    "os_version": current_os(full=True),
-                    "user_id": str(uuid4()),
-                }
-            },
-        }
+    sentry_sdk.metrics.count(
+        _FIRST_RUN_METRIC,
+        1,
+        attributes={
+            "drive.server": server_name,
+            "os.version": current_os(full=True),
+            "sentry.release": app_version,
+            "user.id": str(uuid4()),
+        },
     )
     return True
 

@@ -2,7 +2,7 @@
 
 This page is the data inventory for Sentry telemetry sent by Nuxeo Drive. It
 covers the application configuration in `nxdrive/drive/tracing.py` and the
-default integrations enabled by `sentry-sdk==2.22.0`.
+default integrations enabled by `sentry-sdk==2.44.0`.
 
 The exact contents of an event depend on the failure and the activity that
 preceded it. Fields described as conditional are collected only when the
@@ -10,31 +10,32 @@ corresponding data or integration is present.
 
 ## Collection controls
 
-### First-run event
+### First-run metric
 
-On a new installation, Drive sends one sanitized Sentry event regardless of the
-error-reporting and advanced-analytics choices. It contains only:
+On a new installation, Drive increments the `drive.first_run` Sentry counter by
+one regardless of the error-reporting and advanced-analytics choices. It has
+only these attributes:
 
 - Drive application version.
 - Drive server type: `NUXEO` or `ALFRESCO`.
 - Full operating-system name and version.
-- A random user ID generated as a UUID when the event is created.
+- A random user ID generated as a UUID when the metric is created.
 
-The random user ID is included as Sentry's `user.id` for this event only. It is
-not stored in the configuration database or reused. Sentry also requires an
-event ID and timestamp, and the event uses the fixed name
-`Drive application first run`. Before sending, Drive removes normal SDK
-enrichment including hostname, modules, command-line arguments, breadcrumbs,
-contexts, request data, and arbitrary extras.
+The random user ID is included as the metric's `user.id` attribute. It is not
+stored in the configuration database or reused. Before sending, Drive removes
+automatic SDK metric attributes such as the environment, SDK name, and SDK
+version, retaining only the four attributes listed above. The metric protocol
+also carries its fixed name and type, the value `1`, a timestamp, and random
+trace and span identifiers.
 
-The event is emitted only when the installation has no `original_version` in
+The metric is emitted only when the installation has no `original_version` in
 its configuration database. After capture, Drive stores
 `sentry_first_run_event_sent=true` to prevent duplicates. `SKIP_SENTRY=1` and an
-empty `SENTRY_DSN` remain hard operational overrides and prevent the event.
+empty `SENTRY_DSN` remain hard operational overrides and prevent the metric.
 
 ### User-controlled telemetry
 
-Apart from the first-run event, Sentry is not initialized for ongoing telemetry
+Apart from the first-run metric, Sentry is not initialized for ongoing telemetry
 until the user enables **Allow anonymous bug reports** or **Allow advanced
 analytics** in the first-run consent dialog or in Settings. After consent,
 initialization is still skipped when either of these conditions is met:
@@ -212,9 +213,9 @@ Sentry metrics:
 
 | Metric | Type | Value and attributes |
 | --- | --- | --- |
-| `drive.sync.duration` | Distribution | Synchronization handler duration in nanoseconds, tagged with the handler name. |
-| `drive.direct_edit.duration` | Distribution | Direct Edit open/edit duration in milliseconds, tagged with the action and lowercase file extension. The filename is not sent. |
-| `drive.direct_transfer.size` | Distribution | Completed transfer size in bytes, tagged as a file or folder. |
+| `drive.sync.duration` | Distribution | Synchronization handler duration in nanoseconds, with the handler name as an attribute. |
+| `drive.direct_edit.duration` | Distribution | Direct Edit open/edit duration in milliseconds, with the action and lowercase file extension as attributes. The filename is not sent. |
+| `drive.direct_transfer.size` | Distribution | Completed transfer size in bytes, with the file or folder type as an attribute. |
 | `drive.engine.<stat>` | Gauge | Integer engine statistics such as synchronized files/folders, errors, conflicts, active synchronization, and total file size. |
 
 Engine statistics are collected when the analytics worker starts and then once

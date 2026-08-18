@@ -32,7 +32,7 @@ class SentryMetrics(PollWorker):
                 "drive.sync.duration",
                 elapsed,
                 unit="nanosecond",
-                tags={"handler": event["handler"]},
+                attributes={"handler": event["handler"]},
             )
 
     @pyqtSlot(str, int)
@@ -52,7 +52,7 @@ class SentryMetrics(PollWorker):
             "drive.direct_edit.duration",
             timing,
             unit="millisecond",
-            tags={"action": action, "extension": extension},
+            attributes={"action": action, "extension": extension},
         )
 
     @pyqtSlot(bool, int)
@@ -64,7 +64,7 @@ class SentryMetrics(PollWorker):
             "drive.direct_transfer.size",
             size,
             unit="byte",
-            tags={"type": "folder" if folderish else "file"},
+            attributes={"type": "folder" if folderish else "file"},
         )
 
     @pyqtSlot()

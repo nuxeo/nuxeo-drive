@@ -43,7 +43,7 @@ def test_sync_timing_is_sent_as_distribution():
         "drive.sync.duration",
         50,
         unit="nanosecond",
-        tags={"handler": "upload"},
+        attributes={"handler": "upload"},
     )
     worker.stop()
 
@@ -64,25 +64,25 @@ def test_direct_edit_and_transfer_are_sent_as_distributions():
             "drive.direct_edit.duration",
             125,
             unit="millisecond",
-            tags={"action": "open", "extension": ".pdf"},
+            attributes={"action": "open", "extension": ".pdf"},
         ),
         call(
             "drive.direct_edit.duration",
             250,
             unit="millisecond",
-            tags={"action": "edit", "extension": "unknown"},
+            attributes={"action": "edit", "extension": "unknown"},
         ),
         call(
             "drive.direct_transfer.size",
             2048,
             unit="byte",
-            tags={"type": "file"},
+            attributes={"type": "file"},
         ),
         call(
             "drive.direct_transfer.size",
             0,
             unit="byte",
-            tags={"type": "folder"},
+            attributes={"type": "folder"},
         ),
     ]
     worker.stop()

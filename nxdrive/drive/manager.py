@@ -217,7 +217,7 @@ class Manager(QObject):
         self._apply_server_type_config()
 
         if first_run:
-            self._capture_first_run_event()
+            self._capture_first_run_metric()
         self._setup_sentry()
 
         self._started = False
@@ -390,15 +390,15 @@ class Manager(QObject):
 
         self._sentry_initialized = bool(setup_sentry(self.version))
 
-    def _capture_first_run_event(self) -> None:
+    def _capture_first_run_metric(self) -> None:
         marker = "sentry_first_run_event_sent"
         if self.dao.get_bool(marker):
             return
 
-        from nxdrive.drive.tracing import capture_first_run_event
+        from nxdrive.drive.tracing import capture_first_run_metric
 
         server_name = Options.server_type or st.get_default_key()
-        if capture_first_run_event(self.version, server_name):
+        if capture_first_run_metric(self.version, server_name):
             self.dao.store_bool(marker, True)
             self._sentry_initialized = True
 
