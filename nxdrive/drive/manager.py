@@ -116,6 +116,7 @@ class Manager(QObject):
         self.restartNeeded.connect(self._restart_needed)
 
         self._create_dao()
+        first_run = not self.get_config("original_version")
 
         # Get the old version number in case of migration failure
         self.old_version = self.get_config("client_version")
@@ -211,10 +212,13 @@ class Manager(QObject):
         self._sentry_initialized = False
         self.preferences_metrics_chosen = False
         self.check_metrics_preferences()
-        self._setup_sentry()
 
         # Apply feature restrictions based on the configured server type
         self._apply_server_type_config()
+
+        if first_run:
+            self._capture_first_run_event()
+        self._setup_sentry()
 
         self._started = False
 
@@ -384,8 +388,19 @@ class Manager(QObject):
 
         from nxdrive.drive.tracing import setup_sentry
 
-        setup_sentry(self.version)
-        self._sentry_initialized = True
+        self._sentry_initialized = bool(setup_sentry(self.version))
+
+    def _capture_first_run_event(self) -> None:
+        marker = "sentry_first_run_event_sent"
+        if self.dao.get_bool(marker):
+            return
+
+        from nxdrive.drive.tracing import capture_first_run_event
+
+        server_name = Options.server_type or st.get_default_key()
+        if capture_first_run_event(self.version, server_name):
+            self.dao.store_bool(marker, True)
+            self._sentry_initialized = True
 
     def _write_metrics_state(self) -> None:
         states = []

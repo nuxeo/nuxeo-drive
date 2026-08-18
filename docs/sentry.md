@@ -10,16 +10,62 @@ corresponding data or integration is present.
 
 ## Collection controls
 
-Sentry is not initialized until the user enables **Allow anonymous bug
-reports** or **Allow advanced analytics** in the first-run consent dialog or in
-Settings. After consent, initialization is still skipped when either of these
-conditions is met:
+### First-run event
+
+On a new installation, Drive sends one sanitized Sentry event regardless of the
+error-reporting and advanced-analytics choices. It contains only:
+
+- Drive application version.
+- Drive server type: `NUXEO` or `ALFRESCO`.
+- Full operating-system name and version.
+- A random user ID generated as a UUID when the event is created.
+
+The random user ID is included as Sentry's `user.id` for this event only. It is
+not stored in the configuration database or reused. Sentry also requires an
+event ID and timestamp, and the event uses the fixed name
+`Drive application first run`. Before sending, Drive removes normal SDK
+enrichment including hostname, modules, command-line arguments, breadcrumbs,
+contexts, request data, and arbitrary extras.
+
+The event is emitted only when the installation has no `original_version` in
+its configuration database. After capture, Drive stores
+`sentry_first_run_event_sent=true` to prevent duplicates. `SKIP_SENTRY=1` and an
+empty `SENTRY_DSN` remain hard operational overrides and prevent the event.
+
+### User-controlled telemetry
+
+Apart from the first-run event, Sentry is not initialized for ongoing telemetry
+until the user enables **Allow anonymous bug reports** or **Allow advanced
+analytics** in the first-run consent dialog or in Settings. After consent,
+initialization is still skipped when either of these conditions is met:
 
 - `SKIP_SENTRY=1` is set.
 - `SENTRY_DSN` is set to an empty value.
 
+### Fatal error dialog
+
+The Fatal Error window includes a **Send error to Hyland** button. Clicking it
+sends that single failure even when persistent error reporting is disabled. The
+button does not change `Options.use_sentry`, `Options.use_analytics`, the
+configuration database, or `metrics.state`.
+
+If Sentry is not already active, Drive initializes it only for this capture,
+sends and flushes the event, and then closes that temporary client. If Sentry is
+already active, the existing client is reused. `SKIP_SENTRY=1` and an empty
+`SENTRY_DSN` remain hard operational overrides.
+
+The event uses the same privacy settings as normal bug reporting. It includes
+the exception type, message, structured traceback, source context, runtime/OS
+context, and up to 20 recent Drive log lines as breadcrumbs. Frame-local values
+remain disabled by `include_local_variables=False`. If no active exception is
+available, Drive sends the formatted traceback text as fallback diagnostic
+data.
+
 The DSN can be changed with `SENTRY_DSN`, and the environment can be changed
 with `SENTRY_ENV`. The default environment is `production`.
+
+Every Sentry initialization adds the active Drive server type as the
+`drive.server` tag. Its value is `NUXEO` or `ALFRESCO`.
 
 Error events are discarded when `Options.use_sentry` is false. This option is
 false by default and can be changed through the persisted error-reporting

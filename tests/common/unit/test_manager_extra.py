@@ -524,6 +524,20 @@ def test_sentry_initializes_once_after_consent(manager_obj):
     assert manager_obj._sentry_initialized is True
 
 
+def test_first_run_sentry_event_is_captured_once(manager_obj):
+    Options.server_type = "ALFRESCO"
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_event", return_value=True
+    ) as capture_first_run_event:
+        manager_obj._capture_first_run_event()
+        manager_obj._capture_first_run_event()
+
+    capture_first_run_event.assert_called_once_with(manager_obj.version, "ALFRESCO")
+    assert manager_obj.dao.values["sentry_first_run_event_sent"] is True
+    assert manager_obj._sentry_initialized is True
+
+
 def test_sentry_metrics_factory(manager_obj, monkeypatch):
     worker = MagicMock()
     monkeypatch.setattr(manager_module, "SentryMetrics", Mock(return_value=worker))

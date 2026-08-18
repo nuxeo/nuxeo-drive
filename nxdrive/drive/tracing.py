@@ -1,15 +1,59 @@
 import logging
 import os
-from typing import Any, Dict, Set
+from typing import TYPE_CHECKING, Any, Dict, Set, cast
+from uuid import uuid4
 
 from .options import Options
 
-# From sentry_sdk._types
-_Event = Dict[str, Any]
-_Hint = Dict[str, Any]
+if TYPE_CHECKING:
+    from sentry_sdk._types import Event as _Event
+    from sentry_sdk._types import Hint as _Hint
+else:
+    _Event = Dict[str, Any]
+    _Hint = Dict[str, Any]
 
 # Sentry events already sent
 _EVENTS: Set[int] = set()
+
+_FIRST_RUN_MARKER = "_drive_first_run"
+_FIRST_RUN_MESSAGE = "Drive application first run"
+_FATAL_ERROR_MARKER = "_drive_fatal_error"
+_FATAL_ERROR_MESSAGE = "Drive fatal error"
+
+
+def _close_temporary_client(client: Any, /) -> None:
+    import sentry_sdk
+
+    client.close(timeout=2.0)
+    for get_scope in (
+        sentry_sdk.get_current_scope,
+        sentry_sdk.get_isolation_scope,
+        sentry_sdk.get_global_scope,
+    ):
+        scope = get_scope()
+        if scope.get_client() is client:
+            scope.set_client(None)
+
+
+def _sanitize_first_run_event(event: _Event) -> _Event:
+    details = cast(
+        Dict[str, str], event.get("extra", {}).get(_FIRST_RUN_MARKER, {})
+    )
+    return cast(
+        _Event,
+        {
+            "event_id": event.get("event_id"),
+            "timestamp": event.get("timestamp"),
+            "level": "info",
+            "message": _FIRST_RUN_MESSAGE,
+            "release": details.get("application_version"),
+            "tags": {
+                "drive.server": details.get("server_name"),
+                "os.version": details.get("os_version"),
+            },
+            "user": {"id": details.get("user_id")},
+        },
+    )
 
 
 def should_ignore(event: _Event) -> bool:
@@ -55,6 +99,16 @@ def should_ignore(event: _Event) -> bool:
 
 def before_send(event: _Event, _: _Hint, /) -> Any:
     """Alter an event before sending to the Sentry server."""
+    if _FIRST_RUN_MARKER in event.get("extra", {}):
+        return _sanitize_first_run_event(event)
+
+    extra = event.get("extra", {})
+    if _FATAL_ERROR_MARKER in extra:
+        extra.pop(_FATAL_ERROR_MARKER, None)
+        if not extra:
+            event.pop("extra", None)
+        return event
+
     if should_ignore(event):
         # The event will not be sent if None is returned
         return None
@@ -62,27 +116,28 @@ def before_send(event: _Event, _: _Hint, /) -> Any:
     return event
 
 
-def setup_sentry(app_version: str) -> None:
+def setup_sentry(app_version: str, /, *, force: bool = False) -> bool:
     """Setup Sentry."""
 
-    if not (Options.use_sentry or Options.use_analytics):
-        return
+    if not force and not (Options.use_sentry or Options.use_analytics):
+        return False
 
     if os.getenv("SKIP_SENTRY", "0") == "1":
-        return
+        return False
 
     sentry_dsn: str = os.getenv(
         "SENTRY_DSN",
         "https://b025db54cb1face8405a66da3ea78705@o4511315922976768.ingest.us.sentry.io/4511579252129792",
     )
     if not sentry_dsn:
-        return
+        return False
 
     import platform
 
     import sentry_sdk
     from sentry_sdk.integrations.logging import LoggingIntegration
 
+    from . import server_type as st
     from .metrics.utils import current_os
 
     sentry_sdk.init(
@@ -101,9 +156,78 @@ def setup_sentry(app_version: str) -> None:
     )
 
     scope = sentry_sdk.get_isolation_scope()
+    server_name = (Options.server_type or st.get_default_key()).upper()
+    scope.set_tag("drive.server", server_name)
     scope._contexts.update(
         {
             "runtime": {"name": "Python", "version": platform.python_version()},
             "os": {"name": current_os(full=True)},
         }
     )
+
+    return True
+
+
+def capture_first_run_event(app_version: str, server_name: str, /) -> bool:
+    """Capture the non-sensitive event emitted once per installation."""
+    if not setup_sentry(app_version, force=True):
+        return False
+
+    import sentry_sdk
+
+    from .metrics.utils import current_os
+
+    sentry_sdk.capture_event(
+        {
+            "level": "info",
+            "message": _FIRST_RUN_MESSAGE,
+            "extra": {
+                _FIRST_RUN_MARKER: {
+                    "application_version": app_version,
+                    "server_name": server_name,
+                    "os_version": current_os(full=True),
+                    "user_id": str(uuid4()),
+                }
+            },
+        }
+    )
+    return True
+
+
+def capture_fatal_error(
+    exc_info: Any, traceback_text: str, logs: list[str], /
+) -> bool:
+    """Temporarily capture a fatal exception and recent logs."""
+    import sentry_sdk
+
+    from . import constants
+
+    initialized_here = not sentry_sdk.is_initialized()
+    event_id = None
+    try:
+        if initialized_here and not setup_sentry(constants.APP_VERSION, force=True):
+            return False
+
+        with sentry_sdk.new_scope() as scope:
+            scope.set_extra(_FATAL_ERROR_MARKER, True)
+            for line in logs:
+                scope.add_breadcrumb(
+                    category="fatal_error.log", message=line, level="info"
+                )
+
+            if exc_info and exc_info[1] is not None:
+                event_id = sentry_sdk.capture_exception(exc_info)
+            else:
+                scope.set_extra("fatal_error.traceback", traceback_text)
+                event_id = sentry_sdk.capture_message(
+                    _FATAL_ERROR_MESSAGE, level="error"
+                )
+
+        sentry_sdk.flush(timeout=5.0)
+    except Exception:
+        return False
+    finally:
+        if initialized_here and sentry_sdk.is_initialized():
+            _close_temporary_client(sentry_sdk.get_client())
+
+    return event_id is not None
