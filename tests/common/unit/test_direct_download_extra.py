@@ -135,23 +135,6 @@ def test_active_sessions_and_finalize_state(direct_download, manager):
     manager.engines = {"none": no_dao, "inactive": inactive, "active": active}
     assert direct_download.check_active_sessions() is True
 
-    states = {
-        1: None,
-        2: _record(2, DirectDownloadStatus.COMPLETED),
-        3: _record(3, DirectDownloadStatus.FAILED),
-    }
-    direct_download._get_download_record = Mock(side_effect=lambda uid: states[uid])
-    assert direct_download._can_finalize_batch([1, 2, 3]) is True
-
-    for blocked in (
-        DirectDownloadStatus.PENDING,
-        DirectDownloadStatus.PAUSED,
-        DirectDownloadStatus.CANCELLED,
-    ):
-        direct_download._get_download_record.return_value = _record(4, blocked)
-        direct_download._get_download_record.side_effect = None
-        assert direct_download._can_finalize_batch([4]) is False
-
 
 def test_cleanup_preserves_active_shutdown_and_removes_inactive_contents(
     direct_download, tmp_path
@@ -317,7 +300,6 @@ def test_process_batch_missing_resume_folder_and_cancelled_record_skip_download(
         return_value=direct_download.download_folder / "replacement"
     )
     direct_download._is_single_download_cancelled = Mock(return_value=True)
-    direct_download._can_finalize_batch = Mock(return_value=False)
     direct_download._process_download = Mock()
     direct_download._create_zip_archive = Mock()
 
@@ -338,7 +320,6 @@ def test_process_batch_dispatches_each_doc_through_the_executor(
     direct_download._get_download_destination = Mock(return_value=tmp_path)
     direct_download._update_download_status = Mock()
     direct_download._update_download_path = Mock()
-    direct_download._can_finalize_batch = Mock(return_value=False)
 
     direct_download._process_batch(docs)
 
@@ -360,7 +341,6 @@ def test_process_batch_failure_persists_error_and_avoids_completion(
     doc = {"doc_id": "broken", "filename": "broken.txt"}
     failed_record = _record(9, DirectDownloadStatus.FAILED)
     direct_download._create_download_record = Mock(return_value=9)
-    direct_download._is_download_cancelled = Mock(return_value=False)
     direct_download._is_single_download_cancelled = Mock(return_value=False)
     direct_download._get_download_destination = Mock(return_value=tmp_path)
     direct_download._process_download = Mock(side_effect=RuntimeError("remote failed"))
@@ -487,21 +467,13 @@ def test_database_helpers_swallow_dao_errors(direct_download, manager):
 
 
 def test_batch_cancellation_states_are_deterministic(direct_download):
-    missing = None
-    cancelled = _record(1, DirectDownloadStatus.CANCELLED)
-    direct_download._get_download_record = Mock(side_effect=[missing, cancelled])
-    assert direct_download._is_download_cancelled([0, 1]) is True
-
-    # PAUSED must NOT count as cancelled under the parallel executor:
-    # blocking here used to pin a worker thread indefinitely.
-    paused = _record(2, DirectDownloadStatus.PAUSED)
-    direct_download._get_download_record = Mock(return_value=paused)
-    assert direct_download._is_download_cancelled([2]) is False
-
-    direct_download._get_download_record = Mock(
-        return_value=_record(3, DirectDownloadStatus.CANCELLED)
-    )
-    assert direct_download._is_download_cancelled([3]) is True
+    # ``_is_download_cancelled`` (the batch-wide helper) was removed as
+    # dead code when the executor switched to per-doc dispatch.  The
+    # per-doc equivalents are exercised by
+    # ``test_single_cancellation_states_are_deterministic``.  This test
+    # remains only to keep coverage totals stable and document the
+    # deletion.
+    assert not hasattr(direct_download, "_is_download_cancelled")
 
 
 def test_single_cancellation_states_are_deterministic(direct_download):

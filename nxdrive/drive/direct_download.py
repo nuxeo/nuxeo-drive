@@ -11,13 +11,13 @@ import shutil
 import time
 import uuid
 import zipfile
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from nxdrive.drive.constants import APP_NAME, DirectDownloadStatus
 from nxdrive.drive.engine.workers import Worker
@@ -191,20 +191,6 @@ class DirectDownload(Worker):
             if active_downloads:
                 return True
         return False
-
-    def _can_finalize_batch(self, record_uids: List[int], /) -> bool:
-        """Return True when the current batch is safe to archive/finalize."""
-        for uid in record_uids:
-            record = self._get_download_record(uid)
-            if not record:
-                continue
-            if record.status in (
-                DirectDownloadStatus.PENDING,
-                DirectDownloadStatus.PAUSED,
-                DirectDownloadStatus.CANCELLED,
-            ):
-                return False
-        return True
 
     def cleanup(self) -> None:
         """
@@ -400,7 +386,6 @@ class DirectDownload(Worker):
                 # out cleanly instead of spamming the log.
                 return
             time.sleep(0.1)
-
 
     # ------------------------------------------------------------------ batch processing
 
@@ -732,7 +717,6 @@ class DirectDownload(Worker):
         self._process_batch([doc])
         return True
 
-
     # ------------------------------------------------------------------ zip / destination
 
     def _create_zip_archive(self, batch_folder: Path, /) -> Optional[Path]:
@@ -899,31 +883,25 @@ class DirectDownload(Worker):
             log.exception(f"Failed to get download record for {uid}")
         return None
 
-    def _is_download_cancelled(self, record_uids: List[int], /) -> bool:
-        """Return True as soon as any download in the batch is cancelled.
+    def _is_single_download_cancelled(self, uid: int, /) -> bool:
+        """Return True if this record has been cancelled. Non-blocking.
 
-        Historically this method also polled while a record was
+        Historically the base version also polled while a record was
         ``PAUSED`` — that busy-wait pinned the (single) worker thread
-        indefinitely.  With the parallel executor we can no longer
+        indefinitely. With the parallel executor we can no longer
         afford to block: pause is now a cheap non-blocking check
         (see :meth:`_is_paused`) and resume goes through
         :meth:`resume_download`.
         """
-        for uid in record_uids:
-            record = self._get_download_record(uid)
-            if record and record.status == DirectDownloadStatus.CANCELLED:
-                return True
-        return False
-
-    def _is_single_download_cancelled(self, uid: int, /) -> bool:
-        """Return True if this record has been cancelled. Non-blocking."""
         record = self._get_download_record(uid)
-        return bool(record and record.status == DirectDownloadStatus.CANCELLED)
+        status = getattr(record, "status", None)
+        return status == DirectDownloadStatus.CANCELLED
 
     def _is_paused(self, uid: int, /) -> bool:
         """Return True if the record is currently PAUSED. Non-blocking."""
         record = self._get_download_record(uid)
-        return bool(record and record.status == DirectDownloadStatus.PAUSED)
+        status = getattr(record, "status", None)
+        return status == DirectDownloadStatus.PAUSED
 
     def _update_download_path(
         self, uid: int, download_path: str, zip_file: str = None, /
