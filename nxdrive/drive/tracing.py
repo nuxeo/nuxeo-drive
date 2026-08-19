@@ -24,6 +24,7 @@ _FIRST_RUN_ATTRIBUTES = (
     "sentry.release",
     "user.id",
 )
+_VALUE_ONLY_METRICS = {"drive.sync.duration", "drive.sync.size"}
 _FATAL_ERROR_MARKER = "_drive_fatal_error"
 _FATAL_ERROR_MESSAGE = "Drive fatal error"
 
@@ -53,7 +54,7 @@ def shutdown_sentry() -> None:
 
 
 def before_send_metric(metric: _Metric, _: _Hint, /) -> _Metric:
-    """Remove automatic SDK attributes from the consent-independent metric."""
+    """Restrict attributes on privacy-sensitive metrics."""
     if metric.get("name") == _FIRST_RUN_METRIC:
         attributes = metric.get("attributes", {})
         metric["attributes"] = {
@@ -61,6 +62,8 @@ def before_send_metric(metric: _Metric, _: _Hint, /) -> _Metric:
             for name in _FIRST_RUN_ATTRIBUTES
             if name in attributes
         }
+    elif metric.get("name") in _VALUE_ONLY_METRICS:
+        metric["attributes"] = {}
     return metric
 
 

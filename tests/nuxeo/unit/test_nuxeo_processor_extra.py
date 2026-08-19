@@ -1105,9 +1105,15 @@ class TestExecuteExceptionBranches:
         proc._handle_doc_pair_dt = Mock()
         proc._handle_doc_pair_sync = Mock()
         proc._current_metrics = {}
-        proc._execute()
+        with patch("nxdrive.nuxeo.engine.processor.monotonic_ns", return_value=123):
+            proc._execute()
         proc._handle_doc_pair_dt.assert_called_once()
         proc._handle_doc_pair_sync.assert_not_called()
+        assert proc._current_metrics == {
+            "handler": "locally_modified",
+            "size": 1024,
+            "start_ns": 123,
+        }
 
 
 # ---------------------------------------------------------------------------

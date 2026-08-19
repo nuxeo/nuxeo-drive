@@ -1181,6 +1181,8 @@ def test_auto_start_icons_sentry_channels_and_log_levels(manager_obj, tmp_path):
 
     manager_obj.dao.values["use_sentry"] = False
     manager_obj.dao.values["use_analytics"] = False
+    Options.use_sentry = False
+    Options.use_analytics = False
     assert manager_obj.use_sentry() is False
     assert manager_obj.use_analytics() is False
     Options.is_frozen = True

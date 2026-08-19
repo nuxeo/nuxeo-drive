@@ -32,7 +32,11 @@ class SentryMetrics(PollWorker):
                 "drive.sync.duration",
                 elapsed,
                 unit="nanosecond",
-                attributes={"handler": event["handler"]},
+            )
+            metrics.distribution(
+                "drive.sync.size",
+                event["size"],
+                unit="byte",
             )
 
     @pyqtSlot(str, int)

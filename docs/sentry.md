@@ -215,11 +215,13 @@ created by application code or an enabled integration.
 ## Advanced analytics metrics
 
 When **Allow advanced analytics** is enabled, Nuxeo Drive sends these native
-Sentry metrics:
+Sentry metrics. See [Sentry advanced analytics metrics](sentry_metrics.md) for
+every concrete metric name and example payload values.
 
 | Metric | Type | Value and attributes |
 | --- | --- | --- |
-| `drive.sync.duration` | Distribution | Synchronization handler duration in nanoseconds, with the handler name as an attribute. |
+| `drive.sync.duration` | Distribution | Synchronization duration in nanoseconds. No item attributes are sent. |
+| `drive.sync.size` | Distribution | Synchronized item size in bytes. No item attributes are sent. |
 | `drive.direct_edit.duration` | Distribution | Direct Edit open/edit duration in milliseconds, with the action and lowercase file extension as attributes. The filename is not sent. |
 | `drive.direct_transfer.size` | Distribution | Completed transfer size in bytes, with the file or folder type as an attribute. |
 | `drive.engine.<stat>` | Gauge | Integer engine statistics such as synchronized files/folders, errors, conflicts, active synchronization, and total file size. |

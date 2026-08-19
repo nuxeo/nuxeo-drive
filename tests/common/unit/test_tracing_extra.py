@@ -190,18 +190,29 @@ def test_before_send_metric_sanitizes_first_run_metric():
     }
 
 
-def test_before_send_metric_preserves_advanced_analytics_attributes():
+def test_before_send_metric_removes_sync_metric_attributes():
     metric = {
         "name": "drive.sync.duration",
         "attributes": {
-            "handler": "upload",
+            "handler": "locally_modified",
+            "type": "file",
             "sentry.environment": "production",
         },
     }
 
     assert tracing.before_send_metric(metric, {}) is metric
+    assert metric["attributes"] == {}
+
+
+def test_before_send_metric_preserves_other_analytics_attributes():
+    metric = {
+        "name": "drive.direct_transfer.size",
+        "attributes": {"type": "file", "sentry.environment": "production"},
+    }
+
+    assert tracing.before_send_metric(metric, {}) is metric
     assert metric["attributes"] == {
-        "handler": "upload",
+        "type": "file",
         "sentry.environment": "production",
     }
 

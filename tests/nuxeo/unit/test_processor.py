@@ -48,6 +48,7 @@ def doc_pair():
     pair.local_state = "created"
     pair.remote_state = "unknown"
     pair.folderish = False
+    pair.size = 1024
     pair.local_digest = "abc123"
     pair.remote_digest = "abc123"
     pair.session = None
