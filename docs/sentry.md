@@ -28,6 +28,10 @@ version, retaining only the four attributes listed above. The metric protocol
 also carries its fixed name and type, the value `1`, a timestamp, and random
 trace and span identifiers.
 
+Drive initializes Sentry only for this metric, flushes it, and then closes and
+detaches the temporary client. Successful capture does not mark Sentry as
+initialized for ongoing telemetry.
+
 The metric is emitted only when the installation has no `original_version` in
 its configuration database. After capture, Drive stores
 `sentry_first_run_event_sent=true` to prevent duplicates. `SKIP_SENTRY=1` and an
@@ -42,6 +46,8 @@ initialization is still skipped when either of these conditions is met:
 
 - `SKIP_SENTRY=1` is set.
 - `SENTRY_DSN` is set to an empty value.
+
+Disabling both telemetry choices closes and detaches the active Sentry client.
 
 ### Fatal error dialog
 

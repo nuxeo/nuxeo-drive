@@ -28,18 +28,28 @@ _FATAL_ERROR_MARKER = "_drive_fatal_error"
 _FATAL_ERROR_MESSAGE = "Drive fatal error"
 
 
-def _close_temporary_client(client: Any, /) -> None:
+def _close_client(client: Any, /) -> None:
     import sentry_sdk
 
-    client.close(timeout=2.0)
-    for get_scope in (
-        sentry_sdk.get_current_scope,
-        sentry_sdk.get_isolation_scope,
-        sentry_sdk.get_global_scope,
-    ):
-        scope = get_scope()
-        if scope.get_client() is client:
-            scope.set_client(None)
+    try:
+        client.close(timeout=2.0)
+    finally:
+        for get_scope in (
+            sentry_sdk.get_current_scope,
+            sentry_sdk.get_isolation_scope,
+            sentry_sdk.get_global_scope,
+        ):
+            scope = get_scope()
+            if scope.get_client() is client:
+                scope.set_client(None)
+
+
+def shutdown_sentry() -> None:
+    """Close and detach the active Sentry client."""
+    import sentry_sdk
+
+    if sentry_sdk.is_initialized():
+        _close_client(sentry_sdk.get_client())
 
 
 def before_send_metric(metric: _Metric, _: _Hint, /) -> _Metric:
@@ -166,29 +176,42 @@ def setup_sentry(app_version: str, /, *, force: bool = False) -> bool:
 
 def capture_first_run_metric(app_version: str, server_name: str, /) -> bool:
     """Capture the non-sensitive metric emitted once per installation."""
-    if not setup_sentry(app_version, force=True):
-        return False
-
     import sentry_sdk
 
     from .metrics.utils import current_os
 
-    sentry_sdk.metrics.count(
-        _FIRST_RUN_METRIC,
-        1,
-        attributes={
-            "drive.server": server_name,
-            "os.version": current_os(full=True),
-            "sentry.release": app_version,
-            "user.id": str(uuid4()),
-        },
-    )
+    if sentry_sdk.is_initialized():
+        return False
+
+    client = None
+    try:
+        if not setup_sentry(app_version, force=True):
+            return False
+        client = sentry_sdk.get_client()
+
+        sentry_sdk.metrics.count(
+            _FIRST_RUN_METRIC,
+            1,
+            attributes={
+                "drive.server": server_name,
+                "os.version": current_os(full=True),
+                "sentry.release": app_version,
+                "user.id": str(uuid4()),
+            },
+        )
+        sentry_sdk.flush(timeout=5.0)
+    except Exception:
+        return False
+    finally:
+        if client is None and sentry_sdk.is_initialized():
+            client = sentry_sdk.get_client()
+        if client is not None:
+            _close_client(client)
+
     return True
 
 
-def capture_fatal_error(
-    exc_info: Any, traceback_text: str, logs: list[str], /
-) -> bool:
+def capture_fatal_error(exc_info: Any, traceback_text: str, logs: list[str], /) -> bool:
     """Temporarily capture a fatal exception and recent logs."""
     import sentry_sdk
 
@@ -220,6 +243,6 @@ def capture_fatal_error(
         return False
     finally:
         if initialized_here and sentry_sdk.is_initialized():
-            _close_temporary_client(sentry_sdk.get_client())
+            _close_client(sentry_sdk.get_client())
 
     return event_id is not None

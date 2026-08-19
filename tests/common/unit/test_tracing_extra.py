@@ -207,12 +207,20 @@ def test_before_send_metric_preserves_advanced_analytics_attributes():
 
 
 def test_capture_first_run_metric(monkeypatch):
-    monkeypatch.setattr(tracing, "setup_sentry", lambda *args, **kwargs: True)
+    monkeypatch.setattr(tracing, "setup_sentry", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(sentry_sdk, "is_initialized", lambda: False)
     monkeypatch.setattr(
         tracing, "uuid4", lambda: "123e4567-e89b-12d3-a456-426614174000"
     )
 
+    client = MagicMock()
     with patch.object(sentry_sdk.metrics, "count") as count, patch.object(
+        sentry_sdk, "flush"
+    ) as flush, patch.object(
+        sentry_sdk, "get_client", return_value=client
+    ), patch.object(
+        tracing, "_close_client"
+    ) as close_client, patch.object(
         metrics_utils, "current_os", return_value="Test OS 1.2.3"
     ):
         assert tracing.capture_first_run_metric("9.8.7", "ALFRESCO") is True
@@ -227,15 +235,79 @@ def test_capture_first_run_metric(monkeypatch):
             "user.id": "123e4567-e89b-12d3-a456-426614174000",
         },
     )
+    flush.assert_called_once_with(timeout=5.0)
+    close_client.assert_called_once_with(client)
 
 
 def test_capture_first_run_metric_returns_false_when_setup_is_blocked(monkeypatch):
-    monkeypatch.setattr(tracing, "setup_sentry", lambda *args, **kwargs: False)
+    monkeypatch.setattr(tracing, "setup_sentry", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(sentry_sdk, "is_initialized", lambda: False)
 
-    with patch.object(sentry_sdk.metrics, "count") as count:
+    with patch.object(sentry_sdk.metrics, "count") as count, patch.object(
+        tracing, "_close_client"
+    ) as close_client:
         assert tracing.capture_first_run_metric("9.8.7", "ALFRESCO") is False
 
     count.assert_not_called()
+    close_client.assert_not_called()
+
+
+def test_capture_first_run_metric_closes_client_when_emission_fails(monkeypatch):
+    monkeypatch.setattr(tracing, "setup_sentry", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(sentry_sdk, "is_initialized", lambda: False)
+    client = MagicMock()
+
+    with patch.object(
+        sentry_sdk.metrics, "count", side_effect=RuntimeError("failure")
+    ), patch.object(
+        sentry_sdk, "get_client", return_value=client
+    ), patch.object(
+        tracing, "_close_client"
+    ) as close_client:
+        assert tracing.capture_first_run_metric("9.8.7", "ALFRESCO") is False
+
+    close_client.assert_called_once_with(client)
+
+
+def test_capture_first_run_metric_closes_partially_initialized_client(monkeypatch):
+    client = MagicMock()
+    initialized = iter((False, True))
+    monkeypatch.setattr(sentry_sdk, "is_initialized", lambda: next(initialized))
+
+    with patch.object(
+        tracing, "setup_sentry", side_effect=RuntimeError("initialization failure")
+    ), patch.object(
+        sentry_sdk, "get_client", return_value=client
+    ), patch.object(
+        tracing, "_close_client"
+    ) as close_client:
+        assert tracing.capture_first_run_metric("9.8.7", "ALFRESCO") is False
+
+    close_client.assert_called_once_with(client)
+
+
+def test_shutdown_sentry_closes_and_detaches_active_client(monkeypatch):
+    client = MagicMock()
+    current_scope = MagicMock()
+    isolation_scope = MagicMock()
+    global_scope = MagicMock()
+    for scope in (current_scope, isolation_scope, global_scope):
+        scope.get_client.return_value = client
+
+    monkeypatch.setattr(sentry_sdk, "is_initialized", lambda: True)
+    with patch.object(sentry_sdk, "get_client", return_value=client), patch.object(
+        sentry_sdk, "get_current_scope", return_value=current_scope
+    ), patch.object(
+        sentry_sdk, "get_isolation_scope", return_value=isolation_scope
+    ), patch.object(
+        sentry_sdk, "get_global_scope", return_value=global_scope
+    ):
+        tracing.shutdown_sentry()
+
+    client.close.assert_called_once_with(timeout=2.0)
+    current_scope.set_client.assert_called_once_with(None)
+    isolation_scope.set_client.assert_called_once_with(None)
+    global_scope.set_client.assert_called_once_with(None)
 
 
 @Options.mock()

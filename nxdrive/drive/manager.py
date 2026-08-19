@@ -400,7 +400,6 @@ class Manager(QObject):
         server_name = Options.server_type or st.get_default_key()
         if capture_first_run_metric(self.version, server_name):
             self.dao.store_bool(marker, True)
-            self._sentry_initialized = True
 
     def _write_metrics_state(self) -> None:
         states = []
@@ -922,7 +921,15 @@ class Manager(QObject):
         self.dao.store_bool("use_sentry", Options.use_sentry)
         self.dao.store_bool("use_analytics", Options.use_analytics)
         self._write_metrics_state()
-        self._setup_sentry()
+        if Options.use_sentry or Options.use_analytics:
+            self._setup_sentry()
+        else:
+            from nxdrive.drive.tracing import shutdown_sentry
+
+            try:
+                shutdown_sentry()
+            finally:
+                self._sentry_initialized = False
         if Options.use_analytics:
             self.sentry_metrics.force_poll()
 

@@ -535,6 +535,36 @@ def test_first_run_sentry_metric_is_captured_once(manager_obj):
 
     capture_first_run_metric.assert_called_once_with(manager_obj.version, "ALFRESCO")
     assert manager_obj.dao.values["sentry_first_run_event_sent"] is True
+    assert manager_obj._sentry_initialized is False
+
+
+def test_disabling_all_telemetry_shuts_down_sentry(manager_obj):
+    Options.use_sentry = True
+    Options.use_analytics = True
+    manager_obj._sentry_initialized = True
+
+    with patch("nxdrive.drive.tracing.shutdown_sentry") as shutdown_sentry, patch.object(
+        manager_obj, "_setup_sentry"
+    ) as setup_sentry:
+        manager_obj.set_metrics_preferences(False, False)
+
+    shutdown_sentry.assert_called_once_with()
+    setup_sentry.assert_not_called()
+    assert manager_obj._sentry_initialized is False
+
+
+def test_disabling_one_telemetry_option_keeps_sentry_active(manager_obj):
+    Options.use_sentry = True
+    Options.use_analytics = True
+    manager_obj._sentry_initialized = True
+
+    with patch("nxdrive.drive.tracing.shutdown_sentry") as shutdown_sentry, patch.object(
+        manager_obj, "_setup_sentry"
+    ) as setup_sentry:
+        manager_obj.set_metrics_preferences(False, True)
+
+    shutdown_sentry.assert_not_called()
+    setup_sentry.assert_called_once_with()
     assert manager_obj._sentry_initialized is True
 
 
