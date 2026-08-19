@@ -568,6 +568,38 @@ def test_disabling_one_telemetry_option_keeps_sentry_active(manager_obj):
     assert manager_obj._sentry_initialized is True
 
 
+def test_changing_analytics_consent_reinitializes_sentry(manager_obj):
+    Options.use_sentry = True
+    Options.use_analytics = False
+    manager_obj._sentry_initialized = True
+
+    with patch("nxdrive.drive.tracing.shutdown_sentry") as shutdown_sentry, patch(
+        "nxdrive.drive.tracing.setup_sentry", return_value=True
+    ) as setup_sentry:
+        manager_obj.set_metrics_preferences(True, True)
+
+    shutdown_sentry.assert_called_once_with()
+    setup_sentry.assert_called_once_with(manager_obj.version)
+    assert manager_obj._sentry_initialized is True
+
+
+def test_disabling_analytics_reinitializes_error_reporting(manager_obj):
+    Options.use_sentry = True
+    Options.use_analytics = True
+    manager_obj._sentry_initialized = True
+
+    with patch("nxdrive.drive.tracing.shutdown_sentry") as shutdown_sentry, patch(
+        "nxdrive.drive.tracing.setup_sentry", return_value=True
+    ) as setup_sentry:
+        manager_obj.set_metrics_preferences(True, False)
+
+    shutdown_sentry.assert_called_once_with()
+    setup_sentry.assert_called_once_with(manager_obj.version)
+    assert Options.use_sentry is True
+    assert Options.use_analytics is False
+    assert manager_obj._sentry_initialized is True
+
+
 def test_sentry_metrics_factory(manager_obj, monkeypatch):
     worker = MagicMock()
     monkeypatch.setattr(manager_module, "SentryMetrics", Mock(return_value=worker))

@@ -105,9 +105,10 @@ sent as standalone events at this stage.
 
 The `before_send` callback performs only consent checking and duplicate
 suppression. It does not remove or redact fields. It is applied to error events,
-not performance transactions. Performance sampling is configured at 100% with
-`traces_sample_rate=1.0`; therefore, any transactions created by the application
-or an enabled integration are eligible to be sent.
+not performance transactions. Performance tracing is disabled when only error
+reporting is enabled. When advanced analytics is enabled, performance sampling
+is configured at 100% with `traces_sample_rate=1.0`; therefore, any transactions
+created by the application or an enabled integration are eligible to be sent.
 
 ## Data included in error events
 
@@ -207,10 +208,12 @@ When a transaction or span is created, Sentry can collect:
 - Measurements and performance metadata, when supplied.
 - Boto3 or supported standard-library operation timing, when instrumented.
 
-The application configures a sample rate of `1.0`, meaning 100% of created
-transactions are sampled. This does not mean that Sentry continuously records
-the desktop or every application operation; a transaction must first be
-created by application code or an enabled integration.
+With advanced analytics enabled, the application configures a sample rate of
+`1.0`, meaning 100% of created transactions are sampled. With error reporting
+alone, `traces_sample_rate=None` disables tracing. This does not mean that
+Sentry continuously records the desktop or every application operation; a
+transaction must first be created by application code or an enabled
+integration.
 
 ## Advanced analytics metrics
 

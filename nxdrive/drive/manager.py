@@ -916,12 +916,20 @@ class Manager(QObject):
         self.set_metrics_preferences(Options.use_sentry, value)
 
     def set_metrics_preferences(self, sentry: bool, analytics: bool, /) -> None:
+        analytics_changed = Options.use_analytics != analytics
         Options.set("use_sentry", sentry, setter="manual", fail_on_error=False)
         Options.set("use_analytics", analytics, setter="manual", fail_on_error=False)
         self.dao.store_bool("use_sentry", Options.use_sentry)
         self.dao.store_bool("use_analytics", Options.use_analytics)
         self._write_metrics_state()
         if Options.use_sentry or Options.use_analytics:
+            if analytics_changed and self._sentry_initialized:
+                from nxdrive.drive.tracing import shutdown_sentry
+
+                try:
+                    shutdown_sentry()
+                finally:
+                    self._sentry_initialized = False
             self._setup_sentry()
         else:
             from nxdrive.drive.tracing import shutdown_sentry

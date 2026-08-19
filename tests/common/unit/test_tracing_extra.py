@@ -57,6 +57,7 @@ def test_setup_sentry_initializes_for_advanced_analytics(monkeypatch):
         tracing.setup_sentry("9.8.7")
 
     init.assert_called_once()
+    assert init.call_args.kwargs["traces_sample_rate"] == 1.0
 
 
 def test_advanced_analytics_does_not_enable_error_events():
@@ -117,7 +118,7 @@ def test_setup_sentry_initializes_client_and_runtime_context(monkeypatch):
         before_send=tracing.before_send,
         before_send_metric=tracing.before_send_metric,
         integrations=[logging_integration.return_value],
-        traces_sample_rate=1.0,
+        traces_sample_rate=None,
     )
     logging_integration.assert_called_once_with(
         level=logging.INFO, event_level=logging.ERROR
