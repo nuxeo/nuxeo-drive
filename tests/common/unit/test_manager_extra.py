@@ -524,6 +524,37 @@ def test_sentry_initializes_once_after_consent(manager_obj):
     assert manager_obj._sentry_initialized is True
 
 
+def test_sentry_initialization_failure_does_not_escape(manager_obj):
+    Options.use_sentry = True
+    Options.use_analytics = False
+
+    with patch(
+        "nxdrive.drive.tracing.setup_sentry", side_effect=ValueError("invalid DSN")
+    ) as setup_sentry, patch(
+        "nxdrive.drive.tracing.shutdown_sentry"
+    ) as shutdown_sentry:
+        manager_obj._setup_sentry()
+
+    setup_sentry.assert_called_once_with(manager_obj.version)
+    shutdown_sentry.assert_called_once_with()
+    assert manager_obj._sentry_initialized is False
+
+
+def test_sentry_initialization_cleanup_failure_does_not_escape(manager_obj):
+    Options.use_sentry = True
+    Options.use_analytics = False
+
+    with patch(
+        "nxdrive.drive.tracing.setup_sentry", side_effect=ValueError("invalid DSN")
+    ), patch(
+        "nxdrive.drive.tracing.shutdown_sentry",
+        side_effect=RuntimeError("cleanup failure"),
+    ):
+        manager_obj._setup_sentry()
+
+    assert manager_obj._sentry_initialized is False
+
+
 def test_first_run_sentry_metric_is_captured_once(manager_obj):
     Options.server_type = "ALFRESCO"
 

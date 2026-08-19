@@ -386,9 +386,17 @@ class Manager(QObject):
         if self._sentry_initialized:
             return
 
-        from nxdrive.drive.tracing import setup_sentry
+        from nxdrive.drive.tracing import setup_sentry, shutdown_sentry
 
-        self._sentry_initialized = bool(setup_sentry(self.version))
+        try:
+            self._sentry_initialized = bool(setup_sentry(self.version))
+        except Exception:
+            self._sentry_initialized = False
+            try:
+                shutdown_sentry()
+            except Exception:
+                log.warning("Failed to clean up Sentry client", exc_info=True)
+            log.exception("Failed to initialize Sentry")
 
     def _capture_first_run_metric(self) -> None:
         marker = "sentry_first_run_event_sent"

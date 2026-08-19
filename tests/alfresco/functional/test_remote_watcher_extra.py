@@ -17,15 +17,35 @@ from nxdrive.drive.utils import unset_path_readonly
 
 
 @pytest.fixture()
-def engine_and_watcher(manager_factory):
+def engine_and_watcher(manager_factory, alfresco_test_folder):
     """Return (engine, watcher).
 
     ``Feature.synchronization`` is enabled by the autouse fixture, so
     the engine constructor calls ``_create_remote_watcher`` automatically.
-    We patch ``_interact`` to a no-op to avoid Qt event-loop dependency.
+    The engine normally binds to the repository root, which is too large and
+    shared for a functional test. Rebind its root state to the temporary test
+    folder before scanning. We patch ``_interact`` to a no-op to avoid Qt
+    event-loop dependency.
     """
     manager = manager_factory(with_engine=True)
     engine = next(iter(manager.engines.values()))
+    root = engine.dao.get_state_from_local(ROOT)
+    assert root is not None
+
+    remote_info = engine.remote.get_fs_info(alfresco_test_folder.id)
+    engine.dao.update_remote_state(
+        root,
+        remote_info,
+        remote_parent_path="",
+        versioned=False,
+        queue=False,
+    )
+    root = engine.dao.get_state_from_local(ROOT)
+    assert root is not None
+    assert root.remote_ref == remote_info.uid
+    assert engine.dao.synchronize_state(root)
+    engine.local.set_remote_id(ROOT, remote_info.uid)
+
     watcher = engine._remote_watcher
     watcher._interact = lambda: None
     return engine, watcher
