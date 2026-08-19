@@ -305,9 +305,7 @@ def test_fatal_error_qt_reenables_send_button_on_failure(fatal_qt_env):
         ((False,), {}),
         ((True,), {}),
     ]
-    fatal_qt_env.send_button.setText.assert_called_once_with(
-        "FATAL_ERROR_SEND_FAILED"
-    )
+    fatal_qt_env.send_button.setText.assert_called_once_with("FATAL_ERROR_SEND_FAILED")
 
 
 def test_fatal_error_qt_suppresses_optional_sections(fatal_qt_env):

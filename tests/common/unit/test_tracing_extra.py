@@ -259,9 +259,7 @@ def test_capture_first_run_metric_closes_client_when_emission_fails(monkeypatch)
 
     with patch.object(
         sentry_sdk.metrics, "count", side_effect=RuntimeError("failure")
-    ), patch.object(
-        sentry_sdk, "get_client", return_value=client
-    ), patch.object(
+    ), patch.object(sentry_sdk, "get_client", return_value=client), patch.object(
         tracing, "_close_client"
     ) as close_client:
         assert tracing.capture_first_run_metric("9.8.7", "ALFRESCO") is False
@@ -276,9 +274,7 @@ def test_capture_first_run_metric_closes_partially_initialized_client(monkeypatc
 
     with patch.object(
         tracing, "setup_sentry", side_effect=RuntimeError("initialization failure")
-    ), patch.object(
-        sentry_sdk, "get_client", return_value=client
-    ), patch.object(
+    ), patch.object(sentry_sdk, "get_client", return_value=client), patch.object(
         tracing, "_close_client"
     ) as close_client:
         assert tracing.capture_first_run_metric("9.8.7", "ALFRESCO") is False
@@ -327,10 +323,10 @@ def test_capture_fatal_error_temporarily_initializes_sentry(monkeypatch):
         sentry_scope.get_client.return_value = client
     initialized = iter((False, True))
 
-    monkeypatch.setattr(
-        sentry_sdk, "is_initialized", lambda: next(initialized, True)
-    )
-    with patch.object(tracing, "setup_sentry", return_value=True) as setup, patch.object(
+    monkeypatch.setattr(sentry_sdk, "is_initialized", lambda: next(initialized, True))
+    with patch.object(
+        tracing, "setup_sentry", return_value=True
+    ) as setup, patch.object(
         sentry_sdk, "new_scope", return_value=scope_context
     ), patch.object(
         sentry_sdk, "capture_exception", return_value="event-id"
@@ -345,9 +341,12 @@ def test_capture_fatal_error_temporarily_initializes_sentry(monkeypatch):
     ), patch.object(
         sentry_sdk, "get_global_scope", return_value=global_scope
     ):
-        assert tracing.capture_fatal_error(
-            exc_info, "formatted traceback", ["first log", "second log"]
-        ) is True
+        assert (
+            tracing.capture_fatal_error(
+                exc_info, "formatted traceback", ["first log", "second log"]
+            )
+            is True
+        )
 
     setup.assert_called_once_with(drive_constants.APP_VERSION, force=True)
     scope.set_extra.assert_called_once_with(tracing._FATAL_ERROR_MARKER, True)
@@ -381,9 +380,10 @@ def test_capture_fatal_error_reuses_initialized_sentry(monkeypatch):
     ), patch.object(
         sentry_sdk, "get_client", return_value=client
     ):
-        assert tracing.capture_fatal_error(
-            (None, None, None), "formatted traceback", []
-        ) is True
+        assert (
+            tracing.capture_fatal_error((None, None, None), "formatted traceback", [])
+            is True
+        )
 
     setup.assert_not_called()
     scope.set_extra.assert_has_calls(
@@ -392,7 +392,5 @@ def test_capture_fatal_error_reuses_initialized_sentry(monkeypatch):
             call("fatal_error.traceback", "formatted traceback"),
         ]
     )
-    capture_message.assert_called_once_with(
-        tracing._FATAL_ERROR_MESSAGE, level="error"
-    )
+    capture_message.assert_called_once_with(tracing._FATAL_ERROR_MESSAGE, level="error")
     client.close.assert_not_called()
