@@ -34,9 +34,11 @@ initialized for ongoing telemetry.
 
 The metric is eligible on fresh Nuxeo and Alfresco installations. Existing
 Nuxeo installations whose immutable `original_version` is earlier than the
-Nuxeo rollout version in `nxdrive/__init__.py` are also eligible. Alfresco is a
-pilot release, so existing Alfresco installations are not treated as legacy
-installations for this metric.
+Nuxeo rollout version in `nxdrive/__init__.py` are also eligible. When an older
+installation has no `original_version`, Drive falls back to the `client_version`
+read before startup updates it. Alfresco is a pilot release, so existing
+Alfresco installations are not treated as legacy installations for this
+metric.
 
 After successful capture, Drive stores the UTC completion time in
 `sentry_first_run_metric_sent_at`. A second attempt is never made when this

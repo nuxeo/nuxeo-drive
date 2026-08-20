@@ -261,7 +261,7 @@ def test_constructor_initializes_non_frozen_manager(app, tmp_path, monkeypatch):
     assert not manager.is_started()
     assert Options.locale == "fr"
     assert Options.deletion_behavior == "delete_server"
-    deps.capture_first_run_metric.assert_called_once_with(None)
+    deps.capture_first_run_metric.assert_called_once_with("6.0")
     deps.guess_sync.assert_called_once_with()
     deps.apply_server_config.assert_called_once_with()
     deps.load.assert_called_once_with()
@@ -297,7 +297,7 @@ def test_constructor_runs_frozen_migrations(app, tmp_path, monkeypatch):
     assert dao.values["direct_edit_auto_lock"] is True
     assert Options.deletion_behavior == "unsync"
     assert manager.old_version == "1.0"
-    deps.capture_first_run_metric.assert_called_once_with(None)
+    deps.capture_first_run_metric.assert_called_once_with("1.0")
     assert (tmp_path / "VERSION").read_text(encoding="utf-8") == (
         f"{manager.version}\n"
     )
@@ -311,7 +311,7 @@ def test_constructor_passes_original_version_to_first_run_policy(
     Options.nxdrive_home = tmp_path
     dao = make_dao(
         {
-            "client_version": "6.0.0",
+            "client_version": "7.0.0",
             "original_version": "6.0.0",
             "deletion_behavior": "delete_server",
         }
@@ -322,6 +322,51 @@ def test_constructor_passes_original_version_to_first_run_policy(
 
     deps.capture_first_run_metric.assert_called_once_with("6.0.0")
     assert dao.values["original_version"] == "6.0.0"
+
+
+def test_constructor_falls_back_to_pre_upgrade_client_version(
+    app, tmp_path, monkeypatch
+):
+    Options.is_frozen = True
+    Options.force_locale = None
+    Options.nxdrive_home = tmp_path
+    dao = make_dao(
+        {
+            "client_version": "7.0.1",
+            "original_version": None,
+            "deletion_behavior": "delete_server",
+        }
+    )
+    deps = patch_constructor_dependencies(monkeypatch, dao)
+
+    manager = Manager(tmp_path / "home")
+
+    deps.capture_first_run_metric.assert_called_once_with("7.0.1")
+    assert dao.values["original_version"] == manager.version
+    assert dao.values["client_version"] == manager.version
+
+
+def test_constructor_uses_rollout_client_version_on_later_upgrade(
+    app, tmp_path, monkeypatch
+):
+    Options.is_frozen = True
+    Options.force_locale = None
+    Options.nxdrive_home = tmp_path
+    dao = make_dao(
+        {
+            "client_version": "7.1.0",
+            "original_version": None,
+            "deletion_behavior": "delete_server",
+        }
+    )
+    deps = patch_constructor_dependencies(monkeypatch, dao)
+
+    with patch.object(manager_module, "APP_VERSION", "8.0.0"):
+        Manager(tmp_path / "home")
+
+    deps.capture_first_run_metric.assert_called_once_with("7.1.0")
+    assert dao.values["original_version"] == "8.0.0"
+    assert dao.values["client_version"] == "8.0.0"
 
 
 def test_constructor_exits_after_failed_dao_migration(app, tmp_path, monkeypatch):

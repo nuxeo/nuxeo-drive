@@ -129,6 +129,7 @@ class Manager(QObject):
 
         # Get the old version number in case of migration failure
         self.old_version = self.get_config("client_version")
+        installation_version = original_version or self.old_version
 
         # [this worker will control next workers, so keep it first]
         # Create the server's configuration getter verification thread
@@ -225,7 +226,7 @@ class Manager(QObject):
         # Apply feature restrictions based on the configured server type
         self._apply_server_type_config()
 
-        self._capture_first_run_metric(original_version)
+        self._capture_first_run_metric(installation_version)
         self._setup_sentry()
 
         self._started = False
