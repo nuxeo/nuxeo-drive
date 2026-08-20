@@ -27,7 +27,7 @@ To declare a beta, use this schema:
 """
 
 __author__ = "Nuxeo"
-__version__ = "7.1.0"
+__version__ = "7.1.0.17"
 __alfresco_version__ = "1.0.0"
 __copyright__ = """
     Copyright © 2026 Hyland Software, Inc. and its affiliates. All rights reserved.
