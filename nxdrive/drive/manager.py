@@ -3,6 +3,7 @@ import platform
 import shutil
 import sqlite3
 import uuid
+from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path, PurePath
 from platform import machine
@@ -12,6 +13,9 @@ from urllib.parse import urlparse, urlsplit, urlunsplit
 from weakref import CallableProxyType, proxy
 
 import requests
+from packaging.version import InvalidVersion, Version
+
+from nxdrive import __alfresco_version__, __version__
 
 from nxdrive.drive import server_type as st
 from nxdrive.drive.auth import Token
@@ -78,6 +82,11 @@ __all__ = ("Manager",)
 
 log = getLogger(__name__)
 
+FIRST_RUN_METRIC_ROLLOUT_VERSIONS = {
+    "NUXEO": Version(__version__),
+    "ALFRESCO": Version(__alfresco_version__),
+}
+
 
 class Manager(QObject):
     newEngine = pyqtSignal(object)
@@ -116,7 +125,7 @@ class Manager(QObject):
         self.restartNeeded.connect(self._restart_needed)
 
         self._create_dao()
-        first_run = not self.get_config("original_version")
+        original_version = self.get_config("original_version")
 
         # Get the old version number in case of migration failure
         self.old_version = self.get_config("client_version")
@@ -216,8 +225,7 @@ class Manager(QObject):
         # Apply feature restrictions based on the configured server type
         self._apply_server_type_config()
 
-        if first_run:
-            self._capture_first_run_metric()
+        self._capture_first_run_metric(original_version)
         self._setup_sentry()
 
         self._started = False
@@ -398,16 +406,36 @@ class Manager(QObject):
                 log.warning("Failed to clean up Sentry client", exc_info=True)
             log.exception("Failed to initialize Sentry")
 
-    def _capture_first_run_metric(self) -> None:
-        marker = "sentry_first_run_event_sent"
-        if self.dao.get_bool(marker):
+    def _capture_first_run_metric(self, original_version: Optional[str], /) -> None:
+        sent_marker = "sentry_first_run_metric_sent_at"
+        if self.dao.get_config(sent_marker) or self.dao.get_bool(
+            "sentry_first_run_event_sent"
+        ):
             return
 
         from nxdrive.drive.tracing import capture_first_run_metric
 
-        server_name = Options.server_type or st.get_default_key()
+        server_name = (Options.server_type or st.get_default_key()).upper()
+        if original_version:
+            if server_name != "NUXEO":
+                return
+            try:
+                if (
+                    Version(str(original_version))
+                    >= FIRST_RUN_METRIC_ROLLOUT_VERSIONS["NUXEO"]
+                ):
+                    return
+            except InvalidVersion:
+                log.warning(
+                    f"Invalid original installation version {original_version!r}; "
+                    "skipping first-run metric"
+                )
+                return
+
         if capture_first_run_metric(self.version, server_name):
-            self.dao.store_bool(marker, True)
+            self.dao.update_config(
+                sent_marker, datetime.now(tz=timezone.utc).isoformat()
+            )
 
     def _write_metrics_state(self) -> None:
         states = []

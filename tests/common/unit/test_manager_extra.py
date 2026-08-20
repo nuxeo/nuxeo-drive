@@ -1,5 +1,6 @@
 import sqlite3
 from copy import deepcopy
+from datetime import datetime
 from pathlib import Path, PureWindowsPath
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, call, patch
@@ -155,6 +156,7 @@ def patch_constructor_dependencies(monkeypatch, dao):
     load = Mock()
     extension_listener = Mock()
     workflow = Mock()
+    capture_first_run_metric = Mock()
 
     def create_dao(self):
         self.dao = dao
@@ -182,6 +184,7 @@ def patch_constructor_dependencies(monkeypatch, dao):
     monkeypatch.setattr(Manager, "_create_db_backup_worker", create_db_backup)
     monkeypatch.setattr(Manager, "create_sentry_metrics", lambda self: sentry_metrics)
     monkeypatch.setattr(Manager, "_create_extension_listener", extension_listener)
+    monkeypatch.setattr(Manager, "_capture_first_run_metric", capture_first_run_metric)
     monkeypatch.setattr(Manager, "load", load)
     monkeypatch.setattr(Manager, "_create_autolock_service", lambda self: autolock)
     monkeypatch.setattr(Manager, "_create_direct_edit", lambda self: direct_edit)
@@ -225,6 +228,7 @@ def patch_constructor_dependencies(monkeypatch, dao):
         load=load,
         extension_listener=extension_listener,
         workflow=workflow,
+        capture_first_run_metric=capture_first_run_metric,
     )
 
 
@@ -257,6 +261,7 @@ def test_constructor_initializes_non_frozen_manager(app, tmp_path, monkeypatch):
     assert not manager.is_started()
     assert Options.locale == "fr"
     assert Options.deletion_behavior == "delete_server"
+    deps.capture_first_run_metric.assert_called_once_with(None)
     deps.guess_sync.assert_called_once_with()
     deps.apply_server_config.assert_called_once_with()
     deps.load.assert_called_once_with()
@@ -280,7 +285,7 @@ def test_constructor_runs_frozen_migrations(app, tmp_path, monkeypatch):
             "deletion_behavior": None,
         }
     )
-    patch_constructor_dependencies(monkeypatch, dao)
+    deps = patch_constructor_dependencies(monkeypatch, dao)
 
     manager = Manager(tmp_path / "home")
 
@@ -292,9 +297,31 @@ def test_constructor_runs_frozen_migrations(app, tmp_path, monkeypatch):
     assert dao.values["direct_edit_auto_lock"] is True
     assert Options.deletion_behavior == "unsync"
     assert manager.old_version == "1.0"
+    deps.capture_first_run_metric.assert_called_once_with(None)
     assert (tmp_path / "VERSION").read_text(encoding="utf-8") == (
         f"{manager.version}\n"
     )
+
+
+def test_constructor_passes_original_version_to_first_run_policy(
+    app, tmp_path, monkeypatch
+):
+    Options.is_frozen = True
+    Options.force_locale = None
+    Options.nxdrive_home = tmp_path
+    dao = make_dao(
+        {
+            "client_version": "6.0.0",
+            "original_version": "6.0.0",
+            "deletion_behavior": "delete_server",
+        }
+    )
+    deps = patch_constructor_dependencies(monkeypatch, dao)
+
+    Manager(tmp_path / "home")
+
+    deps.capture_first_run_metric.assert_called_once_with("6.0.0")
+    assert dao.values["original_version"] == "6.0.0"
 
 
 def test_constructor_exits_after_failed_dao_migration(app, tmp_path, monkeypatch):
@@ -556,17 +583,143 @@ def test_sentry_initialization_cleanup_failure_does_not_escape(manager_obj):
 
 
 def test_first_run_sentry_metric_is_captured_once(manager_obj):
+    Options.server_type = "NUXEO"
+
+    def capture(*_args):
+        assert "sentry_first_run_metric_sent_at" not in manager_obj.dao.values
+        return True
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric", side_effect=capture
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric(None)
+        manager_obj._capture_first_run_metric(None)
+
+    capture_first_run_metric.assert_called_once_with(manager_obj.version, "NUXEO")
+    assert datetime.fromisoformat(
+        manager_obj.dao.values["sentry_first_run_metric_sent_at"]
+    )
+    assert manager_obj._sentry_initialized is False
+
+
+def test_first_run_metric_rollout_versions_match_current_products():
+    assert str(manager_module.FIRST_RUN_METRIC_ROLLOUT_VERSIONS["NUXEO"]) == "7.1.0"
+    assert str(manager_module.FIRST_RUN_METRIC_ROLLOUT_VERSIONS["ALFRESCO"]) == "1.0.0"
+
+
+def test_failed_first_run_metric_is_retried(manager_obj):
+    Options.server_type = "NUXEO"
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric", return_value=False
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric(None)
+        manager_obj._capture_first_run_metric(None)
+
+    assert capture_first_run_metric.call_count == 2
+    capture_first_run_metric.assert_called_with(manager_obj.version, "NUXEO")
+    assert "sentry_first_run_metric_sent_at" not in manager_obj.dao.values
+
+
+@pytest.mark.parametrize("original_version", ["7.0.0", "6.0.0"])
+def test_legacy_nuxeo_install_captures_first_run_metric(manager_obj, original_version):
+    Options.server_type = "NUXEO"
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric", return_value=True
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric(original_version)
+
+    capture_first_run_metric.assert_called_once_with(manager_obj.version, "NUXEO")
+
+
+@pytest.mark.parametrize("original_version", ["7.1.0", "8.0.0"])
+def test_feature_era_nuxeo_install_does_not_capture_first_run_metric(
+    manager_obj, original_version
+):
+    Options.server_type = "NUXEO"
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric"
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric(original_version)
+
+    capture_first_run_metric.assert_not_called()
+    assert "sentry_first_run_metric_sent_at" not in manager_obj.dao.values
+
+
+def test_fresh_alfresco_install_captures_first_run_metric(manager_obj):
     Options.server_type = "ALFRESCO"
 
     with patch(
         "nxdrive.drive.tracing.capture_first_run_metric", return_value=True
     ) as capture_first_run_metric:
-        manager_obj._capture_first_run_metric()
-        manager_obj._capture_first_run_metric()
+        manager_obj._capture_first_run_metric(None)
 
     capture_first_run_metric.assert_called_once_with(manager_obj.version, "ALFRESCO")
-    assert manager_obj.dao.values["sentry_first_run_event_sent"] is True
-    assert manager_obj._sentry_initialized is False
+
+
+def test_existing_alfresco_install_does_not_capture_first_run_metric(manager_obj):
+    Options.server_type = "ALFRESCO"
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric"
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric("0.9.0")
+
+    capture_first_run_metric.assert_not_called()
+
+
+def test_legacy_first_run_sent_marker_prevents_duplicate(manager_obj):
+    Options.server_type = "NUXEO"
+    manager_obj.dao.values["sentry_first_run_event_sent"] = True
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric"
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric("6.0.0")
+
+    capture_first_run_metric.assert_not_called()
+
+
+def test_first_run_sent_marker_prevents_duplicate(manager_obj):
+    Options.server_type = "NUXEO"
+    manager_obj.dao.values["sentry_first_run_metric_sent_at"] = (
+        "2026-08-20T12:00:00+00:00"
+    )
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric"
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric("6.0.0")
+
+    capture_first_run_metric.assert_not_called()
+
+
+def test_later_upgrade_does_not_recapture_registered_7_1_install(manager_obj):
+    Options.server_type = "NUXEO"
+    manager_obj.dao.values["sentry_first_run_metric_sent_at"] = (
+        "2026-08-20T12:00:00+00:00"
+    )
+
+    with patch.object(manager_module, "APP_VERSION", "8.0.0"), patch(
+        "nxdrive.drive.tracing.capture_first_run_metric"
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric("7.1.0")
+
+    capture_first_run_metric.assert_not_called()
+
+
+def test_invalid_original_version_does_not_capture_first_run_metric(manager_obj):
+    Options.server_type = "NUXEO"
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric"
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric("not-a-version")
+
+    capture_first_run_metric.assert_not_called()
+    assert "sentry_first_run_metric_sent_at" not in manager_obj.dao.values
 
 
 def test_disabling_all_telemetry_shuts_down_sentry(manager_obj):

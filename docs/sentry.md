@@ -32,10 +32,27 @@ Drive initializes Sentry only for this metric, flushes it, and then closes and
 detaches the temporary client. Successful capture does not mark Sentry as
 initialized for ongoing telemetry.
 
-The metric is emitted only when the installation has no `original_version` in
-its configuration database. After capture, Drive stores
-`sentry_first_run_event_sent=true` to prevent duplicates. `SKIP_SENTRY=1` and an
-empty `SENTRY_DSN` remain hard operational overrides and prevent the metric.
+The metric is eligible on fresh Nuxeo and Alfresco installations. Existing
+Nuxeo installations whose immutable `original_version` is earlier than the
+Nuxeo rollout version in `nxdrive/__init__.py` are also eligible. Alfresco is a
+pilot release, so existing Alfresco installations are not treated as legacy
+installations for this metric.
+
+After successful capture, Drive stores the UTC completion time in
+`sentry_first_run_metric_sent_at`. A second attempt is never made when this
+marker exists. The former
+`sentry_first_run_event_sent` marker is still honored to avoid duplicates on
+installations that already emitted the metric.
+
+Failed delivery is retried on a later startup because no sent marker is stored.
+A crash after Sentry accepts the metric but before Drive persists `sent_at` can
+therefore create a duplicate. True exactly-once delivery would require
+server-side idempotency, which Sentry metrics do not provide here. This tradeoff
+is accepted for this telemetry.
+
+`SKIP_SENTRY=1` and an empty `SENTRY_DSN` remain hard operational overrides and
+prevent delivery. An overridden or failed delivery remains eligible for retry
+on a later startup.
 
 ### User-controlled telemetry
 
