@@ -351,6 +351,7 @@ class Manager(QObject):
             "appname": APP_NAME,
         }
 
+    @pyqtSlot()
     def _restart_needed(self) -> None:
         """Simple helper to set the attribute's value.
         That value will be used in other components.
@@ -615,6 +616,7 @@ class Manager(QObject):
             engine.resume()
         self.resumed.emit()
 
+    @pyqtSlot()
     def suspend(self) -> None:
         if self.is_paused:
             return

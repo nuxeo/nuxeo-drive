@@ -12,9 +12,18 @@ from nxdrive.drive.options import Options
 from nxdrive.drive.qt.imports import Qt
 
 
+class ApplicationMethodHost:
+    """Bind real Application methods without creating another QApplication."""
+
+    def __getattr__(self, name):
+        attribute = getattr(Application, name)
+        descriptor = getattr(attribute, "__get__", None)
+        return descriptor(self, type(self)) if descriptor else attribute
+
+
 def make_application(**attributes):
     """Build an Application without running its process-wide constructor."""
-    application = Application.__new__(Application)
+    application = ApplicationMethodHost()
     application.tasks_management_feature_model = Mock()
     for name, value in attributes.items():
         setattr(application, name, value)

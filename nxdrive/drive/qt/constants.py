@@ -1,13 +1,7 @@
-"""
-Put here all PyQt constants used across the project.
+"""Qt constants shared across the project.
 
-The top-level constants below are sourced from PyQt6 via ``.imports``.
-
-A parallel ``PySide`` namespace at the bottom of this file exposes the same
-enum values sourced from PySide6, for use only by the opt-in PySide6 windows
-(Share Debug Info, Settings, Add Account tab). Never pass a PyQt6 enum value
-to a PySide6 API and vice versa — Qt6 scoped enums are distinct classes on
-each binding, even when they wrap the same integer.
+The top-level constants and the retained ``PySide`` namespace are sourced
+from PySide6 through ``.imports``.
 """
 
 from .imports import (
@@ -85,9 +79,7 @@ WorldAccessOption = QLocalServer.SocketOption.WorldAccessOption
 
 
 # ---------------------------------------------------------------------------
-# PySide6 mirror — only the enum values referenced by the opt-in PySide6
-# windows. Sourced from PySide6.QtCore.Qt / QDialogButtonBox / ... so that
-# these values match the meta-object system used by the PySide6 engine.
+# Compatibility namespace for the existing settings-host adapters.
 # Access as ``constants.PySide.RichText`` etc.
 # ---------------------------------------------------------------------------
 _ps_Qt = _PySide.Qt

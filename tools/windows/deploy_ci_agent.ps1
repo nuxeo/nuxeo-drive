@@ -489,15 +489,6 @@ function install_deps {
 		Install-PythonRequirements "tools\deps\requirements.txt" "main requirements"
 	}
 
-	# See NXDRIVE-1554 for details
-	$bluetooth_pyd = "$Env:STORAGE_DIR\Lib\site-packages\PyQt6\QtBluetooth.pyd"
-	$bluetooth_dll = "$Env:STORAGE_DIR\Lib\site-packages\PyQt6\Qt\bin\Qt6Bluetooth.dll"
-	if (Test-Path $bluetooth_pyd) {
-		Remove-Item -Path $bluetooth_pyd -Verbose
-	}
-	if (Test-Path $bluetooth_dll) {
-		Remove-Item -Path $bluetooth_dll -Verbose
-	}
 }
 
 function install_python {
@@ -1012,8 +1003,8 @@ function main {
 	}
  	elseif ($install -or $install_release) {
 		install_deps
-		if ((check_import "import PyQt6") -ne 1) {
-			Write-Output ">>> No PyQt6. Installation failed."
+		if ((check_import "import PySide6") -ne 1) {
+			Write-Output ">>> No PySide6. Installation failed."
 			ExitWithCode 1
 		}
 	}

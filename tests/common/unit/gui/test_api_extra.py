@@ -779,7 +779,7 @@ def test_bind_server_engine_type_error_and_utility_dispatch(api_env, tmp_path):
     ):
         api.bind_server(str(tmp_path), "https://server.test", "alice")
     api.setMessage.emit.assert_called_once_with("CONNECTION_ERROR", "error")
-    application._show_window.assert_called_once_with(application.settings_window)
+    application.show_settings.assert_called_once_with("Accounts")
 
     api.setMessage.emit.reset_mock()
     manager.unbind_engine.reset_mock()

@@ -425,7 +425,7 @@ class DirectTransferModel(QAbstractListModel):
         if "finalizing" not in n_item:
             n_item["finalizing"] = False
         self.items[row] = n_item
-        self.dataChanged.emit(idx, idx, self.roleNames())
+        self.dataChanged.emit(idx, idx, list(self.roleNames()))
 
 
 class ActiveSessionModel(QAbstractListModel):
@@ -584,7 +584,7 @@ class ActiveSessionModel(QAbstractListModel):
         """Replace an existing session with *n_session*."""
         idx = self.index(row, 0)
         self.sessions[row] = n_session
-        self.dataChanged.emit(idx, idx, self.roleNames())
+        self.dataChanged.emit(idx, idx, list(self.roleNames()))
 
     @pyqtProperty("int", notify=sessionChanged)
     def count(self) -> int:

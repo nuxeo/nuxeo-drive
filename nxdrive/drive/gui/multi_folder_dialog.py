@@ -1285,7 +1285,7 @@ class MultiFolderDialog(QDialog):
         icon_color = "light" if self._dark_mode else "dark"
         if LINUX:
             # For Linux, we also check the background color
-            # This is because PyQt6 does not always switch to dark background in dark mode
+            # Qt does not always switch to a dark background in dark mode.
             # MFD has to be reloaded for the color to update
             widget_color = self.palette().color(self.backgroundRole())
             r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()

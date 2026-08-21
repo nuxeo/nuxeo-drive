@@ -73,7 +73,10 @@ class DirectEdit(Worker):
     editDocument = pyqtSignal(str, int)
     directEditLockError = pyqtSignal(str, str, str)
     directEditConflict = pyqtSignal(str, Path, str)
-    directEditError = pyqtSignal([str, list], [str, list, str])
+    directEditError = pyqtSignal(
+        (str, list),  # pyright: ignore[reportArgumentType]
+        (str, list, str),  # pyright: ignore[reportArgumentType]
+    )
     directEditForbidden = pyqtSignal(str, str, str)
     directEditReadonly = pyqtSignal(str)
     directEditStarting = pyqtSignal(str, str)

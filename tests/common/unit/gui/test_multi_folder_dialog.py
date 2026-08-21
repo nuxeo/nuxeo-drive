@@ -197,10 +197,13 @@ def test_fda_alert_constructor_builds_expected_controls(keep_object):
 
 
 def test_fda_alert_logs_when_style_is_unavailable(keep_object, monkeypatch):
+    class NoStyleFDAAlert(dialog_module.FDAAlert):
+        def style(self):
+            return None
+
     log = Mock()
     monkeypatch.setattr(dialog_module, "log", log)
-    with patch.object(dialog_module.FDAAlert, "style", return_value=None):
-        alert = keep_object(dialog_module.FDAAlert())
+    alert = keep_object(NoStyleFDAAlert())
 
     assert alert.ok_button is not None
     log.warning.assert_called_once_with(
@@ -352,12 +355,15 @@ def test_constructor_loads_dark_qss_and_connects_theme_signal(
 def test_constructor_missing_qss_and_missing_style_are_safe(
     keep_object, deterministic_environment, monkeypatch
 ):
+    class NoStyleMultiFolderDialog(dialog_module.MultiFolderDialog):
+        def style(self):
+            return None
+
     (deterministic_environment.styles / "multi_folder_dialog_light.qss").unlink()
     log = Mock()
     monkeypatch.setattr(dialog_module, "log", log)
 
-    with patch.object(dialog_module.MultiFolderDialog, "style", return_value=None):
-        dialog = keep_object(dialog_module.MultiFolderDialog())
+    dialog = keep_object(NoStyleMultiFolderDialog())
 
     assert dialog.styleSheet() == ""
     assert log.warning.call_args_list == [

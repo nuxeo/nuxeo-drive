@@ -51,7 +51,6 @@ from nxdrive.drive.notification import Notification
 from nxdrive.drive.options import Options
 from nxdrive.drive.qt import constants as qt
 from nxdrive.drive.qt.imports import (
-    PySide as ps,
     QApplication,
     QCheckBox,
     QComboBox,
@@ -451,10 +450,8 @@ class Application(QApplication):
         if style_hints:
             style_hints.colorSchemeChanged.connect(self._on_color_scheme_changed)
 
-        # PySide6 host for the Settings window (opt-in POC).  The QQmlEngine
-        # is built lazily on the first show_settings() call — no work is done
-        # here beyond constructing the host object.  There is no fallback:
-        # once Settings is requested it will render through PySide6.
+        # The dedicated Settings host is built lazily on the first
+        # show_settings() call.
         self.pyside_settings_host = PySideSettingsHost(self)
 
     def create_custom_window_for_task_manager(self) -> None:
@@ -1168,10 +1165,9 @@ class Application(QApplication):
             "Advanced": 3,
             "About": 4,
         }
-        # Settings + Add Account tab are rendered by PySide6 (no fallback).
-        # The PyQt6 settings_window instance still exists for legacy callers
-        # (filters dialog centering, api.setMessage relay), but the actual
-        # visible window is the PySide6 QQuickView owned by the host.
+        # The legacy settings_window instance still exists for callers such as
+        # filters dialog centering and api.setMessage relay, but the visible
+        # window is the QQuickView owned by the dedicated host.
         if section not in sections:
             section = "Features"
         self.pyside_settings_host.show(section)
@@ -2394,29 +2390,24 @@ class Application(QApplication):
         Server type selection is handled earlier (in commandline.py before
         Manager creation), so this dialog only handles metrics consent.
 
-        POC: this window is rendered through PySide6 (see ``PySide`` namespace
-        in ``nxdrive.drive.qt.imports``). The rest of the app stays on PyQt6.
-        Because a PyQt6 ``QApplication`` cannot parent a PySide6 ``QObject``,
-        the dialog is created with ``parent=None`` — it is modal via
-        ``exec()`` so blocking behavior is preserved.
+        The dialog is created with ``parent=None`` and is modal via ``exec()``.
         """
 
         tr = Translator.get
 
-        dialog = ps.QDialog()
+        dialog = QDialog()
         dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", values=[APP_NAME]))
-        # ``self.icon`` is a PyQt6 QIcon and cannot be passed to a PySide6
-        # widget. Build a fresh PySide6 QIcon from the same on-disk resource.
+        # Build the icon from the resource so this dialog stays self-contained.
         try:
-            dialog.setWindowIcon(ps.QIcon(str(find_icon("app_icon.svg"))))
+            dialog.setWindowIcon(QIcon(str(find_icon("app_icon.svg"))))
         except Exception:
             # If icon resolution fails for any reason, fall back silently —
             # the dialog is still fully usable without a custom window icon.
             pass
-        layout = ps.QVBoxLayout()
+        layout = QVBoxLayout()
 
-        info = ps.QLabel(tr("SHARE_METRICS_MSG", values=[COMPANY]))
-        info.setTextFormat(qt.PySide.RichText)
+        info = QLabel(tr("SHARE_METRICS_MSG", values=[COMPANY]))
+        info.setTextFormat(qt.RichText)
         info.setWordWrap(True)
         layout.addWidget(info)
 
@@ -2438,8 +2429,8 @@ class Application(QApplication):
         layout.addWidget(advanced_analytics)
 
         # Buttons
-        buttons = ps.QDialogButtonBox()
-        buttons.setStandardButtons(qt.PySide.Apply)
+        buttons = QDialogButtonBox()
+        buttons.setStandardButtons(qt.Apply)
         buttons.clicked.connect(dialog.close)
         layout.addWidget(buttons)
         dialog.setLayout(layout)

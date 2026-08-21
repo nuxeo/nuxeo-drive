@@ -566,7 +566,7 @@ def test_schedule_later_cancel_none_and_accepted_time(
         future = datetime.now(timezone.utc) + timedelta(seconds=90)
         time_value = MagicMock()
         time_value.toString.return_value = "2030-01-02 03:04:05"
-        time_value.toPyDateTime.return_value = future
+        time_value.toPython.return_value = future
         schedule.get_time.return_value = time_value
         with (
             patch.object(dialog_module, "ScheduleDialog", return_value=schedule),
@@ -579,7 +579,7 @@ def test_schedule_later_cancel_none_and_accepted_time(
         assert 88 <= dialog.scheduled_delay <= 90
 
         past = datetime.now(timezone.utc) - timedelta(minutes=1)
-        time_value.toPyDateTime.return_value = past
+        time_value.toPython.return_value = past
         with (
             patch.object(dialog_module, "ScheduleDialog", return_value=schedule),
             patch.object(dialog, "accept"),

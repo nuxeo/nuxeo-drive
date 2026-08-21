@@ -527,8 +527,8 @@ main() {
             "--check-upgrade-alfresco") check_upgrade "alfresco" ;;
             "--install" | "--install-release")
                 install_deps
-                if ! check_import "import PyQt6" >/dev/null; then
-                    echo ">>> No PyQt6. Installation failed."
+                if ! check_import "import PySide6" >/dev/null; then
+                    echo ">>> No PySide6. Installation failed."
                     exit 1
                 fi
                 ;;

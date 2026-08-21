@@ -13,6 +13,7 @@ from nxdrive.drive.direct_edit import APP_NAME, DirectEdit
 from nxdrive.drive.exceptions import NoAssociatedSoftware, NotFound, ThreadInterrupt
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import DirectEditDetails
+from nxdrive.drive.qt.imports import Qt
 from nxdrive.drive.utils import safe_filename
 
 
@@ -103,7 +104,8 @@ def test_base_hooks_are_explicit_and_stop_client_interrupts(direct_edit):
 def test_engine_resolution_exact_casefold_missing_and_invalid(direct_edit, manager):
     errors = []
     direct_edit.directEditError[str, list].connect(
-        lambda label, values: errors.append((label, values))
+        lambda label, values: errors.append((label, values)),
+        Qt.ConnectionType.DirectConnection,
     )
     exact = _engine(user="Exact")
     folded = _engine(user="MixedCase")
@@ -345,7 +347,8 @@ def test_prepare_edit_short_circuits_for_missing_blob_download_and_connection(
 def test_edit_feature_open_and_error_paths(direct_edit, manager, tmp_path):
     errors = []
     direct_edit.directEditError[str, list].connect(
-        lambda label, values: errors.append((label, values))
+        lambda label, values: errors.append((label, values)),
+        Qt.ConnectionType.DirectConnection,
     )
     original = Feature.direct_edit
     try:

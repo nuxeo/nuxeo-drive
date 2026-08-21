@@ -1050,9 +1050,8 @@ class QMLDriveApi(QObject):
         check_fs: bool = True,
     ) -> None:
         # Arise the settings window to let the user know the error.
-        # Settings is a PySide6-hosted window; dispatch through
-        # Application.show_settings() so the PySide6 view is raised (not the
-        # legacy PyQt6 CustomWindow instance, which is never displayed).
+        # Dispatch through Application.show_settings() so the dedicated view
+        # is raised instead of the legacy CustomWindow instance.
         self.application.show_settings("Accounts")
 
         if not server_url:

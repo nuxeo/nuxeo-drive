@@ -245,7 +245,9 @@ def test_send_to_running_instance(cmd):
     obj_cli = cmd
     obj_cli.manager = obj_cli.get_manager()
     mock_payload = bytes()
-    with patch("PyQt6.QtNetwork.QLocalSocket.waitForConnected") as mock_wait_connected:
+    with patch(
+        "PySide6.QtNetwork.QLocalSocket.waitForConnected"
+    ) as mock_wait_connected:
         mock_wait_connected.return_value = True
         assert obj_cli._send_to_running_instance(mock_payload, 100) is True
 

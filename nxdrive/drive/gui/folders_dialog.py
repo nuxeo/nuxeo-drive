@@ -3,7 +3,7 @@ import webbrowser
 from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union, cast
 
 from nxdrive.drive import server_type as _st
 from nxdrive.drive.engine.engine import Engine
@@ -938,7 +938,7 @@ class FoldersDialog(DialogMixin):
             time_val = dialog.get_time()
             if time_val is not None:
                 self.scheduled_time = time_val.toString("yyyy-MM-dd HH:mm:ss")
-                time_val_py = time_val.toPyDateTime()
+                time_val_py = cast(datetime, time_val.toPython())
                 self.scheduled_at_iso = time_val_py.astimezone(timezone.utc).isoformat()
 
                 now = datetime.now(timezone.utc)

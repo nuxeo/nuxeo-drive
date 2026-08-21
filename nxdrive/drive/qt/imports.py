@@ -1,25 +1,17 @@
 """
 Central Qt-binding shim used across the project.
 
-Primary binding: **PyQt6**. All top-level names re-exported by this module come
-from PyQt6 and drive the entire application (systray, sync engines, workers,
-Direct Transfer, Direct Edit, task manager, and every other window).
+Primary binding: **PySide6**. All top-level names re-exported by this module
+come from PySide6 and drive the entire application (systray, sync engines,
+workers, Direct Transfer, Direct Edit, task manager, and every other window).
 
-Secondary binding: **PySide6**, exposed via the ``PySide`` namespace at the
-bottom of this file. It is used *on demand* by a small number of specific
-windows (Share Debug Info, Settings, Add Account tab) that opt in explicitly.
-The rest of the codebase never touches it.
-
-Coexistence contract (see ``nxdrive.drive.gui.application``):
-    * PyQt6 always creates the process ``QApplication``.
-    * PySide6 code paths always call ``PySide.QApplication.instance()`` — they
-      never construct a new ``QApplication``.
-    * PySide6 QObjects and PyQt6 QObjects cannot share signals or parent
-      pointers; bridging is done in Python by explicit adapter classes.
+The legacy ``pyqt*`` names remain aliases so binding-independent application
+modules can migrate without mechanical signal, slot, and property renames.
+The ``PySide`` namespace at the bottom remains available to the settings host
+until its now-redundant adapter layer is removed separately.
 """
 
-from PyQt6.QtCore import (
-    QT_VERSION_STR,
+from PySide6.QtCore import (
     QAbstractListModel,
     QByteArray,
     QCoreApplication,
@@ -42,16 +34,15 @@ from PyQt6.QtCore import (
     QTimer,
     QTranslator,
     QUrl,
-    QVariant,
-    pyqtBoundSignal,
-    pyqtProperty,
-    pyqtSignal,
-    pyqtSlot,
+    Property as pyqtProperty,
+    Signal as pyqtSignal,
+    SignalInstance as pyqtBoundSignal,
+    Slot as pyqtSlot,
+    qVersion,
 )
-from PyQt6.QtGui import (
+from PySide6.QtGui import (
     QCursor,
     QDesktopServices,
-    QFileSystemModel,
     QFont,
     QFontMetricsF,
     QIcon,
@@ -64,7 +55,7 @@ from PyQt6.QtGui import (
     QValidator,
     QWindow,
 )
-from PyQt6.QtNetwork import (
+from PySide6.QtNetwork import (
     QAbstractSocket,
     QHostAddress,
     QHostInfo,
@@ -74,9 +65,9 @@ from PyQt6.QtNetwork import (
     QTcpServer,
     QTcpSocket,
 )
-from PyQt6.QtQml import QQmlApplicationEngine, QQmlContext, qmlRegisterType
-from PyQt6.QtQuick import QQuickView, QQuickWindow
-from PyQt6.QtWidgets import (
+from PySide6.QtQml import QQmlApplicationEngine, QQmlContext, qmlRegisterType
+from PySide6.QtQuick import QQuickView, QQuickWindow
+from PySide6.QtWidgets import (
     QApplication,
     QCalendarWidget,
     QCheckBox,
@@ -84,6 +75,7 @@ from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QFileSystemModel,
     QFrame,
     QGroupBox,
     QHBoxLayout,
@@ -106,18 +98,18 @@ from PyQt6.QtWidgets import (
 )
 
 # ---------------------------------------------------------------------------
-# PySide6 namespace — opt-in, used by a handful of windows only.
+# PySide6 namespace — retained for the existing settings-host adapters.
 #
 # Access via ``from nxdrive.drive.qt.imports import PySide as ps`` and use
 # ``ps.QDialog``, ``ps.Signal``, ``ps.QQmlApplicationEngine`` etc.
-# Never mix PySide6 QObjects with PyQt6 QObjects in the same parent tree or
-# signal/slot connection — bridge them through a dedicated adapter instead.
 # ---------------------------------------------------------------------------
 from PySide6 import QtCore as _ps_QtCore
 from PySide6 import QtGui as _ps_QtGui
 from PySide6 import QtQml as _ps_QtQml
 from PySide6 import QtQuick as _ps_QtQuick
 from PySide6 import QtWidgets as _ps_QtWidgets
+
+QT_VERSION_STR = qVersion()
 
 
 class PySide:
@@ -236,7 +228,6 @@ __all__ = (
     "QUrl",
     "QValidator",
     "QVBoxLayout",
-    "QVariant",
     "QWidget",
     "QWindow",
     "Qt",

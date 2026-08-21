@@ -247,9 +247,9 @@ def app():
     Fixture required to be able to process Qt events and quit smoothly the application.
     To use in "functional" and "unit" tests only.
     """
-    from nxdrive.drive.qt.imports import QCoreApplication, QTimer
+    from nxdrive.drive.qt.imports import QApplication, QTimer
 
-    app = QCoreApplication.instance() or QCoreApplication([])
+    app = QApplication.instance() or QApplication([])
 
     # Little trick here! See Application.__init__() for details.
     timer = QTimer()

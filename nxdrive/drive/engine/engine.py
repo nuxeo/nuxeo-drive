@@ -315,7 +315,7 @@ class Engine(QObject):
         return [thread.worker.export() for thread in self._threads]
 
     @pyqtSlot(object)
-    def _check_sync_start(self, *, row_id: str = None) -> None:
+    def _check_sync_start(self, row_id: str = None) -> None:
         if not self._sync_started:
             queue_size = self.queue_manager.get_overall_size()
             if queue_size > 0:
@@ -579,6 +579,7 @@ class Engine(QObject):
         self.dao.reset_session_schedule(uid)
         self.resume_session(uid)
 
+    @pyqtSlot(int, int)
     def start_scheduled_timer(self, session_uid: int, delay_seconds: int, /) -> None:
         """Start a non-blocking QTimer for scheduled session, chunking delay to avoid 32-bit overflow."""
         self.cancel_scheduled_timer(session_uid)
@@ -624,6 +625,7 @@ class Engine(QObject):
             f"Timer started: session {session_uid} scheduled in {delay_seconds}s (chunk: {chunk}ms)"
         )
 
+    @pyqtSlot(int)
     def cancel_scheduled_timer(self, session_uid: int, /) -> None:
         """Cancel and clean up an active scheduled timer."""
         timer = self._scheduled_timers.pop(session_uid, None)
@@ -678,6 +680,7 @@ class Engine(QObject):
         self.dao.reset_session_schedule(uid)
         self.dao.cancel_session(uid)
 
+    @pyqtSlot()
     def suspend(self) -> None:
         if self._pause:
             return
@@ -963,6 +966,7 @@ class Engine(QObject):
     def is_stopped(self) -> bool:
         return self._stopped
 
+    @pyqtSlot()
     def stop(self) -> None:
         log.debug(f"Engine {self.uid} is stopping")
         self.dao.suspend_transfers()

@@ -8,6 +8,7 @@ import pytest
 
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.exceptions import ThreadInterrupt
+from nxdrive.drive.qt.imports import Qt
 
 
 def test_execute(tmp_path):
@@ -30,7 +31,9 @@ def test_execute(tmp_path):
     # Test Case 1: Root doesn't exist - should emit rootDeleted signal
     mock_local.exists.return_value = False
     signal_emitted = []
-    watcher.rootDeleted.connect(lambda: signal_emitted.append(True))
+    watcher.rootDeleted.connect(
+        lambda: signal_emitted.append(True), Qt.ConnectionType.DirectConnection
+    )
 
     watcher._execute()
 

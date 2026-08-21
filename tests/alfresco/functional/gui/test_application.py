@@ -8,7 +8,7 @@ hook, plus explicit ``pytest.importorskip`` for Qt).
 
 import pytest
 
-qt = pytest.importorskip("PyQt6.QtCore", reason="PyQt6 not available")
+qt = pytest.importorskip("PySide6.QtCore", reason="PySide6 not available")
 
 
 class TestApplicationStartup:

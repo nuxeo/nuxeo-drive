@@ -2106,9 +2106,7 @@ class TestQMLDriveApiJsonDefault:
             )
 
             # Verify settings window shown
-            self.mock_application._show_window.assert_called_once_with(
-                self.mock_application.settings_window
-            )
+            self.mock_application.show_settings.assert_called_once_with("Accounts")
 
             # Verify _bind_server called with correct parameters
             mock_bind_server.assert_called_once_with(

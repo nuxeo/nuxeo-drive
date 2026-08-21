@@ -1,8 +1,7 @@
 """Unit tests for nxdrive.alfresco.auth.oauth2 discovery functions."""
 
-import sys
 from contextlib import contextmanager
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -20,15 +19,9 @@ def _mock_loopback_dependencies(app, *, start_result=None, start_error=None):
     from nxdrive.drive.qt import imports as qt_imports
 
     signal = MagicMock()
-    qt_core = ModuleType("PyQt6.QtCore")
 
     class QObject:
         pass
-
-    qt_core.QObject = QObject
-    qt_core.pyqtSignal = MagicMock(return_value=signal)
-    pyqt6 = ModuleType("PyQt6")
-    pyqt6.QtCore = qt_core
 
     qapplication = MagicMock()
     qapplication.instance.return_value = app
@@ -38,8 +31,8 @@ def _mock_loopback_dependencies(app, *, start_result=None, start_error=None):
     else:
         server.start.return_value = start_result or "http://127.0.0.1:43123/callback"
 
-    with patch.dict(
-        sys.modules, {"PyQt6": pyqt6, "PyQt6.QtCore": qt_core}
+    with patch.object(qt_imports, "QObject", QObject), patch.object(
+        qt_imports, "pyqtSignal", return_value=signal
     ), patch.object(qt_imports, "QApplication", qapplication), patch(
         "nxdrive.alfresco.auth.loopback.LoopbackAuthServer", return_value=server
     ):
@@ -769,14 +762,13 @@ class TestAlfrescoOAuthGetToken:
         )
 
     def test_audience_injected_when_set(self):
-        from nxdrive.drive.auth.oauth2 import OAuthenticationBase
-
         auth = self._make_auth()
         auth._oauth2_audience = "acs-api"
         auth._dao.get_config.return_value = None
+        base_class = type(auth).__mro__[1]
 
         with patch.object(
-            OAuthenticationBase, "get_token", return_value={"access_token": "a"}
+            base_class, "get_token", return_value={"access_token": "a"}
         ) as get_token, patch("nxdrive.drive.qt.imports.QApplication") as mock_app:
             mock_app.instance.return_value = None
             result = auth.get_token(code_verifier="v", code="c", state="s")
