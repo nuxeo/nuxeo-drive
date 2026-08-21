@@ -143,9 +143,6 @@ def _handle_runtime(
         runtime.refresh_branding = stack.enter_context(
             patch("nxdrive.drive.constants.refresh_branding")
         )
-        runtime.setup_sentry = stack.enter_context(
-            patch("nxdrive.drive.tracing.setup_sentry")
-        )
         runtime.find_resource = stack.enter_context(
             patch("nxdrive.drive.utils.find_resource", side_effect=find_resource)
         )
@@ -323,7 +320,6 @@ def test_handle_version_short_circuits_before_configuration(
 
     assert result == 0
     assert capsys.readouterr().out == expected
-    runtime.setup_sentry.assert_called_once_with(commandline.__version__)
     runtime.parse_cli.assert_not_called()
     runtime.configure_logger.assert_not_called()
     runtime.get_manager.assert_not_called()
@@ -350,7 +346,6 @@ def test_handle_configures_nuxeo_and_dispatches_command(cli, tmp_path):
     assert (tmp_path / ".nuxeo-drive").is_dir()
     runtime.set_app_server.assert_called_once_with("NUXEO")
     runtime.set_app_version.assert_called_once_with(commandline.__version__)
-    runtime.setup_sentry.assert_called_once_with(commandline.__version__)
     runtime.apply_restrictions.assert_called_once_with("NUXEO")
     runtime.refresh_branding.assert_called_once_with("NUXEO")
     assert runtime.configure_logger.call_count == 2
@@ -384,7 +379,6 @@ def test_handle_alfresco_alpha_uninstall_skips_manager(cli, tmp_path):
     runtime.set_app_server.assert_called_once_with("ALFRESCO")
     runtime.set_app_version.assert_called_once_with(alpha_version)
     runtime.set_log_level_file.assert_called_once_with("DEBUG")
-    runtime.setup_sentry.assert_called_once_with(alpha_version)
     runtime.apply_restrictions.assert_called_once_with("ALFRESCO")
     runtime.refresh_branding.assert_called_once_with("ALFRESCO")
     runtime.install_faulthandler.assert_not_called()

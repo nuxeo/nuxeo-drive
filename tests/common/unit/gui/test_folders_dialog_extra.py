@@ -18,8 +18,8 @@ from nxdrive.drive.qt.imports import (
     QIcon,
     QKeyEvent,
     QModelIndex,
-    QTreeView,
     Qt,
+    QTreeView,
     pyqtSignal,
 )
 from nxdrive.drive.translator import Translator
@@ -364,9 +364,6 @@ def test_find_folder_duplicates_uses_real_top_level_directories(
         assert dialog._find_folders_duplicates() == ["parent"]
         engine.remote.exists_in_parent.assert_called_once_with(
             "remote-ref", "parent", True
-        )
-        engine.send_metric.assert_called_once_with(
-            "direct_transfer", "dupe_folder", "1"
         )
     finally:
         close_widget(dialog, qapp)

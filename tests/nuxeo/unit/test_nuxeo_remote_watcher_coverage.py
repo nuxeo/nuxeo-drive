@@ -111,7 +111,6 @@ def _watcher() -> RemoteWatcher:
         local=local,
         manager=SimpleNamespace(osi=osi),
         local_folder=Path("/sync"),
-        send_metric=Mock(),
         stop_processor_on=Mock(),
         is_offline=Mock(return_value=False),
         set_offline=Mock(),
@@ -365,9 +364,6 @@ def test_scroll_scan_updates_creates_postpones_filters_and_deletes():
     assert existing.remote_state == "modified"
     watcher.dao.update_remote_state.assert_called_once_with(existing, existing_info)
     watcher.remove_void_transfers.assert_any_call(existing)
-    watcher.engine.send_metric.assert_called_once_with(
-        "sync", "skip", "notInBinaryStore"
-    )
     assert watcher._find_remote_child_match_or_create.call_args_list == [
         call(parent, created),
         call(parent, late),
@@ -794,12 +790,8 @@ def test_get_changes_measures_call_and_persists_cursor():
         "fileSystemChanges": [],
     }
     watcher.engine.remote.get_changes.return_value = summary
-    with patch(f"{MODULE}.monotonic", side_effect=[10.2, 12.0]):
-        assert watcher._call_and_measure_gcs() == summary
+    assert watcher._call_and_measure_gcs() == summary
     watcher.engine.remote.get_changes.assert_called_once_with("", log_id=0)
-    watcher.engine.send_metric.assert_called_once_with(
-        "operation", "NuxeoDrive.GetChangesSummary", "2"
-    )
 
     watcher._call_and_measure_gcs = Mock(return_value=summary)
     assert watcher._get_changes() == summary
@@ -1186,9 +1178,6 @@ def test_update_remote_states_creates_expanded_children_and_skips_noise():
     ):
         watcher._update_remote_states()
 
-    watcher.engine.send_metric.assert_called_once_with(
-        "sync", "skip", "notInBinaryStore"
-    )
     assert watcher.engine.remote.expand_sync_root_name.call_count == 3
     assert watcher._find_remote_child_match_or_create.call_args_list == [
         call(parent, folder_info),

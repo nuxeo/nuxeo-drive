@@ -2,6 +2,7 @@ import pytest
 from sentry_sdk import Client, capture_exception, get_current_scope, transport
 
 import nxdrive.drive.tracing
+from nxdrive.drive.options import Options
 
 #
 # Start Sentry internals.
@@ -36,6 +37,7 @@ def sentry_init_custom(monkeypatch):
 #
 
 
+@Options.mock()
 def test_flooding_prevention(sentry_init_custom):
     """Ensure that an infinite synchronization due to a unhandled error
     will not explode the Sentry quota.
@@ -55,6 +57,8 @@ def test_flooding_prevention(sentry_init_custom):
         except Exception:
             capture_exception()
 
+    Options.use_sentry = True
+    Options.use_analytics = False
     sentry_init_custom(before_send=nxdrive.drive.tracing.before_send)
 
     # Ensure there is no event by default

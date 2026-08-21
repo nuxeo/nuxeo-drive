@@ -128,3 +128,22 @@ def test_languages():
     assert languages == expected
     # NXDRIVE-2385: - 1 for Arabic
     assert len(languages) == len(list(folder.glob("*.json"))) - 1
+
+
+def test_advanced_settings_metrics_labels_are_static():
+    folder = Path(__file__).parent.parent.parent / "nxdrive" / "data" / "i18n"
+    Translator(folder)
+
+    assert Translator.get("USE_SENTRY") == "Enable error reporting"
+    assert Translator.get("USE_ANALYTICS") == "Enable advanced analytics"
+
+    qml = (
+        Path(__file__).parents[3]
+        / "nxdrive"
+        / "drive"
+        / "data"
+        / "qml"
+        / "GeneralTab.qml"
+    ).read_text(encoding="utf-8")
+    assert 'text: qsTr("USE_SENTRY")' in qml
+    assert 'text: qsTr("USE_ANALYTICS")' in qml

@@ -224,7 +224,6 @@ class EngineWorker(Worker):
         )
         # Push it to generate the error notification
         self.engine.queue_manager.push_error(doc_pair, exception=exception)
-        self.engine.send_metric("sync", "error", error)
         metrics = {
             SYNC_ERROR_LABEL: error.lower(),
             SYNC_ACTION: doc_pair.pair_state,

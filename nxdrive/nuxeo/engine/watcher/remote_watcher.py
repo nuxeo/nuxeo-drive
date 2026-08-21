@@ -270,7 +270,6 @@ class RemoteWatcher(RemoteWatcherBase):
                     log.debug(
                         f"Skipping unsyncable document {descendant_info} (digest is 'notInBinaryStore')"
                     )
-                    self.engine.send_metric("sync", "skip", "notInBinaryStore")
                     descendants.pop(descendant_info.uid, None)
                     continue
 
@@ -373,7 +372,6 @@ class RemoteWatcher(RemoteWatcherBase):
                 log.debug(
                     f"Skipping unsyncable document {child_info} (digest is 'notInBinaryStore')"
                 )
-                self.engine.send_metric("sync", "skip", "notInBinaryStore")
                 continue
 
             log.debug(f"Scanning remote child: {child_info!r}")
@@ -659,18 +657,10 @@ class RemoteWatcher(RemoteWatcherBase):
         return False
 
     def _call_and_measure_gcs(self) -> Optional[Dict[str, Any]]:
-        """Call the NuxeoDrive.GetChangesSummary operation and measure the time taken."""
-        start = monotonic()
-        try:
-            return self.engine.remote.get_changes(
-                self._last_root_definitions, log_id=self._last_event_log_id
-            )
-        finally:
-            end = monotonic()
-            elapsed = round(end - start)
-            self.engine.send_metric(
-                "operation", "NuxeoDrive.GetChangesSummary", str(elapsed)
-            )
+        """Call the NuxeoDrive.GetChangesSummary operation."""
+        return self.engine.remote.get_changes(
+            self._last_root_definitions, log_id=self._last_event_log_id
+        )
 
     def _get_changes(self) -> Optional[Dict[str, Any]]:
         """Fetch incremental change summary from the server"""
@@ -762,7 +752,6 @@ class RemoteWatcher(RemoteWatcherBase):
                 log.debug(
                     f"Skipping unsyncable document {change} (digest is 'notInBinaryStore')"
                 )
-                self.engine.send_metric("sync", "skip", "notInBinaryStore")
                 continue
 
             log.debug(f"Processing event: {change!r}")

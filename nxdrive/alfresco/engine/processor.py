@@ -242,6 +242,7 @@ class AlfrescoProcessor(_ProcessorBase):
 
                 self._current_metrics = {
                     "handler": doc_pair.pair_state,
+                    "size": doc_pair.size,
                     "start_ns": monotonic_ns(),
                 }
 

@@ -2118,10 +2118,9 @@ class TestFoldersDialogFindFoldersDuplicates:
         4. Mixed files and folders handling
         5. Parent-child relationship filtering
         6. Remote exists_in_parent integration
-        7. Metric sending verification
-        8. Return type verification
-        9. Multiple duplicates handling
-        10. Edge cases with special path structures
+        7. Return type verification
+        8. Multiple duplicates handling
+        9. Edge cases with special path structures
         """
         from pathlib import Path
 
@@ -2142,7 +2141,6 @@ class TestFoldersDialogFindFoldersDuplicates:
         assert isinstance(result, list)
         assert len(result) == 0
         self.mock_remote.exists_in_parent.assert_not_called()
-        self.mock_engine.send_metric.assert_not_called()
 
         # Test 2: Simple case with mock paths that work properly
         # Create mock paths that behave like Path objects but allow mocking
@@ -2175,9 +2173,6 @@ class TestFoldersDialogFindFoldersDuplicates:
         assert "test_folder" in result
         assert "another_folder" in result
         assert "test_file.txt" not in result  # Files should be filtered out
-        self.mock_engine.send_metric.assert_called_once_with(
-            "direct_transfer", "dupe_folder", "1"
-        )
 
         # Verify exists_in_parent was called correctly for folders only
         expected_calls = [
@@ -2197,7 +2192,6 @@ class TestFoldersDialogFindFoldersDuplicates:
 
         assert isinstance(result, list)
         assert len(result) == 0
-        self.mock_engine.send_metric.assert_not_called()  # No metric when no duplicates
 
         # Test 4: Edge case with None remote_folder_ref
         dialog.remote_folder_ref = None
@@ -2305,9 +2299,6 @@ class TestFoldersDialogFindFoldersDuplicates:
         assert len(result) == 1
         assert "exists_remote" in result
         assert "not_exists_remote" not in result
-        self.mock_engine.send_metric.assert_called_once_with(
-            "direct_transfer", "dupe_folder", "1"
-        )
 
         # Test 9: Large scale test with many paths
         many_mock_paths = {}
@@ -2346,9 +2337,6 @@ class TestFoldersDialogFindFoldersDuplicates:
         assert isinstance(result, list)
         assert len(result) == 1
         assert result[0] == "final_test"
-        self.mock_engine.send_metric.assert_called_once_with(
-            "direct_transfer", "dupe_folder", "1"
-        )
 
         # Verify all expected attributes and methods were accessed
         final_mock_path.is_dir.assert_called()

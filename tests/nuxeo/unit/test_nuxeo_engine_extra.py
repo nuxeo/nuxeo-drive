@@ -876,7 +876,6 @@ class TestHandleSessionStatus:
         from nxdrive.drive.constants import TransferStatus
 
         engine = _make_engine()
-        engine.send_metric = MagicMock()
         session = MagicMock()
         session.status = TransferStatus.DONE
         session.uid = 5
@@ -1288,7 +1287,6 @@ class TestDirectTransfer:
     def test_no_local_paths_returns_after_save(self):
         engine = _make_engine()
         engine._save_last_dt_session_infos = MagicMock()
-        engine.send_metric = MagicMock()
 
         engine._direct_transfer({}, "/ws", "ref-1", "Workspace")
 
@@ -1298,7 +1296,6 @@ class TestDirectTransfer:
     def test_new_folder_creation_failure_returns(self):
         engine = _make_engine()
         engine._save_last_dt_session_infos = MagicMock()
-        engine.send_metric = MagicMock()
         engine._create_remote_folder = MagicMock(return_value={})
 
         engine._direct_transfer(
@@ -1314,7 +1311,6 @@ class TestDirectTransfer:
     def test_plans_items(self, tmp_path):
         engine = _make_engine()
         engine._save_last_dt_session_infos = MagicMock()
-        engine.send_metric = MagicMock()
         engine.dao.create_session.return_value = 1
         engine.dao.plan_many_direct_transfer_items.return_value = 100
 
@@ -1333,7 +1329,6 @@ class TestDirectTransfer:
     def test_paused_does_not_queue(self, tmp_path):
         engine = _make_engine()
         engine._save_last_dt_session_infos = MagicMock()
-        engine.send_metric = MagicMock()
         engine.dao.create_session.return_value = 1
         engine.dao.plan_many_direct_transfer_items.return_value = 100
 
@@ -1352,7 +1347,6 @@ class TestDirectTransfer:
     def test_schedule_delay_emits_timer(self, tmp_path):
         engine = _make_engine()
         engine._save_last_dt_session_infos = MagicMock()
-        engine.send_metric = MagicMock()
         engine.dao.create_session.return_value = 5
         engine.dao.plan_many_direct_transfer_items.return_value = 100
 
@@ -1375,7 +1369,6 @@ class TestDirectTransfer:
     def test_new_folder_with_custom_type(self):
         engine = _make_engine()
         engine._save_last_dt_session_infos = MagicMock()
-        engine.send_metric = MagicMock()
         engine._create_remote_folder_with_enricher = MagicMock(
             return_value={"path": "/ws/custom", "uid": "u1"}
         )

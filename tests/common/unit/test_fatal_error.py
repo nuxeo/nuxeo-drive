@@ -37,8 +37,9 @@ def fatal_qt_env(monkeypatch):
     layout = MagicMock(name="layout")
     buttons = MagicMock(name="buttons")
     update_button = MagicMock(name="update_button")
+    send_button = MagicMock(name="send_button")
     copy_button = MagicMock(name="copy_button")
-    buttons.addButton.side_effect = [update_button, copy_button]
+    buttons.addButton.side_effect = [update_button, send_button, copy_button]
 
     constructors = {
         "QApplication": MagicMock(return_value=app),
@@ -78,6 +79,7 @@ def fatal_qt_env(monkeypatch):
         osi=osi_instance,
         osi_type=osi_type,
         qurl=constructors["QUrl"],
+        send_button=send_button,
         server_type=server_type,
         update_button=update_button,
     )
@@ -105,6 +107,9 @@ def test_show_critical_error(mock_exc_info, mock_traceback, mock_fatal_error_qt)
     mock_exc_info.return_value = "dummy_exc_info"
     mock_traceback.return_value = ["dummy_exception1", "dummy_exception2"]
     assert fatal_error.show_critical_error() is None
+    mock_fatal_error_qt.assert_called_once_with(
+        "dummy_exception1dummy_exception2", exc_info="dummy_exc_info"
+    )
 
 
 @windows_only
@@ -271,10 +276,42 @@ def test_fatal_error_qt_update_button_uses_platform_download(
     )
 
 
+def test_fatal_error_qt_sends_error_to_hyland(fatal_qt_env):
+    exc = RuntimeError("failure")
+    exc_info = (RuntimeError, exc, None)
+    fatal_qt_env.export_logs.return_value = [b"first log", b"second log"]
+
+    with patch(
+        "nxdrive.drive.tracing.capture_fatal_error", return_value=True
+    ) as capture_fatal_error:
+        fatal_error.fatal_error_qt("formatted traceback", exc_info=exc_info)
+        send_error = fatal_qt_env.send_button.clicked.connect.call_args.args[0]
+        send_error()
+
+    capture_fatal_error.assert_called_once_with(
+        exc_info, "formatted traceback", ["first log", "second log"]
+    )
+    fatal_qt_env.send_button.setEnabled.assert_called_once_with(False)
+    fatal_qt_env.send_button.setText.assert_called_once_with("FATAL_ERROR_SENT")
+
+
+def test_fatal_error_qt_reenables_send_button_on_failure(fatal_qt_env):
+    with patch("nxdrive.drive.tracing.capture_fatal_error", return_value=False):
+        fatal_error.fatal_error_qt("formatted traceback")
+        send_error = fatal_qt_env.send_button.clicked.connect.call_args.args[0]
+        send_error()
+
+    assert fatal_qt_env.send_button.setEnabled.call_args_list == [
+        ((False,), {}),
+        ((True,), {}),
+    ]
+    fatal_qt_env.send_button.setText.assert_called_once_with("FATAL_ERROR_SEND_FAILED")
+
+
 def test_fatal_error_qt_suppresses_optional_sections(fatal_qt_env):
     fatal_qt_env.export_logs.side_effect = RuntimeError("logs unavailable")
     fatal_qt_env.osi_type.get.side_effect = RuntimeError("clipboard unavailable")
-    fatal_qt_env.buttons.addButton.side_effect = [None]
+    fatal_qt_env.buttons.addButton.side_effect = [None, None]
 
     fatal_error.fatal_error_qt("failure")
 

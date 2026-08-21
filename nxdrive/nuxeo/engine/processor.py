@@ -328,6 +328,7 @@ class Processor(_ProcessorBase):
 
                 self._current_metrics = {
                     "handler": doc_pair.pair_state,
+                    "size": doc_pair.size,
                     "start_ns": monotonic_ns(),
                 }
 
@@ -625,7 +626,6 @@ class Processor(_ProcessorBase):
                 session = self.dao.decrease_session_counts(doc_pair.session)
             self.engine.handle_session_status(session)
 
-        # For analytics
         self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)
 
     def _synchronize_conflicted(self, doc_pair: DocPair, /) -> None:

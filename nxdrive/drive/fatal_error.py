@@ -101,7 +101,7 @@ def check_executable_path_error_qt(path: Path, /) -> None:
     msg.exec()
 
 
-def fatal_error_qt(exc_formatted: str, /) -> None:
+def fatal_error_qt(exc_formatted: str, /, *, exc_info: object = None) -> None:
     """Display a "friendly" dialog box on fatal error using Qt."""
 
     from nxdrive.drive.qt import constants as qt
@@ -136,6 +136,7 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
     layout = QVBoxLayout()
     css = "font-family: Courier; font-size: 12px;"
     details = []
+    log_lines = []
 
     # Display a little message to apologize
     info = QLabel(tr("FATAL_ERROR_MSG", values=[APP_NAME, COMPANY]))
@@ -175,7 +176,8 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
 
         # Last 20th lines
         raw_lines = Report.export_logs(20)
-        lines = b"\n".join(raw_lines).decode(errors="replace")
+        log_lines = [line.decode(errors="replace") for line in raw_lines]
+        lines = "\n".join(log_lines)
 
         if lines:
             text = tr("FATAL_ERROR_LOGS")
@@ -216,6 +218,22 @@ def fatal_error_qt(exc_formatted: str, /) -> None:
     if update_button:
         update_button.setToolTip(tr("FATAL_ERROR_UPDATE_TOOLTIP", values=[APP_NAME]))
         update_button.clicked.connect(open_update_site)
+
+    send_button = buttons.addButton(tr("FATAL_ERROR_SEND_BTN"), qt.ActionRole)
+    if send_button:
+        send_button.setToolTip(tr("FATAL_ERROR_SEND_TOOLTIP"))
+
+        def send_error() -> None:
+            from nxdrive.drive.tracing import capture_fatal_error
+
+            send_button.setEnabled(False)
+            if capture_fatal_error(exc_info, exc_formatted, log_lines):
+                send_button.setText(tr("FATAL_ERROR_SENT"))
+            else:
+                send_button.setText(tr("FATAL_ERROR_SEND_FAILED"))
+                send_button.setEnabled(True)
+
+        send_button.clicked.connect(send_error)
     layout.addWidget(buttons)
 
     def copy() -> None:
@@ -331,7 +349,8 @@ def show_critical_error() -> None:
 
     import traceback
 
-    full_error = "".join(traceback.format_exception(*sys.exc_info()))
+    exc_info = sys.exc_info()
+    full_error = "".join(traceback.format_exception(*exc_info))
 
     with suppress(Exception):
         # Note1: do not rely on Options.nxdrive_home as it may be changed in options.
@@ -343,7 +362,7 @@ def show_critical_error() -> None:
         crash_file.write_text(full_error, encoding="utf-8", errors="replace")
 
     try:
-        fatal_error_qt(full_error)
+        fatal_error_qt(full_error, exc_info=exc_info)
     except Exception as exc:
         # Fallback to OS-specific dialog but only to prompt the user for installation error.
         text = (

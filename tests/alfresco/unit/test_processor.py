@@ -900,12 +900,21 @@ class TestExecute:
         item.pair_state = "locally_created"
         item.id = 1
         item.version = 1
+        item.folderish = False
+        item.size = 2048
         proc._get_item = Mock(side_effect=[item, None])
         proc.dao.acquire_state.return_value = item
         proc._handle_doc_pair_sync = Mock(side_effect=ThreadInterrupt())
-        with pytest.raises(ThreadInterrupt):
+        with patch(
+            "nxdrive.alfresco.engine.processor.monotonic_ns", return_value=456
+        ), pytest.raises(ThreadInterrupt):
             proc._execute()
         proc.engine.queue_manager.push.assert_called_once_with(item)
+        assert proc._current_metrics == {
+            "handler": "locally_created",
+            "size": 2048,
+            "start_ns": 456,
+        }
 
     def test_not_found_removes_transfers(self, proc):
         from nxdrive.drive.exceptions import NotFound

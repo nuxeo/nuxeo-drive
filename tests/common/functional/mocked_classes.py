@@ -405,8 +405,8 @@ class Mock_Engine:
     def __init__(self) -> None:
         self.dao = Mock_DAO()
         self.deleteReadonly = Mock_Emitter()
-        self.directTranferError = Mock_Emitter()
         self.directTransferStats = Mock_Emitter()
+        self.directTranferError = Mock_Emitter()
         self.download_dir = Path("")
         self.local = self
         self.local_folder = Path("tests/resources")

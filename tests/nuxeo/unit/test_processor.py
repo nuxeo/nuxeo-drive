@@ -48,6 +48,7 @@ def doc_pair():
     pair.local_state = "created"
     pair.remote_state = "unknown"
     pair.folderish = False
+    pair.size = 1024
     pair.local_digest = "abc123"
     pair.remote_digest = "abc123"
     pair.session = None
@@ -692,8 +693,11 @@ class TestDirectTransferHelpers:
         with patch.object(processor.dao, "remove_transfer"):
             with patch.object(processor.dao, "remove_state"):
                 with patch.object(processor.dao, "get_session", return_value=None):
-                    with patch.object(processor.engine.manager, "directTransferStats"):
-                        processor._direct_transfer_end(doc_pair, False)
+                    processor._direct_transfer_end(doc_pair, False)
+
+        processor.engine.manager.directTransferStats.emit.assert_called_once_with(
+            False, 1024
+        )
 
     def test_direct_transfer_end_with_ongoing_session(self, processor, doc_pair):
         """Test _direct_transfer_end with ongoing session."""
@@ -709,10 +713,11 @@ class TestDirectTransferHelpers:
                 with patch.object(processor.dao, "get_session", return_value=session):
                     with patch.object(processor.dao, "decrease_session_counts"):
                         with patch.object(processor.engine, "handle_session_status"):
-                            with patch.object(
-                                processor.engine.manager, "directTransferStats"
-                            ):
-                                processor._direct_transfer_end(doc_pair, False)
+                            processor._direct_transfer_end(doc_pair, False)
+
+        processor.engine.manager.directTransferStats.emit.assert_called_once_with(
+            False, 1024
+        )
 
     def test_direct_transfer_end_cancelled(self, processor, doc_pair):
         """Test _direct_transfer_end with cancelled transfer."""
@@ -728,10 +733,11 @@ class TestDirectTransferHelpers:
                 with patch.object(processor.dao, "get_session", return_value=session):
                     with patch.object(processor.dao, "decrease_session_counts"):
                         with patch.object(processor.engine, "handle_session_status"):
-                            with patch.object(
-                                processor.engine.manager, "directTransferStats"
-                            ):
-                                processor._direct_transfer_end(doc_pair, True)
+                            processor._direct_transfer_end(doc_pair, True)
+
+        processor.engine.manager.directTransferStats.emit.assert_called_once_with(
+            True, 0
+        )
 
 
 class TestGetNextDocPair:
