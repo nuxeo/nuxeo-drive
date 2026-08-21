@@ -30,6 +30,7 @@ def downloader(tmp_path):
     worker = DirectDownload(manager, tmp_path)
     worker._get_download_record = Mock(return_value=None)
     worker._is_single_download_cancelled = Mock(return_value=False)
+    worker._is_paused = Mock(return_value=False)
     worker._update_download_progress = Mock()
     yield worker
     worker.stop()

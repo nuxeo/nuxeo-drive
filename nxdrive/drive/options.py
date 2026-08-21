@@ -287,6 +287,7 @@ class MetaOptions(type):
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
         "deletion_behavior": ("unsync", "default"),
+        "direct_download_max_workers": (8, "default"),
         "direct_transfer_file_upper_limit": (0, "default"),
         "direct_transfer_folder_upper_limit": (0, "default"),
         "disabled_file_integrity_check": (False, "default"),
@@ -700,6 +701,14 @@ def validate_direct_transfer_folder_upper_limit(value: int) -> int:
     return value
 
 
+def validate_direct_download_max_workers(value: int) -> int:
+    if value < 1:
+        raise ValueError(
+            "'direct_download_max_workers' must be a positive integer (>= 1)"
+        )
+    return value
+
+
 def _callback_synchronization_enabled(new_value: bool) -> None:
     log.warning(
         "The option is deprecated since 5.2.0 and will be removed in a future release."
@@ -734,3 +743,4 @@ Options.checkers["direct_transfer_file_upper_limit"] = (
 Options.checkers["direct_transfer_folder_upper_limit"] = (
     validate_direct_transfer_folder_upper_limit
 )
+Options.checkers["direct_download_max_workers"] = validate_direct_download_max_workers

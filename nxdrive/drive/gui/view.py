@@ -1165,7 +1165,31 @@ class DirectDownloadMonitoringModel(QAbstractListModel):
                 idx,
                 [self.DOC_NAME, self.PROGRESS, self.TRANSFERRED, self.FILESIZE],
             )
-            break
+            return
+
+        # No matching row yet — insert a placeholder so the UI can
+        # follow the download immediately. This closes the race
+        # between the first ``downloadProgress`` chunk and the DAO
+        # refresh that would otherwise add the row.
+        uid = action.get("uid")
+        if uid is None:
+            return
+        new_row = {
+            "uid": uid,
+            "doc_name": action.get("doc_name", "") or "",
+            "status": "IN_PROGRESS",
+            "progress": action.get("progress", 0.0),
+            "bytes_downloaded": action.get("bytes_downloaded", 0),
+            "total_bytes": action.get("total_bytes", 0),
+            "engine": action.get("engine", ""),
+            "download_path": action.get("download_path", ""),
+            "shadow": False,
+        }
+        position = self.rowCount()
+        self.beginInsertRows(QModelIndex(), position, position)
+        self.items.append(new_row)
+        self.endInsertRows()
+        self.itemChanged.emit()
 
     @pyqtProperty("int", notify=itemChanged)
     def count(self) -> int:
