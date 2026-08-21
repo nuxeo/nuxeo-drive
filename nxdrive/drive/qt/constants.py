@@ -1,8 +1,17 @@
 """
 Put here all PyQt constants used across the project.
+
+The top-level constants below are sourced from PyQt6 via ``.imports``.
+
+A parallel ``PySide`` namespace at the bottom of this file exposes the same
+enum values sourced from PySide6, for use only by the opt-in PySide6 windows
+(Share Debug Info, Settings, Add Account tab). Never pass a PyQt6 enum value
+to a PySide6 API and vice versa — Qt6 scoped enums are distinct classes on
+each binding, even when they wrap the same integer.
 """
 
 from .imports import (
+    PySide as _PySide,
     QAbstractSocket,
     QDialogButtonBox,
     QEvent,
@@ -73,3 +82,25 @@ WhatsThisCursor = Qt.CursorShape.WhatsThisCursor
 WindowModal = Qt.WindowModality.WindowModal
 WindowStaysOnTopHint = Qt.WindowType.WindowStaysOnTopHint
 WorldAccessOption = QLocalServer.SocketOption.WorldAccessOption
+
+
+# ---------------------------------------------------------------------------
+# PySide6 mirror — only the enum values referenced by the opt-in PySide6
+# windows. Sourced from PySide6.QtCore.Qt / QDialogButtonBox / ... so that
+# these values match the meta-object system used by the PySide6 engine.
+# Access as ``constants.PySide.RichText`` etc.
+# ---------------------------------------------------------------------------
+_ps_Qt = _PySide.Qt
+_ps_QDialogButtonBox = _PySide.QDialogButtonBox
+
+
+class PySide:
+    """Curated enum values for the opt-in PySide6 windows."""
+
+    # Share Debug Info dialog
+    AlignCenter = _ps_Qt.AlignmentFlag.AlignCenter
+    Apply = _ps_QDialogButtonBox.StandardButton.Apply
+    Checked = _ps_Qt.CheckState.Checked
+    RichText = _ps_Qt.TextFormat.RichText
+    Unchecked = _ps_Qt.CheckState.Unchecked
+    WA_DeleteOnClose = _ps_Qt.WidgetAttribute.WA_DeleteOnClose

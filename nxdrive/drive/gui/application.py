@@ -30,6 +30,7 @@ from nxdrive.drive.feature import Beta, DisabledFeatures, Feature
 from nxdrive.drive.gui.api import QMLDriveApi
 from nxdrive.drive.gui.custom_window import CustomWindow
 from nxdrive.drive.gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
+from nxdrive.drive.gui.pyside_settings_host import PySideSettingsHost
 from nxdrive.drive.gui.systray import DriveSystrayIcon, SystrayWindow
 from nxdrive.drive.gui.view import (
     ActiveDirectDownloadModel,
@@ -50,6 +51,7 @@ from nxdrive.drive.notification import Notification
 from nxdrive.drive.options import Options
 from nxdrive.drive.qt import constants as qt
 from nxdrive.drive.qt.imports import (
+    PySide as ps,
     QApplication,
     QCheckBox,
     QComboBox,
@@ -448,6 +450,12 @@ class Application(QApplication):
         style_hints = self.styleHints()
         if style_hints:
             style_hints.colorSchemeChanged.connect(self._on_color_scheme_changed)
+
+        # PySide6 host for the Settings window (opt-in POC).  The QQmlEngine
+        # is built lazily on the first show_settings() call — no work is done
+        # here beyond constructing the host object.  There is no fallback:
+        # once Settings is requested it will render through PySide6.
+        self.pyside_settings_host = PySideSettingsHost(self)
 
     def create_custom_window_for_task_manager(self) -> None:
         # Task Manager
@@ -1160,8 +1168,13 @@ class Application(QApplication):
             "Advanced": 3,
             "About": 4,
         }
-        self._window_root(self.settings_window).setSection.emit(sections[section])
-        self._center_on_screen(self.settings_window)
+        # Settings + Add Account tab are rendered by PySide6 (no fallback).
+        # The PyQt6 settings_window instance still exists for legacy callers
+        # (filters dialog centering, api.setMessage relay), but the actual
+        # visible window is the PySide6 QQuickView owned by the host.
+        if section not in sections:
+            section = "Features"
+        self.pyside_settings_host.show(section)
 
     @pyqtSlot()
     def show_systray(self) -> None:
@@ -2380,40 +2393,53 @@ class Application(QApplication):
 
         Server type selection is handled earlier (in commandline.py before
         Manager creation), so this dialog only handles metrics consent.
+
+        POC: this window is rendered through PySide6 (see ``PySide`` namespace
+        in ``nxdrive.drive.qt.imports``). The rest of the app stays on PyQt6.
+        Because a PyQt6 ``QApplication`` cannot parent a PySide6 ``QObject``,
+        the dialog is created with ``parent=None`` — it is modal via
+        ``exec()`` so blocking behavior is preserved.
         """
 
         tr = Translator.get
 
-        dialog = QDialog()
+        dialog = ps.QDialog()
         dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", values=[APP_NAME]))
-        dialog.setWindowIcon(self.icon)
-        layout = QVBoxLayout()
+        # ``self.icon`` is a PyQt6 QIcon and cannot be passed to a PySide6
+        # widget. Build a fresh PySide6 QIcon from the same on-disk resource.
+        try:
+            dialog.setWindowIcon(ps.QIcon(str(find_icon("app_icon.svg"))))
+        except Exception:
+            # If icon resolution fails for any reason, fall back silently —
+            # the dialog is still fully usable without a custom window icon.
+            pass
+        layout = ps.QVBoxLayout()
 
-        info = QLabel(tr("SHARE_METRICS_MSG", values=[COMPANY]))
-        info.setTextFormat(qt.RichText)
+        info = ps.QLabel(tr("SHARE_METRICS_MSG", values=[COMPANY]))
+        info.setTextFormat(qt.PySide.RichText)
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        def analytics_choice(state: Qt.CheckState) -> None:
+        def analytics_choice(state: int) -> None:
             Options.use_analytics = bool(state)
 
-        def errors_choice(state: Qt.CheckState) -> None:
+        def errors_choice(state: int) -> None:
             Options.use_sentry = bool(state)
 
         # Checkboxes
-        em_analytics = QCheckBox(tr("SHARE_METRICS_ERROR_REPORTING"))
+        em_analytics = ps.QCheckBox(tr("SHARE_METRICS_ERROR_REPORTING"))
         em_analytics.setChecked(True)
         em_analytics.stateChanged.connect(errors_choice)
         em_analytics.setChecked(False)
         layout.addWidget(em_analytics)
 
-        cb_analytics = QCheckBox(tr("SHARE_METRICS_ANALYTICS"))
+        cb_analytics = ps.QCheckBox(tr("SHARE_METRICS_ANALYTICS"))
         cb_analytics.stateChanged.connect(analytics_choice)
         layout.addWidget(cb_analytics)
 
         # Buttons
-        buttons = QDialogButtonBox()
-        buttons.setStandardButtons(qt.Apply)
+        buttons = ps.QDialogButtonBox()
+        buttons.setStandardButtons(qt.PySide.Apply)
         buttons.clicked.connect(dialog.close)
         layout.addWidget(buttons)
         dialog.setLayout(layout)
