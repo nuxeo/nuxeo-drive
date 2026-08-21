@@ -102,7 +102,7 @@ def test_base_hooks_are_explicit_and_stop_client_interrupts(direct_edit):
 
 def test_engine_resolution_exact_casefold_missing_and_invalid(direct_edit, manager):
     errors = []
-    direct_edit.directEditError[str, list].connect(
+    direct_edit.directEditError.connect(
         lambda label, values: errors.append((label, values))
     )
     exact = _engine(user="Exact")
@@ -344,7 +344,7 @@ def test_prepare_edit_short_circuits_for_missing_blob_download_and_connection(
 
 def test_edit_feature_open_and_error_paths(direct_edit, manager, tmp_path):
     errors = []
-    direct_edit.directEditError[str, list].connect(
+    direct_edit.directEditError.connect(
         lambda label, values: errors.append((label, values))
     )
     original = Feature.direct_edit

@@ -1,5 +1,5 @@
 """
-Put here all PyQt constants used across the project.
+Put here all Qt constants used across the project.
 """
 
 from .imports import (

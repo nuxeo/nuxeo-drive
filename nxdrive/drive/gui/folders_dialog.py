@@ -33,7 +33,7 @@ from ..qt.imports import (
     QSize,
     Qt,
     QVBoxLayout,
-    pyqtSignal,
+    Signal,
 )
 from ..translator import Translator
 from ..utils import find_icon, get_tree_list, sizeof_fmt
@@ -287,7 +287,7 @@ class FoldersDialog(DialogMixin):
         "QToolTip { padding: 10px; color: #000; background-color: #F4F4F4 }"
     )
 
-    newCtxTransfer = pyqtSignal(list)
+    newCtxTransfer = Signal(list)
 
     def __init__(
         self,
@@ -916,7 +916,7 @@ class FoldersDialog(DialogMixin):
 
     def _select_files_and_folders(self) -> None:
         """Open a dialog to select multiple files and folders to upload."""
-        # Send the dark mode pyqtSignal
+        # Send the dark mode Signal
         mfd = MultiFolderDialog(
             dark_mode=self.application.is_dark_mode(),
             dark_mode_signal=self.application.dark_mode_signal,

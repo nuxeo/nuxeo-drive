@@ -20,7 +20,7 @@ from nxdrive.drive.qt.imports import (
     QModelIndex,
     Qt,
     QTreeView,
-    pyqtSignal,
+    Signal,
 )
 from nxdrive.drive.translator import Translator
 from nxdrive.drive.utils import find_resource
@@ -66,7 +66,7 @@ def application():
 class StubFolderTreeView(QTreeView):
     """A real QWidget with the small FolderTreeView API used by the dialog."""
 
-    update = pyqtSignal()
+    update = Signal()
 
     def __init__(self):
         super().__init__()

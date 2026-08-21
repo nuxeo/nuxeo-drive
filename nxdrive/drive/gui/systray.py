@@ -11,6 +11,7 @@ from ..qt.imports import (
     QSize,
     QSystemTrayIcon,
     QWindow,
+    Slot,
 )
 from ..translator import Translator
 
@@ -110,6 +111,7 @@ class SystrayWindow(inherited_base_class):  # type: ignore
         self.setMinimumSize(QSize(365, 370))
         self.setMaximumSize(QSize(365, 370))
 
+    @Slot()
     def _on_active_changed(self) -> None:
         """Hide the window when it loses focus."""
         if not self.isActive():

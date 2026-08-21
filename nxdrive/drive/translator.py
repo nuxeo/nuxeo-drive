@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple
 
-from .qt.imports import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
+from .qt.imports import Property, QTranslator, Signal, Slot
 
 __all__ = ("Translator",)
 
@@ -14,7 +14,7 @@ _CACHE: Dict[str, str] = {}
 
 
 class Translator(QTranslator):
-    languageChanged = pyqtSignal()
+    languageChanged = Signal()
     singleton = None
     current_language: str = ""
 
@@ -66,10 +66,10 @@ class Translator(QTranslator):
         self, _context: str, text: str, _disambiguation: str, _n: int, /
     ) -> str:
         """
-        *_context* is set by PyQt, e.g.: QQmlImportDatabase or Conflicts.
-        *text* is the translation label or english PyQt error message, e.g.: EXTRA_FILE_COUNT or "is not a type".
-        *_disambiguation* is set by PyQt, seems always None.
-        *_n* is set by PyQt, seems always -1.
+        *_context* is set by Qt, e.g.: QQmlImportDatabase or Conflicts.
+        *text* is the translation label or english Qt error message, e.g.: EXTRA_FILE_COUNT or "is not a type".
+        *_disambiguation* is set by Qt, seems always None.
+        *_n* is set by Qt, seems always -1.
 
         *_context*, *_disambiguation* and *_n* are not used but required
         when the Translator is used inside QML.
@@ -77,7 +77,7 @@ class Translator(QTranslator):
         """
         return self.get_translation(text)
 
-    @pyqtProperty(str, notify=languageChanged)
+    @Property(str, notify=languageChanged)
     def tr(self) -> str:
         return ""
 
@@ -130,7 +130,7 @@ class Translator(QTranslator):
             _CACHE[key] = value
         return value
 
-    @pyqtSlot(str)  # from GeneralTab.qml
+    @Slot(str)  # from GeneralTab.qml
     def set_language(self, lang: str, /) -> None:
         try:
             self._current = self._labels[lang]

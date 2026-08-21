@@ -284,14 +284,10 @@ class TestDocumentContentLoader:
 
         with patch(
             "nxdrive.drive.gui.folders_loader.QStandardItem"
-        ) as mock_qstandarditem, patch(
-            "nxdrive.drive.gui.folders_loader.QVariant"
-        ) as mock_qvariant:
+        ) as mock_qstandarditem:
 
             mock_subitem = MagicMock()
             mock_qstandarditem.return_value = mock_subitem
-            mock_variant = MagicMock()
-            mock_qvariant.return_value = mock_variant
 
             subitem = loader.new_subitem(mock_child)
 
@@ -302,7 +298,7 @@ class TestDocumentContentLoader:
             mock_subitem.setEnabled.assert_called_once_with(True)
             mock_subitem.setSelectable.assert_called_once_with(True)
             mock_subitem.setEditable.assert_called_once_with(False)
-            mock_subitem.setData.assert_called_once_with(mock_variant, qt.UserRole)
+            mock_subitem.setData.assert_called_once_with(mock_child, qt.UserRole)
 
             assert subitem == mock_subitem
 
@@ -379,14 +375,10 @@ class TestFolderContentLoader:
 
         with patch(
             "nxdrive.drive.gui.folders_loader.QStandardItem"
-        ) as mock_qstandarditem, patch(
-            "nxdrive.drive.gui.folders_loader.QVariant"
-        ) as mock_qvariant:
+        ) as mock_qstandarditem:
 
             mock_subitem = MagicMock()
             mock_qstandarditem.return_value = mock_subitem
-            mock_variant = MagicMock()
-            mock_qvariant.return_value = mock_variant
 
             subitem = loader.new_subitem(mock_child)
 
@@ -395,7 +387,7 @@ class TestFolderContentLoader:
             mock_subitem.setEnabled.assert_called_once_with(True)
             mock_subitem.setSelectable.assert_called_once_with(True)
             mock_subitem.setEditable.assert_called_once_with(False)
-            mock_subitem.setData.assert_called_once_with(mock_variant, qt.UserRole)
+            mock_subitem.setData.assert_called_once_with(mock_child, qt.UserRole)
 
             # Folder items are not checkable by default
             mock_subitem.setCheckable.assert_not_called()

@@ -140,7 +140,7 @@ class DirectEdit(_DirectEditBase):
                 f"No engine found for user {user!r} on server {server_url!r}, "
                 f"doc_id={doc_id!r}"
             )
-            self.directEditError.emit("DIRECT_EDIT_CANT_FIND_ENGINE", values)
+            self.directEditError.emit("DIRECT_EDIT_CANT_FIND_ENGINE", values, "")
         elif engine.has_invalid_credentials():
             # Ping again the user in case it is not obvious
             engine.invalidAuthentication.emit()
@@ -215,7 +215,7 @@ class DirectEdit(_DirectEditBase):
                             break
                         except CorruptedFile:
                             self.directEditError.emit(
-                                "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY", []
+                                "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY", [], ""
                             )
 
                             # Remove the faultive tmp file
@@ -226,7 +226,7 @@ class DirectEdit(_DirectEditBase):
                             sleep(delay)
                     else:
                         self.directEditError.emit(
-                            "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE", []
+                            "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE", [], ""
                         )
                         return None
                 finally:
@@ -272,14 +272,14 @@ class DirectEdit(_DirectEditBase):
             return None
         except NotFound:
             values = [doc_id, engine.hostname]
-            self.directEditError.emit("DIRECT_EDIT_NOT_FOUND", values)
+            self.directEditError.emit("DIRECT_EDIT_NOT_FOUND", values, "")
             return None
 
         if not isinstance(doc, dict):
             err = "Cannot parse the server response: invalid data from the server"
             log.warning(err)
             values = [doc_id, engine.hostname]
-            self.directEditError.emit("DIRECT_EDIT_BAD_RESPONSE", values)
+            self.directEditError.emit("DIRECT_EDIT_BAD_RESPONSE", values, "")
             return None
 
         doc.update(
@@ -291,11 +291,11 @@ class DirectEdit(_DirectEditBase):
         info = NuxeoDocumentInfo.from_dict(doc)
         if info.is_version:
             self.directEditError.emit(
-                "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid]
+                "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid], ""
             )
             return None
         if info.is_proxy:
-            self.directEditError.emit("DIRECT_EDIT_PROXY", [info.name])
+            self.directEditError.emit("DIRECT_EDIT_PROXY", [info.name], "")
             return None
 
         if info.lock_owner and info.lock_owner != engine.remote_user:
@@ -340,7 +340,7 @@ class DirectEdit(_DirectEditBase):
                     info = self._get_info(engine, doc_id)
                     if info:
                         info_name = info.name
-                self.directEditError[str, list, str].emit(
+                self.directEditError.emit(
                     "DIRECT_EDIT_DOC_NOT_FOUND", [info_name], str(exc.message)
                 )
                 return None
@@ -634,6 +634,7 @@ class DirectEdit(_DirectEditBase):
         self.directEditError.emit(
             "DIRECT_EDIT_UPLOAD_FAILED",
             [f'<a href="file:///{os_path.parent}">{ref.name}</a>'],
+            "",
         )
         remote.metrics.send(self._file_metrics.pop(ref, {}))
         self._upload_errors.pop(ref, None)

@@ -60,7 +60,7 @@ def mock_application(mock_manager):
     app.systray_window.height = Mock(return_value=600)
     app.systray_window.show = Mock()
     app.systray_window.raise_ = Mock()
-    app.systray_window.close = Mock()
+    app.systray_window.hide = Mock()
     app.systray_window.setX = Mock()
     app.systray_window.setY = Mock()
     app.task_manager_window = Mock()
@@ -687,7 +687,7 @@ class TestShowSystray:
             app.show_systray()
 
             app.close_tasks_window.assert_called_once()
-            app.systray_window.close.assert_called_once()
+            app.systray_window.hide.assert_called_once()
             app.systray_window.setX.assert_called_once()
             app.systray_window.setY.assert_called_once()
             app.systray_window.show.assert_called_once()
@@ -720,7 +720,7 @@ class TestShowSystray:
             app.show_systray()
 
             app.close_tasks_window.assert_called_once()
-            app.systray_window.close.assert_called_once()
+            app.systray_window.hide.assert_called_once()
             app.systray_window.show.assert_called_once()
             app.systray_window.raise_.assert_called_once()
 
@@ -744,7 +744,7 @@ class TestShowSystray:
             app.show_systray()
 
             app.close_tasks_window.assert_called_once()
-            app.systray_window.close.assert_called_once()
+            app.systray_window.hide.assert_called_once()
             # DPI ratio of 2.0 should be used for calculations
             app.systray_window.setX.assert_called_once()
             app.systray_window.setY.assert_called_once()

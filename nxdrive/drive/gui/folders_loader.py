@@ -5,7 +5,7 @@ from nxdrive.drive.gui.folders_model import Doc, Documents, FilteredDoc
 
 from ..constants import USER_WORKSPACE
 from ..qt import constants as qt
-from ..qt.imports import QRunnable, QStandardItem, QStandardItemModel, Qt, QVariant
+from ..qt.imports import QRunnable, QStandardItem, QStandardItemModel, Qt
 from ..translator import Translator
 
 if TYPE_CHECKING:
@@ -125,7 +125,7 @@ class DocumentContentLoader(ContentLoaderMixin):
         subitem.setEnabled(child.enable())
         subitem.setSelectable(child.selectable())
         subitem.setEditable(False)
-        subitem.setData(QVariant(child), qt.UserRole)
+        subitem.setData(child, qt.UserRole)
         return subitem
 
 
@@ -140,7 +140,7 @@ class FolderContentLoader(ContentLoaderMixin):
         subitem.setEnabled(child.enable())
         subitem.setSelectable(child.selectable())
         subitem.setEditable(False)
-        subitem.setData(QVariant(child), qt.UserRole)
+        subitem.setData(child, qt.UserRole)
         return subitem
 
     def fill_tree(self, children: List[Documents], /) -> None:

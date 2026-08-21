@@ -16,7 +16,6 @@ import requests
 from packaging.version import InvalidVersion, Version
 
 from nxdrive import __alfresco_version__, __version__
-
 from nxdrive.drive import server_type as st
 from nxdrive.drive.auth import Token
 from nxdrive.drive.autolocker import ProcessAutoLockerWorker
@@ -58,7 +57,7 @@ from nxdrive.drive.poll_workers import (
     SyncAndQuitWorker,
     WorkflowWorker,
 )
-from nxdrive.drive.qt.imports import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
+from nxdrive.drive.qt.imports import QT_VERSION_STR, QObject, Signal, Slot
 from nxdrive.drive.updater import updater
 from nxdrive.drive.updater.constants import Login
 from nxdrive.drive.utils import (
@@ -89,20 +88,20 @@ FIRST_RUN_METRIC_ROLLOUT_VERSIONS = {
 
 
 class Manager(QObject):
-    newEngine = pyqtSignal(object)
-    dropEngine = pyqtSignal(object)
-    initEngine = pyqtSignal(object)
-    started = pyqtSignal()
-    stopped = pyqtSignal()
-    suspended = pyqtSignal()
-    reloadIconsSet = pyqtSignal(bool)
-    resumed = pyqtSignal()
-    directEdit = pyqtSignal(str, str, str, str)
-    directDownload = pyqtSignal(list)  # List of document dicts
-    restartNeeded = pyqtSignal()
-    featureUpdate = pyqtSignal(str, bool)
+    newEngine = Signal(object)
+    dropEngine = Signal(object)
+    initEngine = Signal(object)
+    started = Signal()
+    stopped = Signal()
+    suspended = Signal()
+    reloadIconsSet = Signal(bool)
+    resumed = Signal()
+    directEdit = Signal(str, str, str, str)
+    directDownload = Signal(list)  # List of document dicts
+    restartNeeded = Signal()
+    featureUpdate = Signal(str, bool)
 
-    directTransferStats = pyqtSignal(bool, int)
+    directTransferStats = Signal(bool, int)
 
     _instances: Dict[Path, CallableProxyType] = {}
     __device_id = None
@@ -774,7 +773,7 @@ class Manager(QObject):
         if self.updater.get_next_poll() > 60 and self.updater.get_last_poll() > 1800:
             self.updater.force_poll()
 
-    @pyqtSlot(str)  # from IconLink.qml
+    @Slot(str)  # from IconLink.qml
     def open_local_file(self, file_path: str, /, *, select: bool = False) -> None:
         """Launch the local OS program on the given file / folder."""
         file_path = force_decode(file_path)
@@ -816,22 +815,22 @@ class Manager(QObject):
         if old_value != new_value:
             self.dao.update_config(key, value)
 
-    @pyqtSlot(result=bool)  # from GeneralTab.qml
+    @Slot(result=bool)  # from GeneralTab.qml
     def get_direct_edit_auto_lock(self) -> bool:
         # Enabled by default
         return self.dao.get_bool("direct_edit_auto_lock", default=True)
 
-    @pyqtSlot(bool)  # from GeneralTab.qml
+    @Slot(bool)  # from GeneralTab.qml
     def set_direct_edit_auto_lock(self, value: bool, /) -> None:
         log.debug(f"Changed parameter 'direct_edit_auto_lock' to {value}")
         self.dao.store_bool("direct_edit_auto_lock", value)
 
-    @pyqtSlot(str, result=bool)  # from FeaturesTab.qml
+    @Slot(str, result=bool)  # from FeaturesTab.qml
     def get_feature_state(self, name: str, /) -> bool:
         """Get the value of the Feature attribute."""
         return bool(getattr(Feature, name))
 
-    @pyqtSlot(str, bool)  # from FeaturesTab.qml
+    @Slot(str, bool)  # from FeaturesTab.qml
     def set_feature_state(
         self, name: str, value: bool, /, *, setter: str = "manual"
     ) -> None:
@@ -843,14 +842,14 @@ class Manager(QObject):
         save_config(new_config)
         self.featureUpdate.emit(name, value)
 
-    @pyqtSlot(result=bool)  # from GeneralTab.qml
+    @Slot(result=bool)  # from GeneralTab.qml
     def get_auto_update(self) -> bool:
         # Enabled by default, if app is frozen
         value: bool = Options.update_check_delay > 0
         value &= self.dao.get_bool("auto_update", default=Options.is_frozen)
         return value
 
-    @pyqtSlot(bool)  # from GeneralTab.qml
+    @Slot(bool)  # from GeneralTab.qml
     def set_auto_update(self, value: bool, /) -> None:
         log.debug(f"Changed parameter 'auto_update' to {value}")
         self.dao.store_bool("auto_update", value)
@@ -904,7 +903,7 @@ class Manager(QObject):
         finally:
             engine.dao.sessionUpdated.emit(True)
 
-    @pyqtSlot(result=bool)  # from GeneralTab.qml
+    @Slot(result=bool)  # from GeneralTab.qml
     def get_auto_start(self) -> bool:
         try:
             return self.osi.startup_enabled()
@@ -912,7 +911,7 @@ class Manager(QObject):
             log.warning("Cannot get auto-start state", exc_info=True)
             return False
 
-    @pyqtSlot(bool)  # from GeneralTab.qml
+    @Slot(bool)  # from GeneralTab.qml
     def set_auto_start(self, value: bool, /) -> None:
         """Change the auto start state."""
         log.debug(f"Changed auto start state to {value}")
@@ -924,31 +923,31 @@ class Manager(QObject):
         except OSError:
             log.warning("Cannot set auto-start state", exc_info=True)
 
-    @pyqtSlot(result=bool)  # from GeneralTab.qml
+    @Slot(result=bool)  # from GeneralTab.qml
     def use_light_icons(self) -> bool:
         """Return True is the current icons set is the light one."""
         return self.dao.get_bool("light_icons")
 
-    @pyqtSlot(bool)  # from GeneralTab.qml
+    @Slot(bool)  # from GeneralTab.qml
     def set_light_icons(self, value: bool, /) -> None:
         self.set_config("light_icons", value)
         self.reloadIconsSet.emit(value)
 
-    @pyqtSlot(result=bool)  # from GeneralTab.qml
+    @Slot(result=bool)  # from GeneralTab.qml
     def use_sentry(self) -> bool:
         """Return True if the *use_sentry* option is enabled."""
         return self.dao.get_bool("use_sentry", default=Options.use_sentry)
 
-    @pyqtSlot(bool)  # from GeneralTab.qml
+    @Slot(bool)  # from GeneralTab.qml
     def set_sentry(self, value: bool, /) -> None:
         self.set_metrics_preferences(value, Options.use_analytics)
 
-    @pyqtSlot(result=bool)  # from GeneralTab.qml
+    @Slot(result=bool)  # from GeneralTab.qml
     def use_analytics(self) -> bool:
         """Return True if advanced analytics are enabled."""
         return self.dao.get_bool("use_analytics", default=Options.use_analytics)
 
-    @pyqtSlot(bool)  # from GeneralTab.qml
+    @Slot(bool)  # from GeneralTab.qml
     def set_analytics(self, value: bool, /) -> None:
         self.set_metrics_preferences(Options.use_sentry, value)
 
@@ -978,19 +977,19 @@ class Manager(QObject):
         if Options.use_analytics:
             self.sentry_metrics.force_poll()
 
-    @pyqtSlot(result=str)  # from ChannelPopup.qml and Systray.qml
+    @Slot(result=str)  # from ChannelPopup.qml and Systray.qml
     def get_update_channel(self) -> str:
         return (
             self.dao.get_config("channel", default=Options.channel) or DEFAULT_CHANNEL
         )
 
-    @pyqtSlot(str)  # from ChannelPopup.qml and Systray.qml
+    @Slot(str)  # from ChannelPopup.qml and Systray.qml
     def set_update_channel(self, value: str, /) -> None:
         self.set_config("channel", value)
         self.prompted_wrong_channel = False
         self.updater.refresh_status()
 
-    @pyqtSlot(result=str)  # from LogLevelPopup.qml
+    @Slot(result=str)  # from LogLevelPopup.qml
     def get_log_level(self) -> str:
         if not Options.is_frozen or Options.is_alpha:
             return DEFAULT_LOG_LEVEL_FILE
@@ -999,7 +998,7 @@ class Manager(QObject):
             or DEFAULT_LOG_LEVEL_FILE
         )
 
-    @pyqtSlot(str)  # from LogLevelPopup.qml
+    @Slot(str)  # from LogLevelPopup.qml
     def set_log_level(self, value: str, /) -> None:
         self.set_config("log_level_file", value)
 

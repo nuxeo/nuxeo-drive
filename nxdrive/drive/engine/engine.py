@@ -42,14 +42,7 @@ from nxdrive.drive.exceptions import (
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import Binder, DocPairs, EngineDef, Metrics, Session
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import (
-    QObject,
-    QThread,
-    QThreadPool,
-    QTimer,
-    pyqtSignal,
-    pyqtSlot,
-)
+from nxdrive.drive.qt.imports import QObject, QThread, QThreadPool, QTimer, Signal, Slot
 from nxdrive.drive.state import State
 from nxdrive.drive.utils import (
     decrypt,
@@ -84,49 +77,49 @@ class Engine(QObject):
     """
 
     # ------------------------------------------------------------------ signals
-    started = pyqtSignal()
-    _stop = pyqtSignal()
-    _scanPair = pyqtSignal(str)
-    errorOpenedFile = pyqtSignal(object)
-    longPathError = pyqtSignal(object)
-    syncStarted = pyqtSignal(object)
-    syncCompleted = pyqtSignal()
-    syncPartialCompleted = pyqtSignal()
-    syncSuspended = pyqtSignal()
-    syncResumed = pyqtSignal()
+    started = Signal()
+    _stop = Signal()
+    _scanPair = Signal(str)
+    errorOpenedFile = Signal(object)
+    longPathError = Signal(object)
+    syncStarted = Signal(object)
+    syncCompleted = Signal()
+    syncPartialCompleted = Signal()
+    syncSuspended = Signal()
+    syncResumed = Signal()
     # Emitted after the DAO ``States`` / ``Filters`` tables have been
     # wiped programmatically (e.g. by ``AlfrescoEngine`` when the user
     # disables the synchronisation feature).  Receivers should clear
     # any QML models that mirror DAO rows so the systray does not show
     # entries for pairs that no longer exist.
-    syncStateCleared = pyqtSignal()
-    rootDeleted = pyqtSignal()
-    rootMoved = pyqtSignal(Path)
-    docDeleted = pyqtSignal(Path)
-    fileAlreadyExists = pyqtSignal(Path, Path)
-    uiChanged = pyqtSignal(str)
-    authChanged = pyqtSignal(str)
-    noSpaceLeftOnDevice = pyqtSignal()
-    invalidAuthentication = pyqtSignal()
-    newConflict = pyqtSignal(object)
-    newReadonly = pyqtSignal(object, object)
-    deleteReadonly = pyqtSignal(object)
-    newLocked = pyqtSignal(object, object, object)
-    newSyncStarted = pyqtSignal(object)
-    newSyncEnded = pyqtSignal(object)
-    newError = pyqtSignal(object)
-    newQueueItem = pyqtSignal(object)
-    offline = pyqtSignal()
-    online = pyqtSignal()
+    syncStateCleared = Signal()
+    rootDeleted = Signal()
+    rootMoved = Signal(Path)
+    docDeleted = Signal(Path)
+    fileAlreadyExists = Signal(Path, Path)
+    uiChanged = Signal(str)
+    authChanged = Signal(str)
+    noSpaceLeftOnDevice = Signal()
+    invalidAuthentication = Signal()
+    newConflict = Signal(object)
+    newReadonly = Signal(object, object)
+    deleteReadonly = Signal(object)
+    newLocked = Signal(object, object, object)
+    newSyncStarted = Signal(object)
+    newSyncEnded = Signal(object)
+    newError = Signal(object)
+    newQueueItem = Signal(object)
+    offline = Signal()
+    online = Signal()
 
     # Direct Transfer (may not be used by all server types)
-    directTranferError = pyqtSignal(Path)
-    directTransferNewFolderError = pyqtSignal()
-    directTransferNewFolderSuccess = pyqtSignal(str)
-    directTransferSessionFinished = pyqtSignal(str, str, str)
-    displayPendingTask = pyqtSignal(str, str, str, str)
-    startTimerSignal = pyqtSignal(int, int)
-    cancelTimerSignal = pyqtSignal(int)
+    directTranferError = Signal(Path)
+    directTransferNewFolderError = Signal()
+    directTransferNewFolderSuccess = Signal(str)
+    directTransferSessionFinished = Signal(str, str, str)
+    displayPendingTask = Signal(str, str, str, str)
+    startTimerSignal = Signal(int, int)
+    cancelTimerSignal = Signal(int)
 
     type = "NXDRIVE"
     _folder_lock: Optional[Path] = None
@@ -314,7 +307,7 @@ class Engine(QObject):
     def _get_threads(self) -> List[Dict[str, Any]]:
         return [thread.worker.export() for thread in self._threads]
 
-    @pyqtSlot(object)
+    @Slot(object)
     def _check_sync_start(self, *, row_id: str = None) -> None:
         if not self._sync_started:
             queue_size = self.queue_manager.get_overall_size()
@@ -534,7 +527,9 @@ class Engine(QObject):
         meth = (
             self.dao.get_download
             if nature == "download"
-            else self.dao.get_dt_upload if is_direct_transfer else self.dao.get_upload
+            else self.dao.get_dt_upload
+            if is_direct_transfer
+            else self.dao.get_upload
         )
         func = partial(meth, uid=uid)  # type: ignore
         self._resume_transfers(nature, func, is_direct_transfer=is_direct_transfer)
@@ -841,7 +836,7 @@ class Engine(QObject):
         if row:
             self.dao.force_remote(row)
 
-    @pyqtSlot()
+    @Slot()
     def _check_last_sync(self) -> None:
         if not self._sync_started:
             return

@@ -39,7 +39,7 @@ from nxdrive.drive.qt.imports import (
     QTreeView,
     QVBoxLayout,
     QWidget,
-    pyqtBoundSignal,
+    SignalInstance,
 )
 
 from ..constants import LINUX, MAC, WINDOWS
@@ -209,7 +209,7 @@ class MultiFolderDialog(QDialog):
     def __init__(
         self,
         dark_mode: bool = False,
-        dark_mode_signal: pyqtBoundSignal | None = None,
+        dark_mode_signal: SignalInstance | None = None,
         parent: QDialog | None = None,
     ) -> None:
         super().__init__(parent)
@@ -1285,7 +1285,7 @@ class MultiFolderDialog(QDialog):
         icon_color = "light" if self._dark_mode else "dark"
         if LINUX:
             # For Linux, we also check the background color
-            # This is because PyQt6 does not always switch to dark background in dark mode
+            # This is because Qt does not always switch to dark background in dark mode
             # MFD has to be reloaded for the color to update
             widget_color = self.palette().color(self.backgroundRole())
             r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()

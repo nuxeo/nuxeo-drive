@@ -1,9 +1,9 @@
 """
-Put here all PyQt imports used across the project.
+Put here all Qt (PySide6) imports used across the project.
 """
 
-from PyQt6.QtCore import (
-    QT_VERSION_STR,
+from PySide6.QtCore import (
+    Property,
     QAbstractListModel,
     QByteArray,
     QCoreApplication,
@@ -27,15 +27,14 @@ from PyQt6.QtCore import (
     QTranslator,
     QUrl,
     QVariant,
-    pyqtBoundSignal,
-    pyqtProperty,
-    pyqtSignal,
-    pyqtSlot,
+    Signal,
+    SignalInstance,
+    Slot,
+    qVersion,
 )
-from PyQt6.QtGui import (
+from PySide6.QtGui import (
     QCursor,
     QDesktopServices,
-    QFileSystemModel,
     QFont,
     QFontMetricsF,
     QIcon,
@@ -48,7 +47,7 @@ from PyQt6.QtGui import (
     QValidator,
     QWindow,
 )
-from PyQt6.QtNetwork import (
+from PySide6.QtNetwork import (
     QAbstractSocket,
     QHostAddress,
     QHostInfo,
@@ -58,9 +57,9 @@ from PyQt6.QtNetwork import (
     QTcpServer,
     QTcpSocket,
 )
-from PyQt6.QtQml import QQmlApplicationEngine, QQmlContext, qmlRegisterType
-from PyQt6.QtQuick import QQuickView, QQuickWindow
-from PyQt6.QtWidgets import (
+from PySide6.QtQml import QQmlApplicationEngine, QQmlContext, qmlRegisterType
+from PySide6.QtQuick import QQuickView, QQuickWindow
+from PySide6.QtWidgets import (
     QApplication,
     QCalendarWidget,
     QCheckBox,
@@ -68,6 +67,7 @@ from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QFileSystemModel,
     QFrame,
     QGroupBox,
     QHBoxLayout,
@@ -88,6 +88,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+QT_VERSION_STR = qVersion()
 
 __all__ = (
     "QAbstractListModel",
@@ -129,6 +131,7 @@ __all__ = (
     "QMessageBox",
     "QModelIndex",
     "QObject",
+    "Property",
     "QPixmap",
     "QPoint",
     "QPushButton",
@@ -161,14 +164,13 @@ __all__ = (
     "QTreeView",
     "QUrl",
     "QValidator",
-    "QVBoxLayout",
     "QVariant",
+    "QVBoxLayout",
     "QWidget",
     "QWindow",
     "Qt",
-    "pyqtBoundSignal",
-    "pyqtProperty",
-    "pyqtSignal",
-    "pyqtSlot",
+    "Signal",
+    "SignalInstance",
+    "Slot",
     "qmlRegisterType",
 )

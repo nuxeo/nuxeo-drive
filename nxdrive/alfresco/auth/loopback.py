@@ -19,7 +19,7 @@ Design notes
   thread so the response finishes flushing to the browser first).
 * Enforces a hard timeout (default 5 minutes) so an abandoned flow
   can't leak a listening socket.
-* Pure-stdlib — no PyQt, authlib or requests dependencies here.
+* Pure-stdlib — no Qt, authlib or requests dependencies here.
 """
 
 from __future__ import annotations

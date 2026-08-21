@@ -344,7 +344,7 @@ def test_download_http_error_404(manager_factory, obj_factory):
     with manager:
         direct_edit = manager.direct_edit
         direct_edit._folder.mkdir()
-        direct_edit.directEditError[str, list, str].connect(error_signal)
+        direct_edit.directEditError.connect(error_signal)
         doc = obj_factory(
             title="test 404.odt",
             nature="File",
@@ -384,7 +384,7 @@ def test_get_info_bad_response(manager_factory, obj_factory):
     with manager:
         direct_edit = manager.direct_edit
         direct_edit._folder.mkdir()
-        direct_edit.directEditError[str, list].connect(error_signal)
+        direct_edit.directEditError.connect(error_signal)
         doc = obj_factory(
             title="test_bad_response.odt",
             nature="File",

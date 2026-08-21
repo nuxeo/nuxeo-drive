@@ -76,6 +76,35 @@ def _accepted_app_paths() -> set[Path]:
     return paths
 
 
+def _expected_app_names_label() -> str:
+    """Human-readable list of allowed macOS bundle names for error dialogs."""
+
+    names = sorted(_accepted_app_names())
+    if len(names) == 1:
+        return f"{names[0]}.app"
+    quoted = [f'"{name}.app"' for name in names]
+    return " or ".join(quoted)
+
+
+def _is_dmg_mount_path(path: Path) -> bool:
+    """Return True if *path* is an accepted .app bundle on a mounted DMG volume.
+
+    DMG installers expose the application at ``/Volumes/<volume>/<App>.app``.
+    Users often launch Drive directly from the mounted image before copying it
+    into ``/Applications`` or ``~/Applications``.
+    """
+
+    if path.suffix != ".app":
+        return False
+
+    parent = path.parent
+    volumes = Path("/Volumes")
+    if parent == volumes or not parent.is_relative_to(volumes):
+        return False
+
+    return path.name in {f"{name}.app" for name in _accepted_app_names()}
+
+
 def check_executable_path_error_qt(path: Path, /) -> None:
     """Display an error using Qt about the app not running from the right path."""
 
@@ -89,7 +118,7 @@ def check_executable_path_error_qt(path: Path, /) -> None:
 
     Translator(find_resource("i18n"))
     content = Translator.get(
-        "RUNNING_FROM_WRONG_PATH", values=[str(path), f"{APP_NAME}.app"]
+        "RUNNING_FROM_WRONG_PATH", values=[str(path), _expected_app_names_label()]
     )
 
     icon = QPixmap(str(find_icon("app_icon.svg")))
@@ -301,7 +330,7 @@ def check_executable_path() -> bool:
     m = re.match(r"(.*\.app).*", exe_path)
     path = Path(m.group(1) if m else exe_path)
 
-    if path in _accepted_app_paths():
+    if path in _accepted_app_paths() or _is_dmg_mount_path(path):
         return True
 
     try:
@@ -309,9 +338,9 @@ def check_executable_path() -> bool:
     except Exception as exc:
         full_error = (
             f"You are running this app from {path}. However, "
-            "for all features to run normally, the application"
-            f" must be named '{APP_NAME}.app' and located in "
-            "the /Applications directory."
+            "for all features to run normally, the application must be named "
+            f"{_expected_app_names_label()} and located in the "
+            "/Applications or /$HOME/Applications directory."
         )
         text = (
             f"{APP_NAME} cannot start, the entire installation is broken."

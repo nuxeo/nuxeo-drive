@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from ..constants import APP_NAME, LINUX, MAC, WINDOWS
 from ..objects import DocPair
-from ..qt.imports import QObject, pyqtSlot
+from ..qt.imports import QObject, Slot
 from .extension import ExtensionListener
 
 if TYPE_CHECKING:
@@ -42,11 +42,11 @@ class AbstractOSIntegration(QObject):
     def unregister_startup(self) -> None:
         pass
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def addons_installed(self) -> bool:
         return False
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def install_addons(self) -> bool:
         return False
 

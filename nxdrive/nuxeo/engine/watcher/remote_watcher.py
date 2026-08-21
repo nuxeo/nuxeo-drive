@@ -20,7 +20,7 @@ from nxdrive.drive.engine.watcher.remote_watcher_base import RemoteWatcherBase
 from nxdrive.drive.exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import DocPair, DocPairs, Metrics, RemoteFileInfo
-from nxdrive.drive.qt.imports import pyqtSignal, pyqtSlot
+from nxdrive.drive.qt.imports import Signal, Slot
 from nxdrive.drive.utils import get_date_from_sqlite, safe_filename
 from nxdrive.nuxeo.engine.watcher.constants import (
     DELETED_EVENT,
@@ -42,8 +42,8 @@ COLLECTION_SYNC_ROOT_FACTORY_NAME = "collectionSyncRootFolderItemFactory"
 
 
 class RemoteWatcher(RemoteWatcherBase):
-    changesFound = pyqtSignal(int)
-    noChangesFound = pyqtSignal()
+    changesFound = Signal(int)
+    noChangesFound = Signal()
 
     def __init__(self, engine: "Engine", dao: "EngineDAO", /) -> None:
         super().__init__(engine, dao, "RemoteWatcher")
@@ -101,7 +101,7 @@ class RemoteWatcher(RemoteWatcherBase):
         log.info(f"Remote scan finished in {monotonic() - start:.02f} sec")
         self.remoteScanFinished.emit()
 
-    @pyqtSlot(str)
+    @Slot(str)
     def scan_pair(self, remote_path: str, /) -> None:
         self.dao.add_path_to_scan(str(remote_path).replace("\\", "/"))
         self._next_check = 0

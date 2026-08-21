@@ -49,7 +49,7 @@ MinVersion=6.2.9200
 ; This is required to handle upgrades from 5.4.0 (PyInstaller 5.0) which had different
 ; Qt DLL structure. Without this, orphaned 32-bit DLLs from 5.4.0 can cause
 ; "DLL load failed while importing QtCore: %1 is not a valid Win32 application" errors.
-Type: filesandordirs; Name: "{app}\PyQt5"
+Type: filesandordirs; Name: "{app}\PySide6"
 Type: files; Name: "{app}\Qt*.dll"
 Type: files; Name: "{app}\qt*.dll"
 Type: files; Name: "{app}\python*.dll"

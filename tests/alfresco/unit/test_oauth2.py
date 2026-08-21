@@ -20,15 +20,15 @@ def _mock_loopback_dependencies(app, *, start_result=None, start_error=None):
     from nxdrive.drive.qt import imports as qt_imports
 
     signal = MagicMock()
-    qt_core = ModuleType("PyQt6.QtCore")
+    qt_core = ModuleType("PySide6.QtCore")
 
     class QObject:
         pass
 
     qt_core.QObject = QObject
-    qt_core.pyqtSignal = MagicMock(return_value=signal)
-    pyqt6 = ModuleType("PyQt6")
-    pyqt6.QtCore = qt_core
+    qt_core.Signal = MagicMock(return_value=signal)
+    pyside6 = ModuleType("PySide6")
+    pyside6.QtCore = qt_core
 
     qapplication = MagicMock()
     qapplication.instance.return_value = app
@@ -39,7 +39,7 @@ def _mock_loopback_dependencies(app, *, start_result=None, start_error=None):
         server.start.return_value = start_result or "http://127.0.0.1:43123/callback"
 
     with patch.dict(
-        sys.modules, {"PyQt6": pyqt6, "PyQt6.QtCore": qt_core}
+        sys.modules, {"PySide6": pyside6, "PySide6.QtCore": qt_core}
     ), patch.object(qt_imports, "QApplication", qapplication), patch(
         "nxdrive.alfresco.auth.loopback.LoopbackAuthServer", return_value=server
     ):

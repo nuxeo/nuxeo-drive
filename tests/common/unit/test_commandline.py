@@ -15,7 +15,8 @@ def create_ini(
 ) -> Path:
     path = Options.nxdrive_home / "config.ini"
     with open(path, "w", encoding=encoding) as f:
-        f.writelines(f"""
+        f.writelines(
+            f"""
 [{default_section}]
 env = {env}
 
@@ -38,7 +39,8 @@ tmp-file-limit = 0.0105
 log-level-console = DEBUG
  debug = False
 delay = 3
-""")
+"""
+        )
 
     if env != "Inception":
         return path
@@ -47,13 +49,15 @@ delay = 3
     path = Options.nxdrive_home / "drive_home" / "config.ini"
     path.parent.mkdir(exist_ok=True)
     with open(path, "w", encoding=encoding) as f:
-        f.writelines("""
+        f.writelines(
+            """
 [DEFAULT]
 env = français
 
 [français]
 force-locale = fr
-""")
+"""
+        )
 
     return path
 
@@ -245,7 +249,9 @@ def test_send_to_running_instance(cmd):
     obj_cli = cmd
     obj_cli.manager = obj_cli.get_manager()
     mock_payload = bytes()
-    with patch("PyQt6.QtNetwork.QLocalSocket.waitForConnected") as mock_wait_connected:
+    with patch(
+        "PySide6.QtNetwork.QLocalSocket.waitForConnected"
+    ) as mock_wait_connected:
         mock_wait_connected.return_value = True
         assert obj_cli._send_to_running_instance(mock_payload, 100) is True
 
@@ -295,7 +301,7 @@ def test_restore_server_type_found(cmd):
     """
     from nxdrive.drive.feature import DisabledFeatures, Feature
 
-    saved_feature = {k: v for k, v in vars(Feature).items()}
+    saved_feature = dict(vars(Feature))
     saved_disabled = list(DisabledFeatures)
     saved_server_type = Options.server_type
     try:
@@ -319,7 +325,7 @@ def test_restore_server_type_not_found(cmd):
     """
     from nxdrive.drive.feature import DisabledFeatures, Feature
 
-    saved_feature = {k: v for k, v in vars(Feature).items()}
+    saved_feature = dict(vars(Feature))
     saved_disabled = list(DisabledFeatures)
     saved_server_type = Options.server_type
     try:

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 from ..exceptions import ThreadInterrupt
 from ..metrics.constants import SYNC_ACTION, SYNC_ERROR_LABEL
 from ..objects import DocPair, Metrics
-from ..qt.imports import QCoreApplication, QObject, QRunnable, QThread, pyqtSlot
+from ..qt.imports import QCoreApplication, QObject, QRunnable, QThread, Slot
 from ..utils import current_thread_id
 from .activity import Action, IdleAction
 
@@ -178,7 +178,7 @@ class Worker(QObject):
             metrics.update(self._metrics)
         return metrics
 
-    @pyqtSlot()
+    @Slot()
     def run(self) -> None:
         """
         Handle the infinite loop run by the worker thread.
@@ -284,7 +284,7 @@ class PollWorker(Worker):
     def get_next_poll(self) -> int:
         return self._next_check - int(time())
 
-    @pyqtSlot()
+    @Slot()
     def force_poll(self) -> None:
         self._next_check = 0
 

@@ -44,7 +44,7 @@ from ..objects import (
     Upload,
 )
 from ..options import Options
-from ..qt.imports import pyqtSignal
+from ..qt.imports import Signal
 from ..utils import get_digest_algorithm, is_large_file
 from . import SCHEMA_VERSION, versions_history
 from .adapters import adapt_path
@@ -112,11 +112,11 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 
 class EngineDAO(BaseDAO):
     old_migrations_max_schema_version = 21
-    newConflict = pyqtSignal(object)
-    transferUpdated = pyqtSignal()
-    directTransferUpdated = pyqtSignal()
-    directDownloadUpdated = pyqtSignal()
-    sessionUpdated = pyqtSignal(bool)
+    newConflict = Signal(object)
+    transferUpdated = Signal()
+    directTransferUpdated = Signal()
+    directDownloadUpdated = Signal()
+    sessionUpdated = Signal(bool)
 
     def __init__(self, db: Path, /) -> None:
         super().__init__(db)

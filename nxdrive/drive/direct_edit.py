@@ -31,7 +31,7 @@ from nxdrive.drive.exceptions import NoAssociatedSoftware, NotFound, ThreadInter
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import DirectEditDetails, Metrics
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import pyqtSignal, pyqtSlot
+from nxdrive.drive.qt.imports import Signal, Slot
 from nxdrive.drive.utils import (
     current_milli_time,
     force_decode,
@@ -67,17 +67,17 @@ class DirectEdit(Worker):
     ``stop_client()``, ``_handle_upload_queue()``, ``_handle_lock_queue()``.
     """
 
-    localScanFinished = pyqtSignal()
-    directEditUploadCompleted = pyqtSignal(str)
-    openDocument = pyqtSignal(str, int)
-    editDocument = pyqtSignal(str, int)
-    directEditLockError = pyqtSignal(str, str, str)
-    directEditConflict = pyqtSignal(str, Path, str)
-    directEditError = pyqtSignal([str, list], [str, list, str])
-    directEditForbidden = pyqtSignal(str, str, str)
-    directEditReadonly = pyqtSignal(str)
-    directEditStarting = pyqtSignal(str, str)
-    directEditLocked = pyqtSignal(str, str, datetime)
+    localScanFinished = Signal()
+    directEditUploadCompleted = Signal(str)
+    openDocument = Signal(str, int)
+    editDocument = Signal(str, int)
+    directEditLockError = Signal(str, str, str)
+    directEditConflict = Signal(str, Path, str)
+    directEditError = Signal(str, list, str)
+    directEditForbidden = Signal(str, str, str)
+    directEditReadonly = Signal(str)
+    directEditStarting = Signal(str, str)
+    directEditLocked = Signal(str, str, datetime)
 
     def __init__(self, manager: "Manager", folder: Path, /) -> None:
         super().__init__("DirectEdit")
@@ -136,7 +136,7 @@ class DirectEdit(Worker):
 
     # ------------------------------------------------------------------ autolock helpers
 
-    @pyqtSlot(object)
+    @Slot(object)
     def _autolock_orphans(self, locks: List[Path], /) -> None:
         log.debug(f"Orphans lock: {locks!r}")
         for lock in locks:
@@ -259,7 +259,7 @@ class DirectEdit(Worker):
                 f"No engine found for user {user!r} on server {server_url!r}, "
                 f"doc_id={doc_id!r}"
             )
-            self.directEditError.emit("DIRECT_EDIT_CANT_FIND_ENGINE", values)
+            self.directEditError.emit("DIRECT_EDIT_CANT_FIND_ENGINE", values, "")
         elif engine.has_invalid_credentials():
             # Ping again the user in case it is not obvious
             engine.invalidAuthentication.emit()
@@ -543,7 +543,7 @@ class DirectEdit(Worker):
         self.openDocument.emit(filename, timing)
         return file_path
 
-    @pyqtSlot(str, str, str, str)
+    @Slot(str, str, str, str)
     def edit(
         self,
         server_url: str,
@@ -553,7 +553,7 @@ class DirectEdit(Worker):
         /,
     ) -> None:
         if not Feature.direct_edit:
-            self.directEditError.emit("DIRECT_EDIT_NOT_ENABLED", [])
+            self.directEditError.emit("DIRECT_EDIT_NOT_ENABLED", [], "")
             return
 
         log.info(
@@ -573,6 +573,7 @@ class DirectEdit(Worker):
             self.directEditError.emit(
                 "DIRECT_EDIT_NO_ASSOCIATED_SOFTWARE",
                 [exc.filename, exc.mimetype],
+                "",
             )
         except OSError as e:
             if e.errno != errno.EACCES:

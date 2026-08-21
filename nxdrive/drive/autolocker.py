@@ -12,7 +12,7 @@ from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
 from .objects import Item, Items
 from .options import Options
-from .qt.imports import QTimer, pyqtSignal
+from .qt.imports import QTimer, Signal
 
 if TYPE_CHECKING:
     from nxdrive.drive.manager import Manager  # noqa
@@ -71,10 +71,10 @@ if Options.include_process:
 
 
 class ProcessAutoLockerWorker(PollWorker):
-    orphanLocks = pyqtSignal(object)
-    concurrentAlreadyLocked = pyqtSignal(str)
-    documentLocked = pyqtSignal(str)
-    documentUnlocked = pyqtSignal(str)
+    orphanLocks = Signal(object)
+    concurrentAlreadyLocked = Signal(str)
+    documentLocked = Signal(str)
+    documentUnlocked = Signal(str)
 
     def __init__(
         self, check_interval: int, manager: "Manager", folder: Path, /

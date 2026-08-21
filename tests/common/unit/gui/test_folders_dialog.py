@@ -2654,7 +2654,7 @@ class TestFoldersDialogAccept:
             side_effect=lambda is_folder, type_val: f"key_{type_val}"
         )
 
-        # Patch super().accept() to avoid PyQt6 C++ init check
+        # Patch super().accept() to avoid PySide6 C++ init check
         def _patched_accept(self_):
             # Replicate the method body without super().accept()
             self_.last_local_selected_doc_type = (

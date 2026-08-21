@@ -118,6 +118,19 @@ class TestExecutablePathChecking:
             Options.set("is_frozen", original_frozen, setter="manual")
 
     @mac_only
+    def test_check_executable_path_valid_dmg_mount(self):
+        """Test check_executable_path returns True when launched from a DMG volume."""
+        valid_path = "/Volumes/Nuxeo Drive/Nuxeo Drive.app/Contents/MacOS/Nuxeo Drive"
+        original_frozen = Options.is_frozen
+        try:
+            Options.set("is_frozen", True, setter="manual")
+            with patch("sys.executable", valid_path):
+                result = check_executable_path()
+                assert result is True
+        finally:
+            Options.set("is_frozen", original_frozen, setter="manual")
+
+    @mac_only
     def test_check_executable_path_invalid_path_qt_success(self):
         """Test check_executable_path with invalid path but Qt dialog works."""
         invalid_path = f"/Users/test/Downloads/{APP_NAME}.app/Contents/MacOS/{APP_NAME}"

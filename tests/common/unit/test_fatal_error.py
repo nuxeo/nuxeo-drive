@@ -323,10 +323,55 @@ def test_check_executable_path_accepts_registered_bundle(monkeypatch):
     bundle = Path("/Applications/Shared Drive.app")
     monkeypatch.setattr(fatal_error, "MAC", True)
     monkeypatch.setattr(fatal_error, "_accepted_app_paths", Mock(return_value={bundle}))
+    monkeypatch.setattr(fatal_error, "_is_dmg_mount_path", Mock(return_value=False))
     monkeypatch.setattr(sys, "executable", f"{bundle}/Contents/MacOS/drive")
     Options.is_frozen = True
 
     assert fatal_error.check_executable_path() is True
+
+
+def test_is_dmg_mount_path_accepts_standard_dmg_layout(monkeypatch):
+    monkeypatch.setattr(
+        fatal_error,
+        "_accepted_app_names",
+        Mock(return_value={"Drive", "Nuxeo Drive"}),
+    )
+
+    assert fatal_error._is_dmg_mount_path(Path("/Volumes/Nuxeo Drive/Nuxeo Drive.app"))
+    assert fatal_error._is_dmg_mount_path(Path("/Volumes/Drive/Drive.app"))
+    assert not fatal_error._is_dmg_mount_path(
+        Path("/Users/test/Downloads/Nuxeo Drive.app")
+    )
+    assert not fatal_error._is_dmg_mount_path(
+        Path("/Volumes/Nuxeo Drive/Wrong Name.app")
+    )
+
+
+def test_check_executable_path_accepts_dmg_mount(monkeypatch):
+    bundle = Path("/Volumes/Nuxeo Drive/Nuxeo Drive.app")
+    monkeypatch.setattr(fatal_error, "MAC", True)
+    monkeypatch.setattr(fatal_error, "_accepted_app_paths", Mock(return_value=set()))
+    monkeypatch.setattr(fatal_error, "_is_dmg_mount_path", Mock(return_value=True))
+    monkeypatch.setattr(sys, "executable", f"{bundle}/Contents/MacOS/Nuxeo Drive")
+    Options.is_frozen = True
+
+    assert fatal_error.check_executable_path() is True
+
+
+def test_expected_app_names_label(monkeypatch):
+    monkeypatch.setattr(
+        fatal_error, "_accepted_app_names", Mock(return_value={"Drive"})
+    )
+    assert fatal_error._expected_app_names_label() == "Drive.app"
+
+    monkeypatch.setattr(
+        fatal_error,
+        "_accepted_app_names",
+        Mock(return_value={"Drive", "Nuxeo Drive"}),
+    )
+    label = fatal_error._expected_app_names_label()
+    assert '"Drive.app"' in label
+    assert '"Nuxeo Drive.app"' in label
 
 
 def test_check_executable_path_falls_back_without_showing_ui(monkeypatch):
@@ -334,6 +379,7 @@ def test_check_executable_path_falls_back_without_showing_ui(monkeypatch):
     mac_error = Mock()
     monkeypatch.setattr(fatal_error, "MAC", True)
     monkeypatch.setattr(fatal_error, "_accepted_app_paths", Mock(return_value=set()))
+    monkeypatch.setattr(fatal_error, "_is_dmg_mount_path", Mock(return_value=False))
     monkeypatch.setattr(fatal_error, "check_executable_path_error_qt", qt_error)
     monkeypatch.setattr(fatal_error, "fatal_error_mac", mac_error)
     monkeypatch.setattr(sys, "executable", "/tmp/Shared Drive.app/Contents/MacOS/drive")

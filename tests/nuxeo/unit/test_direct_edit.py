@@ -576,7 +576,7 @@ class TestDirectEditBasicFunctionality:
             assert result6 == file_out6
             # Should emit retry error signal
             direct_edit.directEditError.emit.assert_called_with(
-                "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY", []
+                "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY", [], ""
             )
             # Should sleep before retry. Other DirectEdit workers may call
             # the same module-level sleep concurrently during the full suite,
@@ -1281,7 +1281,7 @@ class TestDirectEditBasicFunctionality:
 
             assert result is None
             direct_edit.directEditError.emit.assert_called_once_with(
-                "DIRECT_EDIT_NOT_FOUND", [doc_id, mock_engine.hostname]
+                "DIRECT_EDIT_NOT_FOUND", [doc_id, mock_engine.hostname], ""
             )
 
         # Scenario 6: Invalid response - not a dict
@@ -1296,7 +1296,7 @@ class TestDirectEditBasicFunctionality:
 
             assert result is None
             direct_edit.directEditError.emit.assert_called_once_with(
-                "DIRECT_EDIT_BAD_RESPONSE", [doc_id, mock_engine.hostname]
+                "DIRECT_EDIT_BAD_RESPONSE", [doc_id, mock_engine.hostname], ""
             )
 
         # Scenario 7: Document is a version
@@ -1319,6 +1319,7 @@ class TestDirectEditBasicFunctionality:
             direct_edit.directEditError.emit.assert_called_once_with(
                 "DIRECT_EDIT_VERSION",
                 [mock_info.version, mock_info.name, mock_info.uid],
+                "",
             )
 
         # Scenario 8: Document is a proxy
@@ -1337,7 +1338,7 @@ class TestDirectEditBasicFunctionality:
 
             assert result is None
             direct_edit.directEditError.emit.assert_called_once_with(
-                "DIRECT_EDIT_PROXY", [mock_info.name]
+                "DIRECT_EDIT_PROXY", [mock_info.name], ""
             )
 
         # Scenario 9: Document locked by another user
@@ -3273,6 +3274,7 @@ class TestDirectEditBasicFunctionality:
             direct_edit.directEditError.emit.assert_called_once_with(
                 "DIRECT_EDIT_UPLOAD_FAILED",
                 [f'<a href="file:///{test_ref_3.parent}">{test_ref_3.name}</a>'],
+                "",
             )
             # Should send metrics - verify metrics were sent with incremented count
             mock_remote.metrics.send.assert_called_once()
@@ -3354,6 +3356,7 @@ class TestDirectEditBasicFunctionality:
         direct_edit.directEditError.emit.assert_called_once_with(
             "DIRECT_EDIT_UPLOAD_FAILED",
             [expected_message],
+            "",
         )
 
         # Scenario 7: Multiple metrics in file_metrics dict

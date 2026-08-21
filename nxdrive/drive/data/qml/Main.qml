@@ -19,9 +19,14 @@ QtObject {
 
         signal setMessage(string msg, string type)
         signal setSection(int index)
+        signal showWindow()
 
         onSetMessage: settings.setMessage(msg, type)
         onSetSection: settings.setSection(index)
+        onShowWindow: {
+            visible = true
+            requestActivate()
+        }
 
         Settings { id: settings }
     }
@@ -58,8 +63,13 @@ QtObject {
 
         signal changed(string uid)
         signal setEngine(string uid)
+        signal showWindow()
 
         onSetEngine: conflicts.setEngine(uid)
+        onShowWindow: {
+            visible = true
+            requestActivate()
+        }
 
         Conflicts {
             id: conflicts
@@ -78,9 +88,14 @@ QtObject {
 
         signal setEngine(string uid)
         signal switchToTab(int tabIndex)
+        signal showWindow()
 
         onSetEngine: directTransferWin.setEngine(uid)
         onSwitchToTab: directTransferWin.switchToTab(tabIndex)
+        onShowWindow: {
+            visible = true
+            requestActivate()
+        }
 
         DirectTransferWindow { id: directTransferWin }
     }
@@ -96,9 +111,14 @@ QtObject {
 
         signal setEngine(string uid)
         signal setSection(int index)
+        signal showWindow()
 
         onSetEngine: taskManager.setEngine(uid)
         onSetSection: taskManager.setSection(index)
+        onShowWindow: {
+            visible = true
+            requestActivate()
+        }
 
         TaskManager { id: taskManager }
     }

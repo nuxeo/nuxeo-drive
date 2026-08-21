@@ -13,7 +13,7 @@ from ..qt.imports import (
     QStandardItemModel,
     QThreadPool,
     QTreeView,
-    pyqtSignal,
+    Signal,
 )
 from .folders_loader import DocumentContentLoader, FolderContentLoader
 
@@ -94,7 +94,7 @@ class DocumentTreeView(TreeViewMixin):
     """A tree view of all sync roots and their documents. Used by the filters feature."""
 
     # Signal emitted when the user has no sync root yet
-    noRoots = pyqtSignal(bool)
+    noRoots = Signal(bool)
 
     # The content's loader for synced documents
     loader = DocumentContentLoader
@@ -180,8 +180,8 @@ class FolderTreeView(TreeViewMixin):
 
     # The content's loader for folderish documents
     loader = FolderContentLoader
-    update = pyqtSignal()
-    filled = pyqtSignal()
+    update = Signal()
+    filled = Signal()
 
     def __init__(
         self,

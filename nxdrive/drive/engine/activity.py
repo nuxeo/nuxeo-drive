@@ -2,7 +2,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ..qt.imports import QApplication, QObject, pyqtSignal
+from ..qt.imports import QApplication, QObject, Signal
 from ..utils import current_thread_id
 
 __all__ = (
@@ -79,9 +79,9 @@ class IdleAction(Action):
 
 
 class FileAction(Action):
-    started = pyqtSignal(object)
-    progressing = pyqtSignal(object)
-    done = pyqtSignal(object)
+    started = Signal(object)
+    progressing = Signal(object)
+    done = Signal(object)
 
     def __init__(
         self,

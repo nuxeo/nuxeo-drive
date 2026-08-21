@@ -18,7 +18,7 @@ def _worker_init(self, name):
     self._pause = False
     self.thread = MagicMock()
     # Worker base doesn't define _metrics but suppress(AttributeError)
-    # in get_metrics expects it or AttributeError; PyQt6 raises RuntimeError
+    # in get_metrics expects it or AttributeError; PySide6 raises RuntimeError
     # for undefined attrs on QObject subclasses, so we must predefine it.
     # (In production, this path is only hit via PollWorker/EngineWorker which set it.)
 

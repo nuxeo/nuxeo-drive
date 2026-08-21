@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 from .constants import APP_NAME
 from .objects import DocPair
-from .qt.imports import QObject, pyqtSignal
+from .qt.imports import QObject, Signal
 from .translator import Translator
 from .utils import short_name
 
@@ -132,9 +132,9 @@ class Notification:
 
 
 class NotificationService(QObject):
-    newNotification = pyqtSignal(object)
-    discardNotification = pyqtSignal(object)
-    triggerNotification = pyqtSignal(str, object)
+    newNotification = Signal(object)
+    discardNotification = Signal(object)
+    triggerNotification = Signal(str, object)
 
     def __init__(self, manager: "Manager", /) -> None:
         super().__init__()
