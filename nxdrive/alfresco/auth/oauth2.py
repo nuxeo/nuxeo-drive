@@ -434,10 +434,8 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         Returns the ``http://127.0.0.1:<port>/callback`` URL to hand
         to the IdP as ``redirect_uri``.
         """
-        from PyQt6.QtCore import QObject, pyqtSignal
-
         from nxdrive.alfresco.auth.loopback import LoopbackAuthServer
-        from nxdrive.drive.qt.imports import QApplication
+        from nxdrive.drive.qt.imports import QApplication, QObject, pyqtSignal
 
         app = QApplication.instance()
         api = getattr(app, "api", None) if app is not None else None
