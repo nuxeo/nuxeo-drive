@@ -5,6 +5,7 @@ Unit tests for nxdrive.drive.direct_download module.
 import shutil
 import tempfile
 import zipfile
+from concurrent.futures import Future
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -15,6 +16,27 @@ from nxdrive.drive.constants import DirectDownloadStatus
 from nxdrive.drive.engine.engine import ServerBindingSettings
 from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
 from nxdrive.nuxeo.direct_download import DirectDownload
+
+
+class _SyncExecutor:
+    """Runs submitted callables inline. See
+    ``tests/common/unit/test_direct_download_extra.py`` for the rationale.
+    """
+
+    def __init__(self):
+        self.calls = []
+
+    def submit(self, fn, /, *args, **kwargs):
+        self.calls.append((fn, args, kwargs))
+        fut: Future = Future()
+        try:
+            fut.set_result(fn(*args, **kwargs))
+        except BaseException as exc:  # pragma: no cover
+            fut.set_exception(exc)
+        return fut
+
+    def shutdown(self, wait=True, *, cancel_futures=False):  # noqa: D401
+        return None
 
 
 class MockUrlTestEngine:
@@ -172,17 +194,17 @@ class TestDirectDownloadDownload:
     def test_download_empty_documents(self):
         """Test download with empty document list does nothing."""
         dd = DirectDownload(self.manager, self.folder)
+        dd._process_batch = Mock()
         dd.download([])
-        assert dd._download_queue.empty()
+        dd._process_batch.assert_not_called()
 
     def test_download_queues_batch(self):
-        """Test download queues the documents as a batch."""
+        """Test download dispatches the documents as a single batch."""
         dd = DirectDownload(self.manager, self.folder)
+        dd._process_batch = Mock()
         docs = [{"server_url": "http://server", "doc_id": "uuid-1"}]
         dd.download(docs)
-        assert not dd._download_queue.empty()
-        batch = dd._download_queue.get_nowait()
-        assert batch == docs
+        dd._process_batch.assert_called_once_with(docs)
 
 
 class TestDirectDownloadGetEngine:
@@ -916,7 +938,7 @@ class TestDirectDownloadProcessBatch:
 
     def test_process_batch_success(self):
         """Test _process_batch with successful downloads."""
-        dd = DirectDownload(self.manager, self.folder)
+        dd = DirectDownload(self.manager, self.folder, executor=_SyncExecutor())
 
         docs = [
             {
@@ -932,7 +954,8 @@ class TestDirectDownloadProcessBatch:
         ]
 
         with (
-            patch.object(dd, "_create_download_record", return_value=1),
+            patch.object(dd, "_insert_pending_record", return_value=1),
+            patch.object(dd, "_enrich_record"),
             patch.object(dd, "_update_download_status"),
             patch.object(dd, "_process_download"),
             patch.object(
@@ -944,7 +967,7 @@ class TestDirectDownloadProcessBatch:
 
     def test_process_batch_with_failure(self):
         """Test _process_batch handles download failures."""
-        dd = DirectDownload(self.manager, self.folder)
+        dd = DirectDownload(self.manager, self.folder, executor=_SyncExecutor())
 
         docs = [
             {
@@ -955,7 +978,8 @@ class TestDirectDownloadProcessBatch:
         ]
 
         with (
-            patch.object(dd, "_create_download_record", return_value=1),
+            patch.object(dd, "_insert_pending_record", return_value=1),
+            patch.object(dd, "_enrich_record"),
             patch.object(dd, "_update_download_status"),
             patch.object(dd, "_process_download", side_effect=RuntimeError("fail")),
             patch.object(dd, "_create_zip_archive", return_value=None),
@@ -964,14 +988,14 @@ class TestDirectDownloadProcessBatch:
 
     def test_process_batch_no_record_uid(self):
         """Test _process_batch when record creation returns None."""
-        dd = DirectDownload(self.manager, self.folder)
+        dd = DirectDownload(self.manager, self.folder, executor=_SyncExecutor())
 
         docs = [
             {"server_url": "https://server.com", "doc_id": "uuid-1"},
         ]
 
         with (
-            patch.object(dd, "_create_download_record", return_value=None),
+            patch.object(dd, "_insert_pending_record", return_value=None),
             patch.object(dd, "_process_download"),
             patch.object(dd, "_create_zip_archive", return_value=None),
         ):
@@ -979,14 +1003,14 @@ class TestDirectDownloadProcessBatch:
 
     def test_process_batch_selected_items_fallback(self):
         """Test selected items use doc_id when filename is empty."""
-        dd = DirectDownload(self.manager, self.folder)
+        dd = DirectDownload(self.manager, self.folder, executor=_SyncExecutor())
 
         docs = [
             {"server_url": "https://server.com", "doc_id": "uuid-1", "filename": ""},
         ]
 
         with (
-            patch.object(dd, "_create_download_record", return_value=None),
+            patch.object(dd, "_insert_pending_record", return_value=None),
             patch.object(dd, "_process_download"),
             patch.object(dd, "_create_zip_archive", return_value=None),
         ):
@@ -1233,13 +1257,10 @@ class TestDirectDownloadExecute:
             shutil.rmtree(self.folder, ignore_errors=True)
 
     def test_execute_processes_queue_item(self):
-        """Test _execute processes items from the download queue."""
+        """_execute is now a stoppable idle loop; it does not pop batches."""
         dd = DirectDownload(self.manager, self.folder)
-        batch = [{"doc_id": "abc", "server_url": "https://example.com"}]
-        dd._download_queue.put(batch)
         dd._process_batch = Mock()
 
-        # Run _execute once then stop
         call_count = 0
 
         def side_effect():
@@ -1249,30 +1270,20 @@ class TestDirectDownloadExecute:
                 dd._stop = True
 
         dd._interact = side_effect
-        dd._execute()
-        dd._process_batch.assert_called_once_with(batch)
+        with patch("nxdrive.drive.direct_download.time.sleep"):
+            dd._execute()
+        dd._process_batch.assert_not_called()
 
     def test_execute_handles_exception(self):
-        """Test _execute handles exceptions in processing."""
+        """_execute exits cleanly when _interact raises."""
         dd = DirectDownload(self.manager, self.folder)
-        batch = [{"doc_id": "abc"}]
-        dd._download_queue.put(batch)
-        dd._process_batch = Mock(side_effect=RuntimeError("test error"))
-
-        call_count = 0
-
-        def side_effect():
-            nonlocal call_count
-            call_count += 1
-            if call_count >= 1:
-                dd._stop = True
-
-        dd._interact = side_effect
+        dd._process_batch = Mock()
+        dd._interact = Mock(side_effect=RuntimeError("test error"))
         # Should not raise
         dd._execute()
 
     def test_execute_empty_queue(self):
-        """Test _execute skips processing when queue is empty."""
+        """_execute honours _stop even with nothing to do."""
         dd = DirectDownload(self.manager, self.folder)
         dd._process_batch = Mock()
 
@@ -1285,7 +1296,8 @@ class TestDirectDownloadExecute:
                 dd._stop = True
 
         dd._interact = side_effect
-        dd._execute()
+        with patch("nxdrive.drive.direct_download.time.sleep"):
+            dd._execute()
         dd._process_batch.assert_not_called()
 
 

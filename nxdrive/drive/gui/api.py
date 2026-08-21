@@ -570,7 +570,13 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, int)
     def resume_direct_download(self, engine_uid: str, uid: int, /) -> None:
-        """Resume a paused direct download."""
+        """Resume a paused direct download.
+
+        Flipping the DAO status is not enough on its own: with the
+        parallel executor architecture, pausing a mid-transfer download
+        releases its worker thread. The record therefore has to be
+        re-submitted to the pool for the transfer to actually restart.
+        """
         from nxdrive.drive.constants import DirectDownloadStatus
 
         log.info(f"Resuming direct download {uid} for engine {engine_uid!r}")
@@ -578,6 +584,15 @@ class QMLDriveApi(QObject):
         if not engine:
             return
         engine.dao.update_direct_download_status(uid, DirectDownloadStatus.IN_PROGRESS)
+
+        worker = getattr(self._manager, "direct_download", None)
+        if worker is not None:
+            try:
+                worker.resume_download(uid)
+            except Exception:
+                log.exception(
+                    f"Failed to re-submit direct download {uid} to the worker pool"
+                )
 
     @pyqtSlot(str, int)
     def cancel_direct_download(self, engine_uid: str, uid: int, /) -> None:
