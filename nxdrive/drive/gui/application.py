@@ -30,7 +30,6 @@ from nxdrive.drive.feature import Beta, DisabledFeatures, Feature
 from nxdrive.drive.gui.api import QMLDriveApi
 from nxdrive.drive.gui.custom_window import CustomWindow
 from nxdrive.drive.gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
-from nxdrive.drive.gui.pyside_settings_host import PySideSettingsHost
 from nxdrive.drive.gui.systray import DriveSystrayIcon, SystrayWindow
 from nxdrive.drive.gui.view import (
     ActiveDirectDownloadModel,
@@ -449,10 +448,6 @@ class Application(QApplication):
         style_hints = self.styleHints()
         if style_hints:
             style_hints.colorSchemeChanged.connect(self._on_color_scheme_changed)
-
-        # The dedicated Settings host is built lazily on the first
-        # show_settings() call.
-        self.pyside_settings_host = PySideSettingsHost(self)
 
     def create_custom_window_for_task_manager(self) -> None:
         # Task Manager
@@ -1165,18 +1160,17 @@ class Application(QApplication):
             "Advanced": 3,
             "About": 4,
         }
-        # The legacy settings_window instance still exists for callers such as
-        # filters dialog centering and api.setMessage relay, but the visible
-        # window is the QQuickView owned by the dedicated host.
         if section not in sections:
             section = "Features"
-        self.pyside_settings_host.show(section)
+        self._window_root(self.settings_window).setSection.emit(sections[section])
+        self._center_on_screen(self.settings_window)
 
     @pyqtSlot()
     def show_systray(self) -> None:
         log.info("Showing systray window in application.py")
         self.close_tasks_window()
-        self.systray_window.close()
+        if self.systray_window is not None:
+            self.systray_window.close()
         icon = self.tray_icon.geometry()
 
         if not icon or icon.isEmpty():
@@ -1533,14 +1527,16 @@ class Application(QApplication):
         self.manager.updater.updateAvailable.connect(self._update_notification)
         self.manager.updater.noSpaceLeftOnDevice.connect(self._no_space_left)
 
-        if not self.manager.engines:
-            self.show_settings("Accounts")
-        else:
-            for engine in self.manager.engines.copy().values():
-                # Prompt for settings if needed
-                if engine.has_invalid_credentials():
-                    self.show_settings("Accounts")  # f"Account_{engine.uid}"
-                    break
+        accounts_need_attention = not self.manager.engines or any(
+            engine.has_invalid_credentials()
+            for engine in self.manager.engines.copy().values()
+        )
+        if accounts_need_attention:
+            # Do not automatically show Settings. Frozen PySide6 builds crash
+            # in QV4 when this nested QML window becomes visible. Keeping the
+            # window hidden lets startup finish and leaves Settings available
+            # from the systray while its presentation path is migrated.
+            log.info("Accounts settings require attention; automatic display skipped")
 
         self.manager.start()
 
@@ -1557,8 +1553,10 @@ class Application(QApplication):
         self._show_next_pending_filter()
 
     @pyqtSlot()
-    @if_frozen
     def _update_notification(self) -> None:
+        if not Options.is_frozen:
+            return
+
         self.change_systray_icon()
 
         # Display a notification
@@ -1927,6 +1925,7 @@ class Application(QApplication):
             self.tray_icon.setToolTip(APP_NAME)
             self.set_icon_state("disabled")
             self.tray_icon.show()
+            log.info("System tray icon displayed")
 
     def _handle_language_change(self) -> None:
         self.manager.set_config("locale", Translator.locale())

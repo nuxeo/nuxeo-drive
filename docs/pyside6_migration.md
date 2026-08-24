@@ -27,7 +27,7 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 - Kept adapter objects alive for the QML context and relayed relevant model and message signals into the PySide6 object graph.
 - Added the original secondary `PySide` namespace, mirrored constants, and PySide6 dependencies needed by the mixed-binding POC.
 - The POC also moved the metrics consent dialog to PySide6; the later application-wide migration simplified that dialog to use the primary PySide6 imports directly.
-- The application-wide migration made the cross-binding adapters redundant, but they remain functional pending a separate Settings cleanup.
+- The application-wide migration made the cross-binding adapters redundant. Runtime Settings routing now uses the `settings_window` already instantiated by `Main.qml`; the adapter module remains pending deletion in a separate cleanup.
 
 ### Direct Transfer flow
 
@@ -42,6 +42,9 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 - Converted the overloaded `directEditError` declaration to PySide6 tuple syntax.
 - Registered constructor-connected `Engine` and `Manager` methods as explicit Qt slots.
 - Aligned `Engine._check_sync_start` with the positional object emitted by its queue signal.
+- Replaced the stacked `@pyqtSlot()`/`@if_frozen` decorators on the update notification callback with an in-slot frozen guard. Frozen builds converted the decorated callback to a `MetaFunction`, causing `Signal.connect()` to fail during startup after metrics consent.
+- Disabled automatic Accounts Settings display during startup. Both constructor-time and event-loop-deferred `QWindow.show()` calls crashed frozen macOS builds in QV4 while evaluating the nested Settings QML window. Startup now continues so the systray remains available while Settings presentation is migrated separately.
+- Registered the tray activation, systray focus-change, and custom-window visibility callbacks as explicit PySide6 slots. Frozen macOS builds crashed in `callPythonMetaMethod` when clicking the tray icon and focusing the QML window while these native signal targets were plain Python methods.
 - Simplified the metrics consent dialog to use the primary PySide6 imports instead of the legacy secondary namespace.
 - Updated worker tests to request direct signal delivery when they call worker methods without starting the worker's assigned `QThread`.
 - Replaced unsafe test patching of inherited PySide6 C++ virtual methods with Python subclass overrides.
@@ -58,7 +61,7 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 
 - Keep the existing `pyqt*` names as aliases for now. Renaming every call site would add churn without changing behavior.
 - Do not add a second `QApplication`, QML engine, or cross-binding adapters for Direct Transfer. All connected Qt objects use PySide6.
-- Leave the dedicated `PySideSettingsHost` adapter architecture in place for this change. It is now redundant, but simplifying Settings is a separate behavior surface.
+- Keep `pyside_settings_host.py` temporarily for follow-up cleanup, but do not instantiate it. Loading a second `Settings.qml` engine in a frozen build can deadlock while its QML worker waits for the GIL in the Python `QTranslator` override.
 
 ## Validation
 
@@ -69,6 +72,10 @@ Passed:
 - 54 Alfresco OAuth bridge and macOS key-event tests.
 - Settings routing unit tests passed, including generic section forwarding and the Add Account/error paths that reopen the `Accounts` section.
 - Feature-state and feature-list unit tests passed as part of the complete unit matrix.
+- A real PySide6 signal-to-slot regression test verifies that the update notification callback connects successfully and still honors frozen/non-frozen behavior.
+- Settings routing tests verify that the existing `Main.qml` Settings window receives the requested section and is centered, without constructing a second QML engine.
+- A startup regression test verifies that missing or invalid accounts do not show Settings during `Application.__init__` and that manager startup continues.
+- Meta-object regression coverage verifies that all native tray/window callbacks are registered Qt slots with the expected signatures.
 - Direct Transfer scheduling tests using `QDateTime.toPython()`.
 - Offscreen load of `DirectTransferWindow.qml` with all six real PySide6 transfer models; the root instantiated as a `PySide6.QtQuick` object.
 - Complete common, Nuxeo, and Alfresco unit matrix under offscreen PySide6.
@@ -85,7 +92,7 @@ Blocked by environment:
 
 ## Remaining work
 
-- Simplify or remove `PySideSettingsHost` mirror objects now that the main application uses PySide6. Its `pyqt_*` variable names describe the old architecture but remain functional.
+- Remove the now-unused `pyside_settings_host.py` adapters and secondary `PySide` namespace after confirming no downstream imports depend on them.
 - Run the complete unit, functional, integration, type, lint, and packaging matrices in their normal CI environments.
 - Perform manual macOS, Windows, and Linux checks for Direct Upload: open window, select remote folder, add files/folders, upload now, schedule upload, create remote folder, pause/resume/cancel, and inspect history/monitoring.
 - Verify both PyInstaller products include the required PySide6 Qt plugins in release builds.

@@ -11,6 +11,7 @@ from ..qt.imports import (
     QSize,
     QSystemTrayIcon,
     QWindow,
+    pyqtSlot,
 )
 from ..translator import Translator
 
@@ -38,7 +39,8 @@ class DriveSystrayIcon(QSystemTrayIcon):
             # will show up every click on the systray icon.
             self.setContextMenu(self.get_context_menu())
 
-    def handle_mouse_click(self, reason: int, /) -> None:
+    @pyqtSlot(QSystemTrayIcon.ActivationReason)
+    def handle_mouse_click(self, reason: QSystemTrayIcon.ActivationReason, /) -> None:
         """
         Handle any mouse click on the systray icon.
         It is not needed to handle the right click as it
@@ -110,6 +112,7 @@ class SystrayWindow(inherited_base_class):  # type: ignore
         self.setMinimumSize(QSize(365, 370))
         self.setMaximumSize(QSize(365, 370))
 
+    @pyqtSlot()
     def _on_active_changed(self) -> None:
         """Hide the window when it loses focus."""
         if not self.isActive():
