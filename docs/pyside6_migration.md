@@ -1,6 +1,6 @@
 # PySide6 Migration
 
-Last updated: 2026-08-21
+Last updated: 2026-08-24
 
 ## Status
 
@@ -18,6 +18,16 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 - Moved `QFileSystemModel` to its PySide6 module, `QtWidgets`.
 - Removed the unsupported `QVariant` export.
 - Kept the existing `PySide` namespace temporarily for the dedicated Settings host.
+
+### Settings/Features POC (NXDRIVE-3237)
+
+- Integrated Anindya Roy's Settings Features-tab POC from commit `f22405ca1`.
+- Added `PySideSettingsHost`, which lazily loads `Settings.qml` in a dedicated PySide6 `QQuickView` and routes `Application.show_settings()` to the requested Settings section.
+- Added PySide6 adapters for the QML API, manager, OS integration, translator, engine model, language model, and feature models consumed by the Settings tabs and Add Account flow.
+- Kept adapter objects alive for the QML context and relayed relevant model and message signals into the PySide6 object graph.
+- Added the original secondary `PySide` namespace, mirrored constants, and PySide6 dependencies needed by the mixed-binding POC.
+- The POC also moved the metrics consent dialog to PySide6; the later application-wide migration simplified that dialog to use the primary PySide6 imports directly.
+- The application-wide migration made the cross-binding adapters redundant, but they remain functional pending a separate Settings cleanup.
 
 ### Direct Transfer flow
 
@@ -57,6 +67,8 @@ Passed:
 - Central shim smoke check: exported `QObject`, `QApplication`, signals, and Qt version are PySide6-backed.
 - 113 focused Direct Transfer model and folder-dialog unit tests.
 - 54 Alfresco OAuth bridge and macOS key-event tests.
+- Settings routing unit tests passed, including generic section forwarding and the Add Account/error paths that reopen the `Accounts` section.
+- Feature-state and feature-list unit tests passed as part of the complete unit matrix.
 - Direct Transfer scheduling tests using `QDateTime.toPython()`.
 - Offscreen load of `DirectTransferWindow.qml` with all six real PySide6 transfer models; the root instantiated as a `PySide6.QtQuick` object.
 - Complete common, Nuxeo, and Alfresco unit matrix under offscreen PySide6.
@@ -64,6 +76,8 @@ Passed:
 - Source scan: no executable PyQt6 imports remain under `nxdrive`, `tests`, or `tools`.
 
 The editor still reports pre-existing typing issues in `folders_dialog.py` and platform-conditional Windows code in `multi_folder_dialog.py`; the PySide6-specific `QDateTime` diagnostic was resolved.
+
+The Settings host does not yet have a dedicated QML load or interaction smoke test in this migration. Its current validation is limited to routing, feature behavior, and the complete unit matrix.
 
 Blocked by environment:
 
