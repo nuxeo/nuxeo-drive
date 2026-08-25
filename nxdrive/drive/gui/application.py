@@ -339,14 +339,12 @@ class Application(QApplication):
         self.app_engine = QQmlApplicationEngine()
         self._fill_qml_context(self.app_engine.rootContext())
         main_qml_url = QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
-        log.info("Loading Main.qml from %s", main_qml_url)
         self.app_engine.load(main_qml_url)
 
         root_objects = self.app_engine.rootObjects()
         if not root_objects:
             log.error("Failed to load QML!")
             raise RuntimeError("QML engine failed to load Main.qml")
-        log.info("Main.qml loaded successfully")
 
         root = root_objects[0]
         self.conflicts_window = cast(
@@ -1481,17 +1479,6 @@ class Application(QApplication):
         self.manager.updater.updateAvailable.connect(self._update_notification)
         self.manager.updater.noSpaceLeftOnDevice.connect(self._no_space_left)
 
-        accounts_need_attention = not self.manager.engines or any(
-            engine.has_invalid_credentials()
-            for engine in self.manager.engines.copy().values()
-        )
-        if accounts_need_attention:
-            # Do not automatically show Settings. Frozen PySide6 builds crash
-            # in QV4 when this nested QML window becomes visible. Keeping the
-            # window hidden lets startup finish and leaves Settings available
-            # from the systray while its presentation path is migrated.
-            log.info("Accounts settings require attention; automatic display skipped")
-
         self.manager.start()
 
         # Collect every engine that still needs first-time folder selection
@@ -1879,7 +1866,7 @@ class Application(QApplication):
             self.tray_icon.setToolTip(APP_NAME)
             self.set_icon_state("disabled")
             self.tray_icon.show()
-            log.info("System tray icon displayed")
+            log.debug("System tray icon displayed")
 
     def _handle_language_change(self) -> None:
         self.manager.set_config("locale", Translator.locale())
@@ -2427,8 +2414,12 @@ class Application(QApplication):
         user = {"userId": remote.user_id}
         try:
             tasks = remote.tasks.get(user)
-        except Exception as e:
-            log.info(f"Unable to fetch tasks due to: {e!r}")
+        except Exception:
+            log.error(
+                "Unable to fetch pending tasks for engine %s",
+                engine.uid,
+                exc_info=True,
+            )
             tasks = []
         self.last_engine_uid = engine.uid
         return tasks

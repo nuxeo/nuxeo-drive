@@ -88,7 +88,7 @@ class DialogMixin(QDialog):
         # so after the login in the browser, we open the filters window with
         # the "stay on top" hint to make sure it comes back to the front
         # instead of just having a blinking icon in the taskbar.
-        self.setWindowFlags(qt.WindowStaysOnTopHint)
+        self.setWindowFlag(qt.WindowStaysOnTopHint, True)
 
         self.engine = engine
         self.application = application
@@ -300,7 +300,7 @@ class FoldersDialog(DialogMixin):
         """*path* is None when the dialog window is opened from a click on the systray menu icon."""
 
         super().__init__(application, engine, selected_folder)
-        self.setWindowFlags(self.windowFlags() & ~qt.WindowStaysOnTopHint)
+        self.setWindowFlag(qt.WindowStaysOnTopHint, False)
         self.remote_folder = QLineEdit(self)
 
         self.path: Optional[Path] = None

@@ -107,6 +107,8 @@ def test_constructor_builds_real_widget_and_initial_state(
         qapp, application, engine, tree_view, source, "/remote/selected"
     )
     try:
+        assert dialog.windowFlags() & Qt.WindowType.WindowCloseButtonHint
+        assert not dialog.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
         assert "alice" in dialog.windowTitle()
         assert dialog.remote_folder.text() == "/remote/selected"
         assert dialog.remote_folder_title == "selected"

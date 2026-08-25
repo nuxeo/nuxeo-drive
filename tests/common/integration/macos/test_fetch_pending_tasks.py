@@ -1,6 +1,6 @@
 """Integration tests for fetch_pending_tasks method - macOS only."""
 
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -143,14 +143,18 @@ class TestFetchPendingTasks:
         mock_engine.remote = mock_remote
 
         from nxdrive.drive.gui.application import Application as RealApp
+        from nxdrive.drive.gui import application as application_module
 
-        # We can't easily verify log.info was called without more complex mocking,
-        # but we can verify the method doesn't crash
-        bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
-        result = bound_method(mock_engine)
+        with patch.object(application_module.log, "error") as log_error:
+            bound_method = RealApp.fetch_pending_tasks.__get__(app, Application)
+            result = bound_method(mock_engine)
 
-        # Should return empty list, not raise exception
         assert result == []
+        log_error.assert_called_once_with(
+            "Unable to fetch pending tasks for engine %s",
+            "engine-log-test",
+            exc_info=True,
+        )
 
     def test_fetch_pending_tasks_passes_user_id_dict(self, mock_application):
         """Test fetch_pending_tasks passes userId dict to tasks.get."""
