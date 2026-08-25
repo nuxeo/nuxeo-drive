@@ -555,18 +555,6 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
     app = app_obj
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
-    # Covering create_custom_window_for_task_manager
-    with patch(
-        "nxdrive.drive.gui.application.Application._fill_qml_context"
-    ) as mock_qml_context, patch(
-        "nxdrive.drive.gui.application.CustomWindow"
-    ) as mock_custom_window, patch(
-        "tests.common.functional.mocked_classes.Mock_Qt.rootContext"
-    ) as mock_root_context:
-        mock_qml_context.return_value = None
-        mock_custom_window.return_value = Mock_Qt
-        mock_root_context.return_value = None
-        assert app.create_custom_window_for_task_manager() is None
     # Covering update_workflow
     assert app.update_workflow() is None
     # Covering updat_feature_state
@@ -1014,9 +1002,7 @@ def test_init_gui(app_obj):
     assert hasattr(app, "direct_transfer_window")
     assert hasattr(app, "task_manager_window")
 
-    # Non-Windows path sets app_engine
-    if not WINDOWS:
-        assert hasattr(app, "app_engine")
+    assert hasattr(app, "app_engine")
 
 
 @not_linux(reason="Qt does not work correctly on linux")

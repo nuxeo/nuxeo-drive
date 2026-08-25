@@ -45,6 +45,7 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 - Replaced the stacked `@pyqtSlot()`/`@if_frozen` decorators on the update notification callback with an in-slot frozen guard. Frozen builds converted the decorated callback to a `MetaFunction`, causing `Signal.connect()` to fail during startup after metrics consent.
 - Disabled automatic Accounts Settings display during startup. Both constructor-time and event-loop-deferred `QWindow.show()` calls crashed frozen macOS builds in QV4 while evaluating the nested Settings QML window. Startup now continues so the systray remains available while Settings presentation is migrated separately.
 - Registered the tray activation, systray focus-change, and custom-window visibility callbacks as explicit PySide6 slots. Frozen macOS builds crashed in `callPythonMetaMethod` when clicking the tray icon and focusing the QML window while these native signal targets were plain Python methods.
+- Replaced the Windows-only five-`QQuickView` startup path with the shared `QQmlApplicationEngine`/`Main.qml` architecture and `QQuickWindow` subclasses. Frozen Windows stopped in the first `QQuickView.setSource(Conflicts.qml)` while its separate QML engine interacted with the Python translator.
 - Simplified the metrics consent dialog to use the primary PySide6 imports instead of the legacy secondary namespace.
 - Updated worker tests to request direct signal delivery when they call worker methods without starting the worker's assigned `QThread`.
 - Replaced unsafe test patching of inherited PySide6 C++ virtual methods with Python subclass overrides.
@@ -76,8 +77,10 @@ Passed:
 - Settings routing tests verify that the existing `Main.qml` Settings window receives the requested section and is centered, without constructing a second QML engine.
 - A startup regression test verifies that missing or invalid accounts do not show Settings during `Application.__init__` and that manager startup continues.
 - Meta-object regression coverage verifies that all native tray/window callbacks are registered Qt slots with the expected signatures.
+- Window inheritance and application tests verify that every platform uses `QQuickWindow` children owned by one application QML engine.
 - Direct Transfer scheduling tests using `QDateTime.toPython()`.
 - Offscreen load of `DirectTransferWindow.qml` with all six real PySide6 transfer models; the root instantiated as a `PySide6.QtQuick` object.
+- Offscreen load of `Main.qml` with the real registered `CustomWindow` and `SystrayWindow` types; one `QQmlApplicationEngine` created all five named application windows.
 - Complete common, Nuxeo, and Alfresco unit matrix under offscreen PySide6.
 - Python compilation and focused flake8 validation for migration files.
 - Source scan: no executable PyQt6 imports remain under `nxdrive`, `tests`, or `tools`.

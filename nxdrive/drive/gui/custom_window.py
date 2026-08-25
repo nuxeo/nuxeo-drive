@@ -1,13 +1,10 @@
 from typing import Optional
 
-from ..constants import WINDOWS
 from ..qt import constants as qt
-from ..qt.imports import QKeyEvent, QQuickView, QQuickWindow, QWindow, pyqtSlot
-
-inherited_base_class = QQuickView if WINDOWS else QQuickWindow
+from ..qt.imports import QKeyEvent, QQuickWindow, QWindow, pyqtSlot
 
 
-class CustomWindow(inherited_base_class):  # type: ignore
+class CustomWindow(QQuickWindow):
     def __init__(self, parent: Optional[QWindow] = None) -> None:
         super().__init__(parent=parent)
         self.visibilityChanged.connect(self._handle_visibility_change)

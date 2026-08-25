@@ -9,7 +9,7 @@ from math import sqrt
 from pathlib import Path
 from random import choice
 from time import monotonic
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote_plus, urlparse
 
 from nxdrive.drive import server_type as _st
@@ -67,7 +67,6 @@ from nxdrive.drive.qt.imports import (
     QObject,
     QQmlApplicationEngine,
     QQmlContext,
-    QQuickView,
     QRect,
     QSizePolicy,
     QSpacerItem,
@@ -296,17 +295,9 @@ class Application(QApplication):
 
         See https://bugreports.qt.io/browse/QTBUG-81247.
         """
-        if WINDOWS:
-            del self.conflicts_window
-            del self.settings_window
-            del self.systray_window
-            del self.direct_transfer_window
-            del self.task_manager_window
-        else:
-            # deleteLater() deletes the C++ object binding for app_engine
-            # This is required to prevent shutdown issues (mainly on MacOS)
-            self.app_engine.deleteLater()
-            del self.app_engine
+        # Delete the engine before its QML context properties are released.
+        self.app_engine.deleteLater()
+        del self.app_engine
 
     def init_gui(self) -> None:
         self.api = QMLDriveApi(self)
@@ -345,76 +336,53 @@ class Application(QApplication):
 
         flags = qt.FramelessWindowHint | qt.WindowStaysOnTopHint
 
+        self.app_engine = QQmlApplicationEngine()
+        self._fill_qml_context(self.app_engine.rootContext())
+        main_qml_url = QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
+        log.info("Loading Main.qml from %s", main_qml_url)
+        self.app_engine.load(main_qml_url)
+
+        root_objects = self.app_engine.rootObjects()
+        if not root_objects:
+            log.error("Failed to load QML!")
+            raise RuntimeError("QML engine failed to load Main.qml")
+        log.info("Main.qml loaded successfully")
+
+        root = root_objects[0]
+        self.conflicts_window = cast(
+            CustomWindow, root.findChild(CustomWindow, "conflictsWindow")
+        )
+        self.settings_window = cast(
+            CustomWindow, root.findChild(CustomWindow, "settingsWindow")
+        )
+        self.systray_window = cast(
+            SystrayWindow, root.findChild(SystrayWindow, "systrayWindow")
+        )
+        self.direct_transfer_window = cast(
+            CustomWindow,
+            root.findChild(CustomWindow, "directTransferWindow"),
+        )
+        self.task_manager_window = cast(
+            CustomWindow,
+            root.findChild(CustomWindow, "taskManagerWindow"),
+        )
+
+        if any(
+            window is None
+            for window in (
+                self.conflicts_window,
+                self.settings_window,
+                self.systray_window,
+                self.direct_transfer_window,
+                self.task_manager_window,
+            )
+        ):
+            raise RuntimeError("Main.qml did not create all application windows")
+
         if WINDOWS:
-            # Conflicts
-            self.conflicts_window = CustomWindow()
-            self.conflicts_window.setMinimumWidth(550)
-            self.conflicts_window.setMinimumHeight(600)
-            self._fill_qml_context(self.conflicts_window.rootContext())
-            self.conflicts_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", file="Conflicts.qml")))
-            )
-
-            # Settings
-            self.settings_window = CustomWindow()
-            self.settings_window.setMinimumWidth(640)
-            self.settings_window.setMinimumHeight(580)
-            self._fill_qml_context(self.settings_window.rootContext())
-            self.settings_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", file="Settings.qml")))
-            )
-
-            # Systray
-            self.systray_window = SystrayWindow()
-            self._fill_qml_context(self.systray_window.rootContext())
-            self.systray_window.rootContext().setContextProperty(
-                "systrayWindow", self.systray_window
-            )
-            self.systray_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", file="Systray.qml")))
-            )
-
-            # Direct Transfer
-            self.direct_transfer_window = CustomWindow()
-            self.direct_transfer_window.setMinimumWidth(600)
-            self.direct_transfer_window.setMinimumHeight(480)
-            self._fill_qml_context(self.direct_transfer_window.rootContext())
-            self.direct_transfer_window.setSource(
-                QUrl.fromLocalFile(
-                    str(find_resource("qml", file="DirectTransferWindow.qml"))
-                )
-            )
-
-            self.create_custom_window_for_task_manager()
-
             flags |= qt.Popup
-        else:
-            self.app_engine = QQmlApplicationEngine()
-            self._fill_qml_context(self.app_engine.rootContext())
-            self.app_engine.load(
-                QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
-            )
-            log.info(
-                f"QUrl.fromLocalFile: {QUrl.fromLocalFile(str(find_resource('qml', file='Main.qml')))}"
-            )
-
-            # Check if QML loaded successfully
-            root_objects = self.app_engine.rootObjects()
-            if not root_objects:
-                log.error("Failed to load QML!")
-                raise RuntimeError("QML engine failed to load Main.qml")
-
-            root = root_objects[0]
-            self.conflicts_window = root.findChild(CustomWindow, "conflictsWindow")
-            self.settings_window = root.findChild(CustomWindow, "settingsWindow")
-            self.systray_window = root.findChild(SystrayWindow, "systrayWindow")
-            self.direct_transfer_window = root.findChild(
-                CustomWindow, "directTransferWindow"
-            )
-            self.task_manager_window = root.findChild(CustomWindow, "taskManagerWindow")
-
-            if LINUX:
-                flags |= qt.Drawer
+        elif LINUX:
+            flags |= qt.Drawer
 
         self.aboutToQuit.connect(self._shutdown)
         self.systray_window.setFlags(flags)
@@ -448,18 +416,6 @@ class Application(QApplication):
         style_hints = self.styleHints()
         if style_hints:
             style_hints.colorSchemeChanged.connect(self._on_color_scheme_changed)
-
-    def create_custom_window_for_task_manager(self) -> None:
-        # Task Manager
-        self.task_manager_window = CustomWindow()
-        self.task_manager_window.setMinimumWidth(500)
-        self.task_manager_window.setMinimumHeight(600)
-        self._fill_qml_context(self.task_manager_window.rootContext())
-        self.task_manager_window.setSource(
-            QUrl.fromLocalFile(
-                str(find_resource("qml/tasksManager", file="TaskManager.qml"))
-            )
-        )
 
     def is_dark_mode(self) -> bool:
         # Detect the current scheme
@@ -549,7 +505,7 @@ class Application(QApplication):
                     Workflow.user_task_list = {}
                 self.manager.stop_workflow_worker()
 
-    def _center_on_screen(self, window: QQuickView, /) -> None:
+    def _center_on_screen(self, window: QWindow, /) -> None:
         """Display and center the window on the screen."""
         # Display the window
         self._show_window(window)
@@ -785,9 +741,7 @@ class Application(QApplication):
         log.debug("Using fallback %s popup: %s", popup_type, fallback_path)
         return QUrl.fromLocalFile(str(fallback_path)).toString()
 
-    def _window_root(self, window: QWindow, /) -> QWindow:
-        if WINDOWS:
-            return window.rootObject()
+    def _window_root(self, window: Any, /) -> Any:
         return window
 
     def translate(self, message: str, /, *, values: List[Any] = None) -> str:
