@@ -213,7 +213,7 @@ jobs:
 
       - name: "[macOS] Generate the .dmg and validate against 2023"
         if: matrix.os == 'macos-15-intel'
-        timeout-minutes: 25
+        timeout-minutes: 40
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
@@ -228,7 +228,7 @@ jobs:
 
       - name: "[macOS] Generate the .dmg and validate against 2025"
         if: matrix.os == 'macos-15-intel'
-        timeout-minutes: 25
+        timeout-minutes: 40
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.3"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
