@@ -301,6 +301,9 @@ class FoldersDialog(DialogMixin):
 
         super().__init__(application, engine, selected_folder)
         self.setWindowFlag(qt.WindowStaysOnTopHint, False)
+        self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
+        self.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
+        self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
         self.remote_folder = QLineEdit(self)
 
         self.path: Optional[Path] = None
