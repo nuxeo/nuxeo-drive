@@ -43,6 +43,7 @@ $ErrorActionPreference = "Stop"
 # Global variables
 $global:PYTHON_OPT = "-Xutf8", "-E", "-s"
 $global:PIP_OPT = "-m", "pip", "install", "--no-cache-dir", "--upgrade", "--upgrade-strategy=only-if-needed", "--progress-bar=off"
+$global:SIGNING_CERTIFICATES = 0
 
 # Imports
 Import-Module BitsTransfer
@@ -828,6 +829,8 @@ function sign($file) {
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
+
+		$global:SIGNING_CERTIFICATES += 1
 	}
 	else {
 		Write-Output ">>> Signing is disabled, signing process skipped."
@@ -835,6 +838,8 @@ function sign($file) {
 }
 
 function build_nuxeo_installer_and_sign {
+	$global:SIGNING_CERTIFICATES = 0
+
 	# Move icons from nxdrive/data/icons/nuxeo to nxdrive/drive/data/icons
 	xcopy "nxdrive\data\icons\nuxeo\*" "nxdrive\drive\data\icons" /e /y /i
 
@@ -865,6 +870,7 @@ function build_nuxeo_installer_and_sign {
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
+		Write-Output ">>> Signing completed !!  $global:SIGNING_CERTIFICATES certificates used !!"
 		return 0
 	}
 
@@ -884,9 +890,12 @@ function build_nuxeo_installer_and_sign {
 	sign "dist\nuxeo-drive-$app_version-admin.exe"
 
 	cleanup_copied_icons "nuxeo"
+	Write-Output ">>> Signing completed !!  $global:SIGNING_CERTIFICATES certificates used !!"
 }
 
 function build_alfresco_installer_and_sign {
+	$global:SIGNING_CERTIFICATES = 0
+
 	# Move icons from nxdrive/data/icons/alfresco to nxdrive/drive/data/icons
 	xcopy "nxdrive\data\icons\alfresco\*" "nxdrive\drive\data\icons" /e /y /i
 
@@ -917,6 +926,7 @@ function build_alfresco_installer_and_sign {
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
+		Write-Output ">>> Signing completed !!  $global:SIGNING_CERTIFICATES certificates used !!"
 		return 0
 	}
 
@@ -936,6 +946,7 @@ function build_alfresco_installer_and_sign {
 	sign "dist\alfresco-drive-$app_version-admin.exe"
 
 	cleanup_copied_icons "alfresco"
+	Write-Output ">>> Signing completed !!  $global:SIGNING_CERTIFICATES certificates used !!"
 }
 
 function sign_dlls($server_name) {
