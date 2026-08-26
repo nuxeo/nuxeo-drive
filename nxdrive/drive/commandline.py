@@ -703,6 +703,8 @@ class CliHandler:
 
         if command != "uninstall":
             self._install_faulthandler()
+
+        if command not in ("launch", "uninstall"):
             self.manager = self.get_manager()
 
         ret_code: int = handler(options)
@@ -926,7 +928,7 @@ class CliHandler:
 
         global RETRY
 
-        lock = PidLockFile(self.manager.home, "qt")
+        lock = PidLockFile(Options.nxdrive_home, "qt")
         pid = lock.lock()
         if pid:
             if Options.protocol_url:
@@ -949,6 +951,9 @@ class CliHandler:
             else:
                 log.warning(f"{APP_NAME} is already running: exiting.")
             return 0
+
+        if not hasattr(self, "manager"):
+            self.manager = self.get_manager()
 
         if LINUX:
             # On Linux, Qt6 defaults to OpenGL via RHI which fails on systems without proper
