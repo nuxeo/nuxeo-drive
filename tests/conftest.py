@@ -245,7 +245,7 @@ def server(nuxeo_url):
     return server
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def app():
     """
     Fixture required to be able to process Qt events and quit smoothly the application.
@@ -253,10 +253,7 @@ def app():
     """
     from nxdrive.drive.qt.imports import QApplication, QTimer
 
-    app = QApplication.instance()
-    owns_app = app is None
-    if owns_app:
-        app = QApplication([])
+    app = QApplication.instance() or QApplication([])
 
     # Little trick here! See Application.__init__() for details.
     timer = QTimer()
@@ -266,5 +263,3 @@ def app():
     yield app
 
     timer.stop()
-    if owns_app:
-        app.shutdown()

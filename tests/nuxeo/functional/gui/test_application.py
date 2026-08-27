@@ -16,7 +16,7 @@ from nxdrive.drive.gui.folders_dialog import FoldersDialog
 from nxdrive.drive.gui.folders_loader import ContentLoaderMixin
 from nxdrive.drive.gui.folders_treeview import FolderTreeView
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import QModelIndex, QObject, Qt
+from nxdrive.drive.qt.imports import QModelIndex, QObject, Qt, Signal
 from nxdrive.nuxeo.gui.folders_model import Doc, FilteredDoc, FoldersOnly
 from tests.common.functional.mocked_classes import (
     Mock_Document_API,
@@ -31,6 +31,23 @@ from ....markers import not_linux, not_windows
 
 # Save reference to the real method before the app_obj fixture patches it out
 _real_show_metrics_acceptance = Application.show_metrics_acceptance
+
+
+class ApplicationMethodHost(QObject):
+    """Bind real Application methods without creating another QApplication."""
+
+    dark_mode_signal = Signal(bool)
+
+    def __init__(self, qt_app):
+        super().__init__()
+        self._qt_app = qt_app
+
+    def __getattr__(self, name):
+        if name in Application.__dict__:
+            attribute = Application.__dict__[name]
+            descriptor = getattr(attribute, "__get__", None)
+            return descriptor(self, type(self)) if descriptor else attribute
+        return getattr(self._qt_app, name)
 
 
 class TestApplication:
@@ -511,7 +528,7 @@ class TestApplicationIntegration:
 
 
 @pytest.fixture
-def app_obj(manager_factory):
+def app_obj(app, manager_factory):
     manager, engine = manager_factory()
     mock_qt = Mock_Qt()
     with patch(
@@ -542,8 +559,38 @@ def app_obj(manager_factory):
         mock_run.return_value = None
         mock_exec.return_value = None
         mock_question.return_value = None
-        app = Application(manager)
-        yield app
+        application = ApplicationMethodHost(app)
+        application.manager = manager
+        application.osi = manager.osi
+        application.icons = {}
+        application.icon_state = None
+        application.use_light_icons = None
+        application.filters_dlg = None
+        application._pending_filter_engines = []
+        application._delegator = None
+        application._last_refresh_view = 0.0
+        application._conflicts_modals = {}
+        application.current_notification = None
+        application.default_tooltip = "Nuxeo Drive"
+        application.point_size = 12
+        application.today_is_special = False
+        manager.application = application
+
+        application._init_translator()
+        application.init_gui()
+        application.setup_systray()
+        application.added_user_engine_list = [str]
+        application.workflow = None
+        application.init_workflow()
+
+        yield application
+
+        if hasattr(application, "tray_icon"):
+            application.tray_icon.hide()
+            application.tray_icon.deleteLater()
+        if hasattr(application, "app_engine"):
+            application.app_engine.deleteLater()
+            del application.app_engine
 
 
 @not_linux(reason="Qt does not work correctly on linux")

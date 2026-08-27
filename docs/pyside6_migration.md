@@ -55,7 +55,7 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 - Changed direct test imports and patch targets from PyQt6 to PySide6 or `nxdrive.drive.qt.imports`.
 - Changed the shared test event-loop fixture to create a `QApplication`, preventing a prior `QCoreApplication` singleton from aborting later QWidget tests.
 - Configured the shared `QApplication` fixture to use the offscreen platform on display-less Linux runners.
-- Made the shared fixture explicitly shut down only the `QApplication` instance it creates, preventing it from leaking into functional tests that construct the application subclass.
+- Made the shared `QApplication` fixture session-scoped because PySide6 can abort when a process repeatedly creates and shuts down application singletons. Functional `Application` method tests use a `QObject` host backed by the shared application instead of constructing a second singleton.
 - Updated synchronous Direct Edit functional tests to request direct signal delivery when no Qt event loop is running.
 - Made QueueManager processor signal setup and teardown idempotent so PySide6 does not warn when shutdown occurs before initialization.
 - Updated folder-loader functional tests to assert direct Python object storage after removing `QVariant` wrappers.
@@ -87,7 +87,7 @@ Passed:
 - Offscreen load of `DirectTransferWindow.qml` with all six real PySide6 transfer models; the root instantiated as a `PySide6.QtQuick` object.
 - Offscreen load of `Main.qml` with the real registered `CustomWindow` and `SystrayWindow` types; one `QQmlApplicationEngine` created all five named application windows.
 - Complete common, Nuxeo, and Alfresco unit matrix under offscreen PySide6.
-- 126 Direct Download functional tests passed with repeated shared `QApplication` fixture setup and teardown.
+- 126 Direct Download functional tests passed with the session-scoped shared `QApplication`.
 - QueueManager functional tests passed (85 passed, 1 skipped) without PySide6 disconnect warnings.
 - Python compilation and focused flake8 validation for migration files.
 - Source scan: no executable PyQt6 imports remain under `nxdrive`, `tests`, or `tools`.
