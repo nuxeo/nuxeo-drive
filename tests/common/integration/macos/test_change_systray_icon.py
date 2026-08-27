@@ -25,6 +25,7 @@ class TestChangeSystrayIcon:
         app.set_icon_state = Mock()
 
         yield app, manager
+        manager.close()
 
     def test_change_systray_icon_update_state(self, mock_application):
         """Test icon changes to update state when update is available."""

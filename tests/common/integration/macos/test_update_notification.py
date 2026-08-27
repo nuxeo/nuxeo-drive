@@ -30,6 +30,7 @@ class TestUpdateNotification:
         manager.notification_service.send_notification = Mock()
 
         yield app, manager
+        manager.close()
 
     def test_update_notification_upgrade(self, mock_application):
         """Test update notification for upgrade scenario."""

@@ -33,6 +33,7 @@ class TestRootMoved:
         engine.start = Mock()
 
         yield app, manager, engine
+        manager.close()
 
     def test_root_moved_disconnect(self, mock_application):
         """Test disconnecting when root is moved."""

@@ -56,6 +56,7 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 - Changed the shared test event-loop fixture to create a `QApplication`, preventing a prior `QCoreApplication` singleton from aborting later QWidget tests.
 - Configured the shared `QApplication` fixture to use the offscreen platform on display-less Linux runners.
 - Made the shared `QApplication` fixture session-scoped because PySide6 can abort when a process repeatedly creates and shuts down application singletons. Functional `Application` method tests use a `QObject` host backed by the shared application instead of constructing a second singleton.
+- Isolated background worker factories in macOS `Application` integration tests so short-lived `Manager` fixtures do not accumulate native Qt threads; fixtures that create real managers also close them explicitly.
 - Updated synchronous Direct Edit functional tests to request direct signal delivery when no Qt event loop is running.
 - Made QueueManager processor signal setup and teardown idempotent so PySide6 does not warn when shutdown occurs before initialization.
 - Updated folder-loader functional tests to assert direct Python object storage after removing `QVariant` wrappers.
