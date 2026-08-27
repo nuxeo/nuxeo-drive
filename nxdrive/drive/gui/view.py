@@ -10,6 +10,7 @@ from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import (
     QAbstractListModel,
+    QByteArray,
     QModelIndex,
     QObject,
     QStandardItem,
@@ -1375,16 +1376,16 @@ class TasksModel(QObject):
         self.taskmodel = QStandardItemModel()
         self.taskmodel.setItemRoleNames(
             {
-                self.TASK_ROLE: b"task",
-                self.TASK_ID: b"task_id",
+                int(self.TASK_ROLE): QByteArray(b"task"),
+                int(self.TASK_ID): QByteArray(b"task_id"),
             }
         )
 
         self.self_taskmodel = QStandardItemModel()
         self.self_taskmodel.setItemRoleNames(
             {
-                self.TASK_ROLE: b"task",
-                self.TASK_ID: b"task_id",
+                int(self.TASK_ROLE): QByteArray(b"task"),
+                int(self.TASK_ID): QByteArray(b"task_id"),
             }
         )
 

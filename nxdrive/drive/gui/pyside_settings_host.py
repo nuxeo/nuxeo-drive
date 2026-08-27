@@ -129,11 +129,15 @@ class _ApiAdapter(ps.QObject):
         return self._api.to_local_file(PyQtQUrl(url.toString()))
 
     @ps.Slot(str, str, bool)
-    def web_authentication(self, server_url: str, local_folder: str, use_new_account: bool) -> None:  # noqa: E501
+    def web_authentication(
+        self, server_url: str, local_folder: str, use_new_account: bool
+    ) -> None:  # noqa: E501
         self._api.web_authentication(server_url, local_folder, use_new_account)
 
     @ps.Slot(str, str, str, str)
-    def password_auth(self, username: str, password: str, server_url: str, local_folder: str) -> None:  # noqa: E501
+    def password_auth(
+        self, username: str, password: str, server_url: str, local_folder: str
+    ) -> None:  # noqa: E501
         self._api.password_auth(username, password, server_url, local_folder)
 
     @ps.Slot(str, result=str)
@@ -347,13 +351,13 @@ class _EngineModelAdapter(ps.QAbstractListModel):
         self.dataChanged.emit(idx, idx, [self._ACCOUNT])
         self.authChanged.emit(uid)
 
-    def roleNames(self) -> Dict[int, ps.QByteArray]:  # type: ignore[override]
+    def roleNames(self) -> Dict[int, ps.QByteArray]:
         return {role: ps.QByteArray(name) for role, name in self._ROLE_NAMES.items()}
 
-    def rowCount(self, parent: ps.QModelIndex = ps.QModelIndex()) -> int:  # type: ignore[override]
+    def rowCount(self, parent: ps.QModelIndex = ps.QModelIndex()) -> int:
         return len(self._engines_uid)
 
-    def data(self, index: ps.QModelIndex, role: int = ps.Qt.DisplayRole) -> Any:  # type: ignore[override]
+    def data(self, index: ps.QModelIndex, role: int = ps.Qt.DisplayRole) -> Any:
         row = index.row()
         if row < 0 or row >= len(self._engines_uid):
             return None
@@ -389,20 +393,22 @@ class _LanguageModelAdapter(ps.QAbstractListModel):
     _NAME = ps.Qt.UserRole + 1
     _TAG = ps.Qt.UserRole + 2
 
-    def __init__(self, pyqt_language_model: Any, parent: Optional[ps.QObject] = None) -> None:
+    def __init__(
+        self, pyqt_language_model: Any, parent: Optional[ps.QObject] = None
+    ) -> None:
         super().__init__(parent)
         self._languages: List[Tuple[str, str]] = list(pyqt_language_model.languages)
 
-    def roleNames(self) -> Dict[int, ps.QByteArray]:  # type: ignore[override]
+    def roleNames(self) -> Dict[int, ps.QByteArray]:
         return {
             self._NAME: ps.QByteArray(b"name"),
             self._TAG: ps.QByteArray(b"tag"),
         }
 
-    def rowCount(self, parent: ps.QModelIndex = ps.QModelIndex()) -> int:  # type: ignore[override]
+    def rowCount(self, parent: ps.QModelIndex = ps.QModelIndex()) -> int:
         return len(self._languages)
 
-    def data(self, index: ps.QModelIndex, role: int = ps.Qt.DisplayRole) -> Any:  # type: ignore[override]
+    def data(self, index: ps.QModelIndex, role: int = ps.Qt.DisplayRole) -> Any:
         row = index.row()
         if row < 0 or row >= len(self._languages):
             return None
@@ -430,7 +436,9 @@ class _FeatureModelAdapter(ps.QObject):
 
     stateChanged = ps.Signal()
 
-    def __init__(self, pyqt_feature_model: Any, parent: Optional[ps.QObject] = None) -> None:
+    def __init__(
+        self, pyqt_feature_model: Any, parent: Optional[ps.QObject] = None
+    ) -> None:
         super().__init__(parent)
         self._model = pyqt_feature_model
         self._model.stateChanged.connect(self._on_state_changed)
@@ -525,12 +533,14 @@ class PySideSettingsHost:
         # Wire api.setMessage → root.setMessage
         root = view.rootObject()
         if root is not None:
-            def _relay(msg: str, msg_type: str, _root=root) -> None:
+
+            def _relay(msg: str, msg_type: str, _root: Any = root) -> None:
                 try:
                     _root.setMessage.emit(msg, msg_type)
                 except Exception:
                     # If the root Item was destroyed we drop the message.
                     pass
+
             self._setmessage_bridge = _relay
             self._application.api.setMessage.connect(_relay)
 
@@ -546,17 +556,35 @@ class PySideSettingsHost:
         language_model_ad = _LanguageModelAdapter(app.language_model)
         feat_auto_update_ad = _FeatureModelAdapter(app.auto_update_feature_model)
         feat_direct_edit_ad = _FeatureModelAdapter(app.direct_edit_feature_model)
-        feat_direct_transfer_ad = _FeatureModelAdapter(app.direct_transfer_feature_model)
-        feat_document_type_ad = _FeatureModelAdapter(app.document_type_selection_feature_model)
-        feat_tasks_management_ad = _FeatureModelAdapter(app.tasks_management_feature_model)
-        feat_synchronization_ad = _FeatureModelAdapter(app.synchronization_feature_model)
+        feat_direct_transfer_ad = _FeatureModelAdapter(
+            app.direct_transfer_feature_model
+        )
+        feat_document_type_ad = _FeatureModelAdapter(
+            app.document_type_selection_feature_model
+        )
+        feat_tasks_management_ad = _FeatureModelAdapter(
+            app.tasks_management_feature_model
+        )
+        feat_synchronization_ad = _FeatureModelAdapter(
+            app.synchronization_feature_model
+        )
 
-        self._adapters.extend([
-            api_ad, manager_ad, osi_ad, tl_ad,
-            engine_model_ad, language_model_ad,
-            feat_auto_update_ad, feat_direct_edit_ad, feat_direct_transfer_ad,
-            feat_document_type_ad, feat_tasks_management_ad, feat_synchronization_ad,
-        ])
+        self._adapters.extend(
+            [
+                api_ad,
+                manager_ad,
+                osi_ad,
+                tl_ad,
+                engine_model_ad,
+                language_model_ad,
+                feat_auto_update_ad,
+                feat_direct_edit_ad,
+                feat_direct_transfer_ad,
+                feat_document_type_ad,
+                feat_tasks_management_ad,
+                feat_synchronization_ad,
+            ]
+        )
 
         # QObject-backed context properties (adapters)
         context.setContextProperty("api", api_ad)
@@ -568,7 +596,9 @@ class PySideSettingsHost:
         context.setContextProperty("feat_auto_update", feat_auto_update_ad)
         context.setContextProperty("feat_direct_edit", feat_direct_edit_ad)
         context.setContextProperty("feat_direct_transfer", feat_direct_transfer_ad)
-        context.setContextProperty("feat_document_type_selection", feat_document_type_ad)
+        context.setContextProperty(
+            "feat_document_type_selection", feat_document_type_ad
+        )
         context.setContextProperty("feat_tasks_management", feat_tasks_management_ad)
         context.setContextProperty("feat_synchronization", feat_synchronization_ad)
 
@@ -609,7 +639,9 @@ class PySideSettingsHost:
         if Options.system_wide:
             versions += " [admin]"
         context.setContextProperty("modulesVersionText", versions)
-        context.setContextProperty("deviceIdText", f"Device ID: {app.manager.device_id}")
+        context.setContextProperty(
+            "deviceIdText", f"Device ID: {app.manager.device_id}"
+        )
 
         # Colors (copied verbatim from application._fill_qml_context).
         colors = {

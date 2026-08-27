@@ -2402,7 +2402,8 @@ class Application(QApplication):
         """Shows and Hides the refresh button of task window"""
         if self.task_manager_window:
             r_button = self.task_manager_window.findChild(QObject, "refresh")
-            r_button.setProperty("height", height)
+            if r_button:
+                r_button.setProperty("height", height)
 
     def open_task(self, engine: Engine, task_id: str) -> None:
         endpoint = "/ui/#!/tasks/"

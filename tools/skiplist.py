@@ -173,6 +173,8 @@ log_qml  # Used in QML
 
 # Drive application
 Application._workflow_cls  # Set at init, used by workflow dispatch
+PySideSettingsHost  # Retained for the deferred Settings host cleanup
+PySideSettingsHost._setmessage_bridge  # Keeps the QML relay callback alive
 
 # Drive server_type — used via importlib/getattr at runtime
 ServerTypeConfig.direct_edit_class_path  # Dynamic class loading
