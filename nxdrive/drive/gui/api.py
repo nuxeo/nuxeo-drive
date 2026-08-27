@@ -1049,7 +1049,7 @@ class QMLDriveApi(QObject):
         token: Token = None,
         check_fs: bool = True,
     ) -> None:
-        # Arise the settings window to let the user know the error.
+        # Raise the settings window to let the user know the error.
         # Dispatch through Application.show_settings() so the dedicated view
         # is raised instead of the legacy CustomWindow instance.
         self.application.show_settings("Accounts")

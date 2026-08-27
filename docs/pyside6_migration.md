@@ -54,6 +54,8 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 
 - Changed direct test imports and patch targets from PyQt6 to PySide6 or `nxdrive.drive.qt.imports`.
 - Changed the shared test event-loop fixture to create a `QApplication`, preventing a prior `QCoreApplication` singleton from aborting later QWidget tests.
+- Configured the shared `QApplication` fixture to use the offscreen platform on display-less Linux runners.
+- Updated folder-loader functional tests to assert direct Python object storage after removing `QVariant` wrappers.
 - Removed `pyqt6`, `pyqt6-sip`, `PyQt6-Qt6`, and `pyqt6-stubs` from `tools/deps/requirements.txt`.
 - Updated POSIX and Windows installation checks to require PySide6.
 - Removed the Windows deployment workaround that deleted PyQt6 Bluetooth binaries.

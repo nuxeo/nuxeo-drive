@@ -11,6 +11,7 @@ from nxdrive.alfresco.auth.oauth2 import (
     discover_aims_config,
     probe_capabilities,
 )
+from nxdrive.drive.auth.oauth2 import OAuthenticationBase
 
 
 @contextmanager
@@ -765,10 +766,9 @@ class TestAlfrescoOAuthGetToken:
         auth = self._make_auth()
         auth._oauth2_audience = "acs-api"
         auth._dao.get_config.return_value = None
-        base_class = type(auth).__mro__[1]
 
         with patch.object(
-            base_class, "get_token", return_value={"access_token": "a"}
+            OAuthenticationBase, "get_token", return_value={"access_token": "a"}
         ) as get_token, patch("nxdrive.drive.qt.imports.QApplication") as mock_app:
             mock_app.instance.return_value = None
             result = auth.get_token(code_verifier="v", code="c", state="s")

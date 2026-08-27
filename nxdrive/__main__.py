@@ -26,8 +26,7 @@ from nxdrive.drive.utils import adapt_datetime_iso
 # that may have missing DLL dependencies (the Windows style impl DLL is not shipped
 # with PyQt6 nor PySide6 in the same layout).
 # https://stackoverflow.com/questions/79568766/pyqt6-on-windows-qtquickcontrols2windowsstyleimplplugin-dll-the-specified-mod
-# The same env var is honored by both PyQt6 and PySide6 Qt Quick engines, so we
-# set it regardless of the active binding selected via ``NXDRIVE_QT_BINDING``.
+# PySide6's Qt Quick engine honors this environment variable.
 if WINDOWS:
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
