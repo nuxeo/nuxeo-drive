@@ -39,7 +39,7 @@ from nxdrive.drive.qt.imports import (
     QTreeView,
     QVBoxLayout,
     QWidget,
-    pyqtBoundSignal,
+    SignalInstance,
 )
 
 from ..constants import LINUX, MAC, WINDOWS
@@ -209,7 +209,7 @@ class MultiFolderDialog(QDialog):
     def __init__(
         self,
         dark_mode: bool = False,
-        dark_mode_signal: pyqtBoundSignal | None = None,
+        dark_mode_signal: SignalInstance | None = None,
         parent: QDialog | None = None,
     ) -> None:
         super().__init__(parent)

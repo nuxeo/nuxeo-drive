@@ -8,7 +8,7 @@ from nxdrive.drive.client.local.base import FileInfo, LocalClientMixin
 from nxdrive.drive.constants import TransferStatus
 from nxdrive.drive.gui.folders_model import FilteredDoc
 from nxdrive.drive.objects import DocPair, RemoteFileInfo
-from nxdrive.drive.qt.imports import Qt, pyqtBoundSignal
+from nxdrive.drive.qt.imports import Qt, SignalInstance
 
 
 class Mock_Local_Client(LocalClientMixin):
@@ -520,11 +520,11 @@ class Mock_Qt:
         self.changed = self
         self.getLastFiles = self
         self.setEngine = Mock_Emitter()
-        self.setMessage = pyqtBoundSignal
+        self.setMessage = SignalInstance
         self.setSection = Mock_Emitter()
         self.setStatus = self
-        self.updateAvailable = pyqtBoundSignal
-        self.updateProgress = pyqtBoundSignal
+        self.updateAvailable = SignalInstance
+        self.updateProgress = SignalInstance
 
     def addButton(self, *args):
         pass

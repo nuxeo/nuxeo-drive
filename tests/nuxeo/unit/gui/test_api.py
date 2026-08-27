@@ -1690,7 +1690,7 @@ class TestQMLDriveApiJsonDefault:
         )
 
         # Test 12: Verify method signature matches expected Qt slot signature
-        # This test ensures the pyqtSlot decorator parameters match the function signature
+        # This test ensures the Slot decorator parameters match the function signature
         import inspect
 
         sig = inspect.signature(self.api.resume_transfer)

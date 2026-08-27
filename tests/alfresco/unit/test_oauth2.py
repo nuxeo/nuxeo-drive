@@ -32,7 +32,7 @@ def _mock_loopback_dependencies(app, *, start_result=None, start_error=None):
         server.start.return_value = start_result or "http://127.0.0.1:43123/callback"
 
     with patch.object(qt_imports, "QObject", QObject), patch.object(
-        qt_imports, "pyqtSignal", return_value=signal
+        qt_imports, "Signal", return_value=signal
     ), patch.object(qt_imports, "QApplication", qapplication), patch(
         "nxdrive.alfresco.auth.loopback.LoopbackAuthServer", return_value=server
     ):

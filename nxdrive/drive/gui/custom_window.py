@@ -1,7 +1,7 @@
 from typing import Optional
 
 from ..qt import constants as qt
-from ..qt.imports import QKeyEvent, QQuickWindow, QWindow, pyqtSlot
+from ..qt.imports import QKeyEvent, QQuickWindow, QWindow, Slot
 
 
 class CustomWindow(QQuickWindow):
@@ -16,7 +16,7 @@ class CustomWindow(QQuickWindow):
         else:
             super().keyPressEvent(event)
 
-    @pyqtSlot(QWindow.Visibility)
+    @Slot(QWindow.Visibility)
     def _handle_visibility_change(self, visibility: QWindow.Visibility) -> None:
         if visibility == QWindow.Visibility.FullScreen:
             self.showMaximized()

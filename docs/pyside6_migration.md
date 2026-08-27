@@ -1,6 +1,6 @@
 # PySide6 Migration
 
-Last updated: 2026-08-24
+Last updated: 2026-08-27
 
 ## Status
 
@@ -13,7 +13,7 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 ### Core binding
 
 - Switched the top-level exports in `nxdrive/drive/qt/imports.py` from PyQt6 to PySide6.
-- Kept `pyqtSignal`, `pyqtSlot`, `pyqtProperty`, and `pyqtBoundSignal` as compatibility aliases for `Signal`, `Slot`, `Property`, and `SignalInstance`.
+- Replaced the `pyqtSignal`, `pyqtSlot`, `pyqtProperty`, and `pyqtBoundSignal` compatibility aliases and all call sites with PySide6's native `Signal`, `Slot`, `Property`, and `SignalInstance` names.
 - Defined `QT_VERSION_STR` with `qVersion()` because PySide6 does not export `QT_VERSION_STR`.
 - Moved `QFileSystemModel` to its PySide6 module, `QtWidgets`.
 - Removed the unsupported `QVariant` export.
@@ -42,7 +42,7 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 - Converted the overloaded `directEditError` declaration to PySide6 tuple syntax.
 - Registered constructor-connected `Engine` and `Manager` methods as explicit Qt slots.
 - Aligned `Engine._check_sync_start` with the positional object emitted by its queue signal.
-- Replaced the stacked `@pyqtSlot()`/`@if_frozen` decorators on the update notification callback with an in-slot frozen guard. Frozen builds converted the decorated callback to a `MetaFunction`, causing `Signal.connect()` to fail during startup after metrics consent.
+- Replaced the stacked `@Slot()`/`@if_frozen` decorators on the update notification callback with an in-slot frozen guard. Frozen builds converted the decorated callback to a `MetaFunction`, causing `Signal.connect()` to fail during startup after metrics consent.
 - Disabled automatic Accounts Settings display during startup. Both constructor-time and event-loop-deferred `QWindow.show()` calls crashed frozen macOS builds in QV4 while evaluating the nested Settings QML window. Startup now continues so the systray remains available while Settings presentation is migrated separately.
 - Registered the tray activation, systray focus-change, and custom-window visibility callbacks as explicit PySide6 slots. Frozen macOS builds crashed in `callPythonMetaMethod` when clicking the tray icon and focusing the QML window while these native signal targets were plain Python methods.
 - Replaced the Windows-only five-`QQuickView` startup path with the shared `QQmlApplicationEngine`/`Main.qml` architecture and `QQuickWindow` subclasses. Frozen Windows stopped in the first `QQuickView.setSource(Conflicts.qml)` while its separate QML engine interacted with the Python translator.
@@ -60,7 +60,7 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 
 ## Compatibility decisions
 
-- Keep the existing `pyqt*` names as aliases for now. Renaming every call site would add churn without changing behavior.
+- Use PySide6's native `Signal`, `Slot`, `Property`, and `SignalInstance` names throughout the application.
 - Do not add a second `QApplication`, QML engine, or cross-binding adapters for Direct Transfer. All connected Qt objects use PySide6.
 - Keep `pyside_settings_host.py` temporarily for follow-up cleanup, but do not instantiate it. Loading a second `Settings.qml` engine in a frozen build can deadlock while its QML worker waits for the GIL in the Python `QTranslator` override.
 

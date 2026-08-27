@@ -11,7 +11,7 @@ from nxdrive.drive.gui.custom_window import CustomWindow
 from nxdrive.drive.gui.application import Application
 from nxdrive.drive.gui.systray import DriveSystrayIcon, SystrayWindow
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import QObject, Qt, pyqtSignal
+from nxdrive.drive.qt.imports import QObject, Qt, Signal
 
 
 class ApplicationMethodHost:
@@ -114,7 +114,7 @@ def test_init_checks_does_not_show_accounts_during_startup():
 @Options.mock()
 def test_update_notification_slot_connects_and_honors_frozen_guard(monkeypatch):
     class Sender(QObject):
-        updateAvailable = pyqtSignal()
+        updateAvailable = Signal()
 
     class Receiver(QObject):
         _update_notification = Application._update_notification

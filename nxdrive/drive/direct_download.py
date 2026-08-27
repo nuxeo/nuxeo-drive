@@ -23,7 +23,7 @@ from nxdrive.drive.constants import APP_NAME, DirectDownloadStatus
 from nxdrive.drive.engine.workers import Worker
 from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import pyqtSignal, pyqtSlot
+from nxdrive.drive.qt.imports import Signal, Slot
 from nxdrive.drive.utils import simplify_url
 
 if TYPE_CHECKING:
@@ -88,14 +88,14 @@ class DirectDownload(Worker):
     """
 
     # Signals for download events
-    downloadStarting = pyqtSignal(str, str)  # filename, server_url
-    downloadCompleted = pyqtSignal(str, str)  # filename, file_path
-    downloadError = pyqtSignal(str, str)  # filename, error message
-    downloadProgress = pyqtSignal(
+    downloadStarting = Signal(str, str)  # filename, server_url
+    downloadCompleted = Signal(str, str)  # filename, file_path
+    downloadError = Signal(str, str)  # filename, error message
+    downloadProgress = Signal(
         dict
     )  # Progress update: {uid, progress, bytes_downloaded}
-    batchStarting = pyqtSignal(int)  # number of documents in batch
-    batchCompleted = pyqtSignal(int, int)  # successful count, failed count
+    batchStarting = Signal(int)  # number of documents in batch
+    batchCompleted = Signal(int, int)  # successful count, failed count
 
     def __init__(
         self,
@@ -250,7 +250,7 @@ class DirectDownload(Worker):
 
     # ------------------------------------------------------------------ download slot
 
-    @pyqtSlot(list)
+    @Slot(list)
     def download(self, documents: List[Dict[str, str]], /) -> None:
         """
         Handle direct download request for one or more documents.

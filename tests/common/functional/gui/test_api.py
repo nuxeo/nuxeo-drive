@@ -146,7 +146,7 @@ class TestQMLDriveApi:
             assert result["state"] == "formatted"
 
     def test_pyqt_slots_exist(self):
-        """Test that pyqtSlot methods exist on the class."""
+        """Test that Slot methods exist on the class."""
         # Test that the class has the expected slot methods without instantiating
         # (since instantiation would require Qt objects)
 
@@ -154,7 +154,7 @@ class TestQMLDriveApi:
         with patch("nxdrive.drive.gui.api.QObject"):  # Mock the base class
             from nxdrive.drive.gui.api import QMLDriveApi
 
-            # Verify important slot methods exist (these actually have @pyqtSlot decorators)
+            # Verify important slot methods exist (these actually have @Slot decorators)
             assert hasattr(QMLDriveApi, "get_last_files")
             assert hasattr(QMLDriveApi, "get_last_files_count")
             assert hasattr(QMLDriveApi, "to_local_file")
@@ -164,7 +164,7 @@ class TestQMLDriveApi:
             assert hasattr(QMLDriveApi, "get_update_status")
             assert hasattr(QMLDriveApi, "app_update")
 
-            # Methods without @pyqtSlot decorator but that exist
+            # Methods without @Slot decorator but that exist
             assert hasattr(QMLDriveApi, "get_transfers")
             assert hasattr(QMLDriveApi, "get_direct_transfer_items")
 

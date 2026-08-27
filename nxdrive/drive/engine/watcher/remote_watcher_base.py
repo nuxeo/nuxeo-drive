@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from nxdrive.drive.engine.workers import EngineWorker
 from nxdrive.drive.exceptions import ThreadInterrupt
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import pyqtSignal
+from nxdrive.drive.qt.imports import Signal
 
 if TYPE_CHECKING:
     from nxdrive.drive.dao.engine import EngineDAO
@@ -24,10 +24,10 @@ __all__ = ("RemoteWatcherBase",)
 class RemoteWatcherBase(EngineWorker):
     """Shared base for remote watchers across all server types."""
 
-    initiate = pyqtSignal()
-    updated = pyqtSignal()
-    remoteScanFinished = pyqtSignal()
-    remoteWatcherStopped = pyqtSignal()
+    initiate = Signal()
+    updated = Signal()
+    remoteScanFinished = Signal()
+    remoteWatcherStopped = Signal()
 
     def __init__(self, engine: "EngineWorker", dao: "EngineDAO", name: str, /) -> None:
         super().__init__(engine, dao, name)

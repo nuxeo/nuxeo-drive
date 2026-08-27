@@ -5,8 +5,7 @@ Primary binding: **PySide6**. All top-level names re-exported by this module
 come from PySide6 and drive the entire application (systray, sync engines,
 workers, Direct Transfer, Direct Edit, task manager, and every other window).
 
-The legacy ``pyqt*`` names remain aliases so binding-independent application
-modules can migrate without mechanical signal, slot, and property renames.
+Native PySide6 signal, slot, and property names are exported directly.
 The ``PySide`` namespace at the bottom remains available to the settings host
 until its now-redundant adapter layer is removed separately.
 """
@@ -34,10 +33,10 @@ from PySide6.QtCore import (
     QTimer,
     QTranslator,
     QUrl,
-    Property as pyqtProperty,
-    Signal as pyqtSignal,
-    SignalInstance as pyqtBoundSignal,
-    Slot as pyqtSlot,
+    Property,
+    Signal,
+    SignalInstance,
+    Slot,
     qVersion,
 )
 from PySide6.QtGui import (
@@ -231,9 +230,9 @@ __all__ = (
     "QWidget",
     "QWindow",
     "Qt",
-    "pyqtBoundSignal",
-    "pyqtProperty",
-    "pyqtSignal",
-    "pyqtSlot",
+    "Property",
+    "Signal",
+    "SignalInstance",
+    "Slot",
     "qmlRegisterType",
 )

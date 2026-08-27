@@ -13,7 +13,7 @@ from ..engine.workers import PollWorker
 from ..feature import Feature
 from ..metrics.utils import user_agent
 from ..options import Options
-from ..qt.imports import QApplication, pyqtSignal, pyqtSlot
+from ..qt.imports import QApplication, Signal, Slot
 from ..version import version_lt
 from . import UpdateError, UpdateIntegrityError
 from .constants import (
@@ -40,22 +40,22 @@ class BaseUpdater(PollWorker):
     """Updater class for frozen application."""
 
     # Used to trigger the application exit on successful update
-    appUpdated = pyqtSignal()
+    appUpdated = Signal()
 
     # Used to display a notification when a new version is available
-    updateAvailable = pyqtSignal()
+    updateAvailable = Signal()
 
     # Used to refresh the update progress bar in the systray
-    updateProgress = pyqtSignal(int)
+    updateProgress = Signal(int)
 
     # Used when the server doesn't have the new browser login
-    serverIncompatible = pyqtSignal()
+    serverIncompatible = Signal()
 
     # Used when on a version that exists only in another channel
-    wrongChannel = pyqtSignal()
+    wrongChannel = Signal()
 
     # Used to alert the user there is no more space to update the app
-    noSpaceLeftOnDevice = pyqtSignal()
+    noSpaceLeftOnDevice = Signal()
 
     versions: Dict[str, Any] = {}
 
@@ -148,7 +148,7 @@ class BaseUpdater(PollWorker):
         if self.enable:
             self._poll()
 
-    @pyqtSlot(str)
+    @Slot(str)
     def update(self, version: str, /) -> None:
         log.info(f"Starting application update process to version {version!r}")
         self._set_status(UPDATE_STATUS_UPDATING, version=version, progress=10)
@@ -394,7 +394,7 @@ class BaseUpdater(PollWorker):
         if computed != checksum:
             raise UpdateIntegrityError(filename, algo, checksum, computed)
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def _poll(self) -> bool:
         if not Feature.auto_update:
             log.debug("The auto-update feature is disabled.")

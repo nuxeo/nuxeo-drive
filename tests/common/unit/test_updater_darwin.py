@@ -160,7 +160,7 @@ def test_restart_launches_and_emits(monkeypatch):
 
     u = make_updater()
     u.final_app = Path("/Applications/Fake.app")
-    # Replace the pyqtSignal with a simple object having an emit method
+    # Replace the Signal with a simple object having an emit method
     u.appUpdated = SimpleNamespace(emit=fake_emit)
 
     u._restart()

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
 from nxdrive.drive.engine.workers import EngineWorker
 from nxdrive.drive.objects import DocPair
-from nxdrive.drive.qt.imports import pyqtSignal
+from nxdrive.drive.qt.imports import Signal
 
 if TYPE_CHECKING:
     from nxdrive.drive.engine.engine import Engine
@@ -23,8 +23,8 @@ __all__ = ("Processor",)
 class Processor(EngineWorker):
     """Base processor — subclass in each server-type package."""
 
-    pairSyncStarted = pyqtSignal(object)
-    pairSyncEnded = pyqtSignal(object)
+    pairSyncStarted = Signal(object)
+    pairSyncEnded = Signal(object)
 
     path_locker = Lock()
     soft_locks: Dict[str, Dict[Path, bool]] = {}

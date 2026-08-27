@@ -419,7 +419,7 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         """Boot the loopback HTTP server and wire it to Qt.
 
         Creates a lightweight :class:`QObject` bridge on the Qt main
-        thread and connects its ``pyqtSignal(dict)`` to
+        thread and connects its ``Signal(dict)`` to
         ``QMLDriveApi.continue_oauth2_flow``. The signal is emitted
         from the loopback server's worker thread — Qt's automatic
         connection upgrades this to a queued call so the OAuth2 flow
@@ -435,7 +435,7 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         to the IdP as ``redirect_uri``.
         """
         from nxdrive.alfresco.auth.loopback import LoopbackAuthServer
-        from nxdrive.drive.qt.imports import QApplication, QObject, pyqtSignal
+        from nxdrive.drive.qt.imports import QApplication, QObject, Signal
 
         app = QApplication.instance()
         api = getattr(app, "api", None) if app is not None else None
@@ -449,7 +449,7 @@ class AlfrescoOAuthentication(OAuthenticationBase):
         _release_loopback_state(api)
 
         class _CallbackBridge(QObject):
-            callback_received = pyqtSignal(dict)
+            callback_received = Signal(dict)
 
         bridge = _CallbackBridge()
         # AutoConnection → QueuedConnection at emit time because the
