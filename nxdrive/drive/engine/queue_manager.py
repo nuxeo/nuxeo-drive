@@ -1,5 +1,4 @@
 import time
-from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from queue import Empty, Queue
@@ -70,6 +69,7 @@ class QueueManager(QObject):
         self._error_interval = 60
         self.set_max_processors(max_file_processors)
         self._processors_pool: List[QThread] = []
+        self._processors_initialized = False
         self._get_file_lock = Lock()
         # Should not operate on thread while we are inspecting them
         """
@@ -100,14 +100,16 @@ class QueueManager(QObject):
 
     def init_processors(self) -> None:
         log.debug("Init processors")
-        self.newItem.connect(self.launch_processors)
+        if not self._processors_initialized:
+            self.newItem.connect(self.launch_processors)
+            self._processors_initialized = True
         self.queueProcessing.emit()
 
     def shutdown_processors(self) -> None:
         log.debug("Shutdown processors")
-        with suppress(TypeError):
-            # TypeError: disconnect() failed between 'newItem' and 'launch_processors'
+        if self._processors_initialized:
             self.newItem.disconnect(self.launch_processors)
+            self._processors_initialized = False
 
     def set_max_processors(self, max_file_processors: int, /) -> None:
         if max_file_processors < 2:

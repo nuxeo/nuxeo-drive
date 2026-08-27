@@ -253,7 +253,10 @@ def app():
     """
     from nxdrive.drive.qt.imports import QApplication, QTimer
 
-    app = QApplication.instance() or QApplication([])
+    app = QApplication.instance()
+    owns_app = app is None
+    if owns_app:
+        app = QApplication([])
 
     # Little trick here! See Application.__init__() for details.
     timer = QTimer()
@@ -263,3 +266,5 @@ def app():
     yield app
 
     timer.stop()
+    if owns_app:
+        app.shutdown()
