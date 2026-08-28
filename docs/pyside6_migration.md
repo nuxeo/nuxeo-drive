@@ -56,6 +56,9 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 - Changed the shared test event-loop fixture to create a `QApplication`, preventing a prior `QCoreApplication` singleton from aborting later QWidget tests.
 - Configured the shared `QApplication` fixture to use the offscreen platform on display-less Linux runners.
 - Made the shared `QApplication` fixture session-scoped because PySide6 can abort when a process repeatedly creates and shuts down application singletons. Functional `Application` method tests use a `QObject` host backed by the shared application instead of constructing a second singleton.
+- Made the session `QApplication` fixture autouse on Linux so it is created before functional tests start manager worker threads. Windows and macOS keep lazy creation, which preserves their passing lifecycle behavior.
+- Changed the functional `Application` method host to use an engine-free manager, mock its native QML engine, and isolate manager worker factories. The one broad test that needs a real account attaches its own manager and engine explicitly. This avoids constructing a complete Qt worker and account graph for every dialog-level assertion.
+- Added deterministic deferred deletion for the functional method host and its mocked QML application engine between tests.
 - Isolated background worker factories in macOS `Application` integration tests so short-lived `Manager` fixtures do not accumulate native Qt threads; fixtures that create real managers also close them explicitly.
 - Updated synchronous Direct Edit functional tests to request direct signal delivery when no Qt event loop is running.
 - Made QueueManager processor signal setup and teardown idempotent so PySide6 does not warn when shutdown occurs before initialization.
@@ -89,6 +92,9 @@ Passed:
 - Offscreen load of `Main.qml` with the real registered `CustomWindow` and `SystrayWindow` types; one `QQmlApplicationEngine` created all five named application windows.
 - Complete common, Nuxeo, and Alfresco unit matrix under offscreen PySide6.
 - 126 Direct Download functional tests passed with the session-scoped shared `QApplication`.
+- All 22 `tests/nuxeo/functional/gui/test_application.py` tests pass with the engine-free method host under the CI `--dist=loadscope` strategy.
+- The complete common and Nuxeo functional scope reached 100% without a native Qt abort after the fixture changes. One unrelated macOS failure remains in `test_manager_account_addition_same_folder_used`: the test deliberately removes an engine database before `Manager.close()`, then Direct Download cleanup queries that missing database and raises `sqlite3.OperationalError: disk I/O error`.
+- CI run for head `6b5f7b0` established the platform baseline: macOS passed all 722 functional tests; Linux aborted when the lazy fixture first constructed `QApplication`; Windows overflowed while the repeated method host initialized its live engine. The Linux eager fixture and engine-free method host directly address those two failing paths.
 - QueueManager functional tests passed (85 passed, 1 skipped) without PySide6 disconnect warnings.
 - Python compilation and focused flake8 validation for migration files.
 - Source scan: no executable PyQt6 imports remain under `nxdrive`, `tests`, or `tools`.

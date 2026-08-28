@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from nuxeo.models import Document
 
+from nxdrive.drive import manager as manager_module
 from nxdrive.drive.client.workflow import Workflow
 from nxdrive.drive.constants import WINDOWS
 from nxdrive.drive.dao.engine import EngineDAO
@@ -15,8 +16,16 @@ from nxdrive.drive.gui.application import Application
 from nxdrive.drive.gui.folders_dialog import FoldersDialog
 from nxdrive.drive.gui.folders_loader import ContentLoaderMixin
 from nxdrive.drive.gui.folders_treeview import FolderTreeView
+from nxdrive.drive.manager import Manager
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import QModelIndex, QObject, Qt, Signal
+from nxdrive.drive.qt.imports import (
+    QCoreApplication,
+    QEvent,
+    QModelIndex,
+    QObject,
+    Qt,
+    Signal,
+)
 from nxdrive.nuxeo.gui.folders_model import Doc, FilteredDoc, FoldersOnly
 from tests.common.functional.mocked_classes import (
     Mock_Document_API,
@@ -31,6 +40,25 @@ from ....markers import not_linux, not_windows
 
 # Save reference to the real method before the app_obj fixture patches it out
 _real_show_metrics_acceptance = Application.show_metrics_acceptance
+
+
+@pytest.fixture(autouse=True)
+def isolate_manager_workers(monkeypatch):
+    """Keep method-level tests from accumulating native Qt worker threads."""
+
+    def worker(*_args, **_kwargs):
+        return MagicMock(first_run=False)
+
+    monkeypatch.setattr(Manager, "_create_server_config_updater", worker)
+    monkeypatch.setattr(Manager, "_create_updater", worker)
+    monkeypatch.setattr(Manager, "_create_db_backup_worker", lambda self: None)
+    monkeypatch.setattr(Manager, "create_sentry_metrics", worker)
+    monkeypatch.setattr(Manager, "_create_extension_listener", lambda self: None)
+    monkeypatch.setattr(manager_module, "SyncAndQuitWorker", worker)
+    monkeypatch.setattr(Manager, "_create_autolock_service", worker)
+    monkeypatch.setattr(Manager, "_create_direct_edit", lambda self: None)
+    monkeypatch.setattr(Manager, "_create_direct_download", lambda self: None)
+    monkeypatch.setattr(Manager, "_create_workflow_worker", lambda self: None)
 
 
 class ApplicationMethodHost(QObject):
@@ -529,11 +557,10 @@ class TestApplicationIntegration:
 
 @pytest.fixture
 def app_obj(app, manager_factory):
-    manager, engine = manager_factory()
     mock_qt = Mock_Qt()
     with patch(
-        "PySide6.QtQml.QQmlApplicationEngine.rootObjects"
-    ) as mock_root_objects, patch(
+        "nxdrive.drive.gui.application.QQmlApplicationEngine"
+    ) as mock_app_engine, patch(
         "PySide6.QtCore.QObject.findChild"
     ) as mock_find_child, patch(
         "nxdrive.drive.gui.application.Application.init_nxdrive_listener"
@@ -550,7 +577,7 @@ def app_obj(app, manager_factory):
     ) as mock_exec, patch(
         "nxdrive.drive.gui.application.Application.question"
     ) as mock_question:
-        mock_root_objects.return_value = [QObject()]
+        mock_app_engine.return_value.rootObjects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
         mock_show_metrics.return_value = None
@@ -559,6 +586,7 @@ def app_obj(app, manager_factory):
         mock_run.return_value = None
         mock_exec.return_value = None
         mock_question.return_value = None
+        manager = manager_factory(with_engine=False)
         application = ApplicationMethodHost(app)
         application.manager = manager
         application.osi = manager.osi
@@ -577,7 +605,12 @@ def app_obj(app, manager_factory):
         manager.application = application
 
         application._init_translator()
-        application.init_gui()
+        engines = manager.engines
+        manager.engines = {}
+        try:
+            application.init_gui()
+        finally:
+            manager.engines = engines
         application.setup_systray()
         application.added_user_engine_list = [str]
         application.workflow = None
@@ -591,6 +624,12 @@ def app_obj(app, manager_factory):
         if hasattr(application, "app_engine"):
             application.app_engine.deleteLater()
             del application.app_engine
+        manager.application = None
+        manager.close()
+        manager.deleteLater()
+        application.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        app.processEvents()
 
 
 @not_linux(reason="Qt does not work correctly on linux")
@@ -601,6 +640,10 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
 
     app = app_obj
     manager, engine = manager_factory()
+    app.manager = manager
+    app.osi = manager.osi
+    manager.application = app
+    app.add_engines([engine])
     mock_qt = Mock_Qt()
     # Covering update_workflow
     assert app.update_workflow() is None

@@ -245,7 +245,7 @@ def server(nuxeo_url):
     return server
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=sys.platform.startswith("linux"))
 def app():
     """
     Fixture required to be able to process Qt events and quit smoothly the application.
