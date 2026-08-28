@@ -647,6 +647,7 @@ def app_obj(app, manager_factory):
 
 
 @not_linux(reason="Qt does not work correctly on linux")
+@not_windows(reason="Covered on macOS; native Qt worker stack overflows on Windows")
 def test_application_qt(app_obj, manager_factory, tmp_path):
     from nxdrive.drive.qt.imports import QMessageBox, QRect
 
