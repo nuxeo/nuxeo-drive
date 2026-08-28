@@ -54,10 +54,10 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 
 - Changed direct test imports and patch targets from PyQt6 to PySide6 or `nxdrive.drive.qt.imports`.
 - Changed the shared test event-loop fixture to create a `QApplication`, preventing a prior `QCoreApplication` singleton from aborting later QWidget tests.
-- Configured the shared `QApplication` fixture to use the offscreen platform on display-less Linux runners.
+- Configured the shared `QApplication` fixture to use the offscreen platform on Linux runners, including CI jobs that provide an Xvfb display. The functional suite does not require an X11-backed Qt platform plugin.
 - Made the shared `QApplication` fixture session-scoped because PySide6 can abort when a process repeatedly creates and shuts down application singletons. Functional `Application` method tests use a `QObject` host backed by the shared application instead of constructing a second singleton.
 - Made the session `QApplication` fixture autouse on Linux so it is created before functional tests start manager worker threads. Windows and macOS keep lazy creation, which preserves their passing lifecycle behavior.
-- Changed the functional `Application` method host to use an engine-free manager, mock its native QML engine, and isolate manager worker factories. The one broad test that needs a real account attaches its own manager and engine explicitly. This avoids constructing a complete Qt worker and account graph for every dialog-level assertion.
+- Changed the functional `Application` method host to use an engine-free manager, mock its native QML engine, and isolate manager worker factories. The one broad test that needs a real account attaches its own manager and engine explicitly while its queue manager and local/remote watcher factories are isolated. This preserves the real DAO, binder, remote client, and signals without creating synchronization workers.
 - Added deterministic deferred deletion for the functional method host and its mocked QML application engine between tests.
 - Isolated background worker factories in macOS `Application` integration tests so short-lived `Manager` fixtures do not accumulate native Qt threads; fixtures that create real managers also close them explicitly.
 - Updated synchronous Direct Edit functional tests to request direct signal delivery when no Qt event loop is running.
@@ -94,7 +94,8 @@ Passed:
 - 126 Direct Download functional tests passed with the session-scoped shared `QApplication`.
 - All 22 `tests/nuxeo/functional/gui/test_application.py` tests pass with the engine-free method host under the CI `--dist=loadscope` strategy.
 - The complete common and Nuxeo functional scope reached 100% without a native Qt abort after the fixture changes. One unrelated macOS failure remains in `test_manager_account_addition_same_folder_used`: the test deliberately removes an engine database before `Manager.close()`, then Direct Download cleanup queries that missing database and raises `sqlite3.OperationalError: disk I/O error`.
-- CI run for head `6b5f7b0` established the platform baseline: macOS passed all 722 functional tests; Linux aborted when the lazy fixture first constructed `QApplication`; Windows overflowed while the repeated method host initialized its live engine. The Linux eager fixture and engine-free method host directly address those two failing paths.
+- CI run for head `6b5f7b0` established the platform baseline: macOS passed all 722 functional tests; Linux aborted when the lazy fixture first constructed `QApplication`; Windows overflowed while the repeated method host initialized its live engine.
+- CI run for head `02e927a` refined both diagnoses. Linux still aborted at session-start `QApplication` construction because Xvfb caused Qt to select XCB instead of the tested offscreen plugin. Windows passed the engine-free fixture setup but overflowed when `test_application_qt` attached its one real engine, which still created queue and watcher workers. macOS passed through the affected application module and was manually cancelled later at 70%.
 - QueueManager functional tests passed (85 passed, 1 skipped) without PySide6 disconnect warnings.
 - Python compilation and focused flake8 validation for migration files.
 - Source scan: no executable PyQt6 imports remain under `nxdrive`, `tests`, or `tools`.

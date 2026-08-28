@@ -26,6 +26,7 @@ from nxdrive.drive.qt.imports import (
     Qt,
     Signal,
 )
+from nxdrive.nuxeo.engine.engine import Engine as NuxeoEngine
 from nxdrive.nuxeo.gui.folders_model import Doc, FilteredDoc, FoldersOnly
 from tests.common.functional.mocked_classes import (
     Mock_Document_API,
@@ -59,6 +60,19 @@ def isolate_manager_workers(monkeypatch):
     monkeypatch.setattr(Manager, "_create_direct_edit", lambda self: None)
     monkeypatch.setattr(Manager, "_create_direct_download", lambda self: None)
     monkeypatch.setattr(Manager, "_create_workflow_worker", lambda self: None)
+
+    def queue_manager(engine):
+        engine.queue_manager = MagicMock()
+
+    def local_watcher(engine):
+        engine._local_watcher = MagicMock()
+
+    def remote_watcher(engine):
+        engine._remote_watcher = MagicMock()
+
+    monkeypatch.setattr(Engine, "_create_queue_manager", queue_manager)
+    monkeypatch.setattr(Engine, "_create_local_watcher", local_watcher)
+    monkeypatch.setattr(NuxeoEngine, "_create_remote_watcher", remote_watcher)
 
 
 class ApplicationMethodHost(QObject):

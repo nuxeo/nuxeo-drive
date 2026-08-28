@@ -36,8 +36,8 @@ sqlite3.register_adapter(datetime, adapt_datetime_iso)
 if sys.platform == "win32":
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
-# QApplication selects its platform plugin when it is first created.
-if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
+# Functional tests do not need an X11-backed Qt platform plugin.
+if sys.platform.startswith("linux"):
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 
