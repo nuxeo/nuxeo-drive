@@ -210,6 +210,36 @@ def cleanup_attrs(request):
         delattr(test_case, attr)
 
 
+@pytest.fixture(autouse=True)
+def cleanup_qt_workers(monkeypatch):
+    """Stop every native Qt worker created by the current test."""
+    from nxdrive.drive.engine.workers import Worker
+
+    workers = []
+    worker_init = Worker.__init__
+
+    def tracked_init(worker, *args, **kwargs):
+        worker_init(worker, *args, **kwargs)
+        workers.append(worker)
+
+    monkeypatch.setattr(Worker, "__init__", tracked_init)
+
+    yield
+
+    for worker in reversed(workers):
+        try:
+            thread = worker.thread
+            worker.stop()
+            if thread.isRunning():
+                thread.wait(5000)
+            if thread.isRunning():
+                thread.terminate()
+                thread.wait(5000)
+        except RuntimeError:
+            # The owning QObject may already have deleted the worker wrapper.
+            pass
+
+
 @pytest.fixture(scope="session")
 def version() -> str:
     import nxdrive
