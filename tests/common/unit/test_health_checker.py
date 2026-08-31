@@ -24,7 +24,7 @@ def test_crash(caplog, tmp_path):
     assert not file.is_file()
 
     # Mimic a crash, it must escape HealthCheck.__exit__() brutally
-    th = threading.Thread(target=thread, args=(tmp_path,))
+    th = threading.Thread(target=thread, args=(tmp_path,), daemon=True)
     th.start()
     time.sleep(1)
 
