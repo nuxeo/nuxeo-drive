@@ -61,14 +61,20 @@ def pytest_configure(config):
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session, exitstatus):
     """
-    Force immediate process exit after session ends.
+    Force immediate process exit after session ends on non-Windows platforms.
 
     Qt objects (QApplication, widgets) left alive at interpreter shutdown
     trigger a segfault (SIGSEGV / exit -11) during Python GC/cleanup.
     os._exit() skips interpreter teardown and avoids the crash while
     preserving the correct exit code. pytest-cov and other trylast hooks
     have already run by this point, so coverage reports are intact.
+
+    On Windows, os._exit() itself can trigger an access violation in the
+    PySide6 runtime, so let pytest return normally after fixture cleanup.
     """
+    if sys.platform == "win32":
+        return
+
     os._exit(int(exitstatus))
 
 

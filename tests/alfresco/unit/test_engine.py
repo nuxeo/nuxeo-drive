@@ -50,14 +50,14 @@ def _make_engine(**overrides):
 
 
 def _make_binder(**overrides):
-    defaults = dict(
-        url="https://acs.example.com/",
-        username="admin",
-        password="secret",
-        token=None,
-        no_check=False,
-        no_fscheck=True,
-    )
+    defaults = {
+        "url": "https://acs.example.com/",
+        "username": "admin",
+        "password": "secret",
+        "token": None,
+        "no_check": False,
+        "no_fscheck": True,
+    }
     defaults.update(overrides)
     return Binder(**defaults)
 
@@ -148,7 +148,7 @@ class TestCheckSyncStart:
     def test_emits_when_queue_nonempty(self):
         engine = _make_engine(_sync_started=False)
         engine.queue_manager.get_overall_size.return_value = 5
-        engine._check_sync_start()
+        engine._check_sync_start("row-id")
         assert engine._sync_started is True
         engine.syncStarted.emit.assert_called_once_with(5)
 

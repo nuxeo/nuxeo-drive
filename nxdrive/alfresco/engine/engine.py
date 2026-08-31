@@ -160,7 +160,7 @@ class AlfrescoEngine(Engine):
     # -- Sync state tracking -------------------------------------------------
 
     @Slot(object)
-    def _check_sync_start(self, *, row_id: str = None) -> None:
+    def _check_sync_start(self, row_id: str = None) -> None:
         if not self._sync_started:
             queue_size = self.queue_manager.get_overall_size()
             if queue_size > 0:
