@@ -1,15 +1,12 @@
 """Qt fixtures shared by GUI unit tests."""
 
 import os
-import sys
 
 import pytest
 
-# Unit tests run without a display on Linux CI. The platform plugin is selected
-# when QApplication is created, so setting this before importing it is enough
-# even though other PyQt modules may already have been imported.
-if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+# GUI unit tests do not require a native window-system integration. Select the
+# platform before importing Qt so native windows cannot restore OS session state.
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from nxdrive.drive.qt.imports import QApplication  # noqa: E402
 

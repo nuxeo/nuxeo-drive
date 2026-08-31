@@ -36,6 +36,10 @@ sqlite3.register_adapter(datetime, adapt_datetime_iso)
 if sys.platform == "win32":
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
+if sys.platform == "darwin":
+    os.environ.setdefault("ApplePersistenceIgnoreState", "YES")
+    os.environ.setdefault("NSQuitAlwaysKeepsWindows", "NO")
+
 # Functional tests do not need an X11-backed Qt platform plugin.
 if sys.platform.startswith("linux"):
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")

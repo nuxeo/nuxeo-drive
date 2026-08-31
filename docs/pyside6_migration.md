@@ -63,6 +63,12 @@ This file is the migration ledger. Update it whenever another PySide6 migration 
 - Updated synchronous Direct Edit functional tests to request direct signal delivery when no Qt event loop is running.
 - Made QueueManager processor signal setup and teardown idempotent so PySide6 does not warn when shutdown occurs before initialization.
 - Updated folder-loader functional tests to assert direct Python object storage after removing `QVariant` wrappers.
+- Added real PySide6 constructor and lifecycle unit tests for `CustomWindow`,
+`SystrayWindow`, `DriveSystrayIcon`, and the process-wide `Application`. Added complete
+branch coverage for `Application._shutdown()` and `Application.init_workflow()`.
+- Forced GUI unit tests onto Qt's offscreen platform and disabled macOS Python window
+state restoration in the test process. This prevents native test windows and prior
+Python crashes from opening an interactive Reopen/Don't Reopen prompt.
 - Removed `pyqt6`, `pyqt6-sip`, `PyQt6-Qt6`, and `pyqt6-stubs` from `tools/deps/requirements.txt`.
 - Updated POSIX and Windows installation checks to require PySide6.
 - Removed the Windows deployment workaround that deleted PyQt6 Bluetooth binaries.
@@ -99,6 +105,12 @@ Passed:
 - The broad `test_application_qt` integration test is skipped on Windows as a final fallback after repeated native stack overflows. Its behavior remains covered on macOS, Linux already excludes it because Qt is unsupported there, and all other Windows Application tests continue to run.
 - QueueManager functional tests passed (85 passed, 1 skipped) without PySide6 disconnect warnings.
 - Python compilation and focused flake8 validation for migration files.
+- Focused GUI coverage runs: 169 unit tests, 34 functional tests, and 236 method-level
+integration tests passed. Stable combined unit and integration data raised
+`application.py` to 95%, `custom_window.py` to 100%, and `systray.py` to 94%; the
+remaining systray misses are its non-runtime `TYPE_CHECKING` import and focus-change
+callback lines covered by the separate functional tests. `Application.__init__`,
+`_shutdown`, and `init_workflow` each reached 100% statement coverage.
 - Source scan: no executable PyQt6 imports remain under `nxdrive`, `tests`, or `tools`.
 
 The editor still reports pre-existing typing issues in `folders_dialog.py` and platform-conditional Windows code in `multi_folder_dialog.py`; the PySide6-specific `QDateTime` diagnostic was resolved.
