@@ -8,7 +8,6 @@ from nxdrive.drive.options import Options
 from nxdrive.drive.qt.imports import QApplication
 from tests.markers import not_linux
 
-
 _APPLICATIONS = []
 
 

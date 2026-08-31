@@ -55,7 +55,9 @@ def test_small_window_translation_and_dialog_helpers(monkeypatch):
     assert application.translate("MESSAGE", values=["value"]) == "translated"
 
     message_box = Mock()
-    monkeypatch.setattr(application_module, "QMessageBox", Mock(return_value=message_box))
+    monkeypatch.setattr(
+        application_module, "QMessageBox", Mock(return_value=message_box)
+    )
     result = application._msgbox(
         icon=qt.Warning,
         title="Title",
@@ -122,9 +124,13 @@ def test_exit_center_and_engine_list_helpers(monkeypatch):
     good_widget.close.assert_called_once_with()
     application.quit.assert_called_once_with()
 
-    monkeypatch.setattr(application_module.QApplication, "screenAt", Mock(return_value=screen))
+    monkeypatch.setattr(
+        application_module.QApplication, "screenAt", Mock(return_value=screen)
+    )
     monkeypatch.setattr(application_module.QCursor, "pos", Mock(return_value=object()))
-    monkeypatch.setattr(application_module.QStyle, "alignedRect", Mock(return_value=geometry))
+    monkeypatch.setattr(
+        application_module.QStyle, "alignedRect", Mock(return_value=geometry)
+    )
     application._center_on_screen(window)
     assert application._show_window.call_count == 2
     window.setGeometry.assert_called_once_with(geometry)
@@ -134,7 +140,10 @@ def test_exit_center_and_engine_list_helpers(monkeypatch):
     application.add_engines([])
     application.add_engines(first)
     application.add_engines([second])
-    assert application.engine_model.addEngine.call_args_list == [call("one"), call("two")]
+    assert application.engine_model.addEngine.call_args_list == [
+        call("one"),
+        call("two"),
+    ]
 
 
 def test_update_workflow_success_and_attribute_error(monkeypatch):
@@ -177,8 +186,12 @@ def test_conflict_and_direct_transfer_window_helpers(monkeypatch):
 
     application.show_server_folders(engine, None, "/folder")
     old_dialog.close.assert_called_once_with()
-    dialog.accepted.connect.assert_called_once_with(application._show_direct_transfer_window)
-    dialog.destroyed.connect.assert_called_once_with(application.destroyed_filters_dialog)
+    dialog.accepted.connect.assert_called_once_with(
+        application._show_direct_transfer_window
+    )
+    dialog.destroyed.connect.assert_called_once_with(
+        application.destroyed_filters_dialog
+    )
     dialog.show.assert_called_once_with()
 
     application._show_direct_transfer_window()
@@ -186,12 +199,14 @@ def test_conflict_and_direct_transfer_window_helpers(monkeypatch):
 
     root = Mock()
     application._window_root.return_value = root
-    application.show_direct_transfer_window = Application.show_direct_transfer_window.__get__(
-        application, type(application)
+    application.show_direct_transfer_window = (
+        Application.show_direct_transfer_window.__get__(application, type(application))
     )
     application.show_direct_transfer_window("engine")
     root.setEngine.emit.assert_called_once_with("engine")
-    application._center_on_screen.assert_called_once_with(application.direct_transfer_window)
+    application._center_on_screen.assert_called_once_with(
+        application.direct_transfer_window
+    )
 
 
 def test_direct_download_window_selection_paths():
@@ -251,14 +266,20 @@ def test_duplicate_warning_and_cancel_confirmations(monkeypatch):
 
 @Options.mock()
 def test_authentication_frozen_and_debug_handler(monkeypatch):
-    application = make_application(api=Mock(), manager=Mock(), _web_auth_not_frozen=Mock())
+    application = make_application(
+        api=Mock(), manager=Mock(), _web_auth_not_frozen=Mock()
+    )
     params = {"server_url": "https://server"}
 
     Options.set("is_frozen", True, setter="local")
     with (
         patch.object(application_module.webbrowser, "open_new_tab") as open_tab,
-        patch.object(application_module.QApplication, "setOverrideCursor") as set_cursor,
-        patch.object(application_module.QApplication, "restoreOverrideCursor") as restore_cursor,
+        patch.object(
+            application_module.QApplication, "setOverrideCursor"
+        ) as set_cursor,
+        patch.object(
+            application_module.QApplication, "restoreOverrideCursor"
+        ) as restore_cursor,
     ):
         application.open_authentication_dialog("https://login", params)
     assert application.api.callback_params is params
@@ -318,7 +339,9 @@ def test_icon_conflict_and_systray_setup(monkeypatch):
     application.refresh_conflicts("uid")
     conflicts.add_files.assert_called_once_with(application.api.get_conflicts("uid"))
     errors.add_files.assert_called_once_with(application.api.get_errors("uid"))
-    ignored.add_files.assert_called_once_with(application.api.get_unsynchronizeds("uid"))
+    ignored.add_files.assert_called_once_with(
+        application.api.get_unsynchronizeds("uid")
+    )
 
     monkeypatch.setattr(application_module, "DriveSystrayIcon", Mock(return_value=tray))
     application.setup_systray()

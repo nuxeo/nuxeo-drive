@@ -261,7 +261,9 @@ def test_init_gui_builds_models_windows_and_initial_engine(monkeypatch, tmp_path
     for model_patch in model_patches:
         model_patch.start()
     monkeypatch.setattr(
-        application_module, "find_resource", lambda *_args, **_kwargs: tmp_path / "Main.qml"
+        application_module,
+        "find_resource",
+        lambda *_args, **_kwargs: tmp_path / "Main.qml",
     )
     try:
         with (
@@ -307,9 +309,7 @@ def test_connect_engine_wires_all_refresh_and_state_signals():
 
     application._connect_engine(engine)
 
-    engine.syncStarted.connect.assert_called_once_with(
-        application.change_systray_icon
-    )
+    engine.syncStarted.connect.assert_called_once_with(application.change_systray_icon)
     engine.rootDeleted.connect.assert_called_once_with(application._root_deleted)
     engine.docDeleted.connect.assert_called_once_with(application._doc_deleted)
     engine.newSyncStarted.connect.assert_called_once_with(application.refresh_files)
