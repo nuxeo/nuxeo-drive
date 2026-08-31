@@ -429,7 +429,10 @@ def test_setup_watchdog(manager_factory):
     dao = remote.dao
     Feature.synchronization = True
     local_watcher = LocalWatcher(engine, dao)
-    assert local_watcher._setup_watchdog() is None
+    try:
+        assert local_watcher._setup_watchdog() is None
+    finally:
+        local_watcher._stop_watchdog()
 
 
 def test_stop_watchdog(manager_factory):
