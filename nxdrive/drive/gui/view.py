@@ -9,6 +9,7 @@ from ..constants import DT_ACTIVE_SESSIONS_MAX_ITEMS, DT_MONITORING_MAX_ITEMS
 from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import (
+    Property,
     QAbstractListModel,
     QByteArray,
     QModelIndex,
@@ -16,7 +17,6 @@ from ..qt.imports import (
     QStandardItem,
     QStandardItemModel,
     Qt,
-    Property,
     Signal,
     Slot,
 )
@@ -140,7 +140,7 @@ class EngineModel(QAbstractListModel):
     def rowCount(self, parent: QModelIndex = QModelIndex(), /) -> int:
         return len(self.engines_uid)
 
-    @Property("int", notify=engineChanged)
+    @Property(int, notify=engineChanged)
     def count(self) -> int:
         return self.rowCount()
 
@@ -197,7 +197,7 @@ class TransferModel(QAbstractListModel):
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
 
-    @Property("int", notify=fileChanged)
+    @Property(int, notify=fileChanged)
     def count(self) -> int:
         return self.rowCount()
 
@@ -587,15 +587,15 @@ class ActiveSessionModel(QAbstractListModel):
         self.sessions[row] = n_session
         self.dataChanged.emit(idx, idx, list(self.roleNames()))
 
-    @Property("int", notify=sessionChanged)
+    @Property(int, notify=sessionChanged)
     def count(self) -> int:
         return self.rowCount()
 
-    @Property("int", notify=sessionChanged)
+    @Property(int, notify=sessionChanged)
     def count_no_shadow(self) -> int:
         return self.row_count_no_shadow()
 
-    @Property("bool", notify=sessionChanged)
+    @Property(bool, notify=sessionChanged)
     def is_full(self) -> bool:
         return self.row_count_no_shadow() >= DT_ACTIVE_SESSIONS_MAX_ITEMS
 
@@ -707,7 +707,7 @@ class CompletedSessionModel(QAbstractListModel):
         self.sessions[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    @Property("int", notify=sessionChanged)
+    @Property(int, notify=sessionChanged)
     def count(self) -> int:
         return self.rowCount()
 
@@ -925,11 +925,11 @@ class ActiveDirectDownloadModel(QAbstractListModel):
         self.downloads[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    @Property("int", notify=downloadChanged)
+    @Property(int, notify=downloadChanged)
     def count(self) -> int:
         return self.rowCount()
 
-    @Property("int", notify=downloadChanged)
+    @Property(int, notify=downloadChanged)
     def count_no_shadow(self) -> int:
         return self.row_count_no_shadow()
 
@@ -1046,7 +1046,7 @@ class CompletedDirectDownloadModel(QAbstractListModel):
         key = self.names.get(role, b"").decode()
         return row.get(key, "")
 
-    @Property("int", notify=downloadChanged)
+    @Property(int, notify=downloadChanged)
     def count(self) -> int:
         return self.rowCount()
 
@@ -1192,7 +1192,7 @@ class DirectDownloadMonitoringModel(QAbstractListModel):
         self.endInsertRows()
         self.itemChanged.emit()
 
-    @Property("int", notify=itemChanged)
+    @Property(int, notify=itemChanged)
     def count(self) -> int:
         return self.rowCount()
 
@@ -1280,7 +1280,7 @@ class FileModel(QAbstractListModel):
         self.files[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    @Property("int", notify=fileChanged)
+    @Property(int, notify=fileChanged)
     def count(self) -> int:
         return self.rowCount()
 
