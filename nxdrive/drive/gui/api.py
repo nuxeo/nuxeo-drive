@@ -328,7 +328,6 @@ class QMLDriveApi(QObject):
         transfer_uid: int,
         progress: float,
         /,
-        *,
         is_direct_transfer: bool = False,
     ) -> None:
         """Pause a given transfer. *nature* is either downloads or upload."""
@@ -347,7 +346,6 @@ class QMLDriveApi(QObject):
         engine_uid: str,
         uid: int,
         /,
-        *,
         is_direct_transfer: bool = False,
     ) -> None:
         """Resume a given transfer. *nature* is either downloads or upload."""
