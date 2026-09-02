@@ -272,6 +272,7 @@ def test_authentication_frozen_and_debug_handler(monkeypatch):
     params = {"server_url": "https://server"}
 
     Options.set("is_frozen", True, setter="local")
+    monkeypatch.setattr(application_module, "LINUX", False)
     with (
         patch.object(application_module.webbrowser, "open_new_tab") as open_tab,
         patch.object(
@@ -308,6 +309,68 @@ def test_authentication_frozen_and_debug_handler(monkeypatch):
     ):
         application._web_auth_not_frozen("https://server", params)
     log_warning.assert_called_once()
+
+
+@Options.mock()
+def test_authentication_frozen_linux_uses_xdg_open(monkeypatch):
+    application = make_application(api=Mock(), manager=Mock())
+    params = {"server_url": "https://server"}
+    environment = {"PATH": "/usr/bin"}
+
+    Options.set("is_frozen", True, setter="local")
+    monkeypatch.setattr(application_module, "LINUX", True)
+    with (
+        patch("subprocess.Popen") as popen,
+        patch(
+            "nxdrive.drive.utils.host_env", return_value=environment
+        ) as host_environment,
+        patch.object(application_module.webbrowser, "open_new_tab") as open_tab,
+        patch.object(
+            application_module.QApplication, "setOverrideCursor"
+        ) as set_cursor,
+        patch.object(
+            application_module.QApplication, "restoreOverrideCursor"
+        ) as restore_cursor,
+    ):
+        application.open_authentication_dialog("https://login", params)
+
+    assert application.api.callback_params is params
+    host_environment.assert_called_once_with()
+    popen.assert_called_once_with(["xdg-open", "https://login"], env=environment)
+    open_tab.assert_not_called()
+    set_cursor.assert_called_once_with(qt.WaitCursor)
+    restore_cursor.assert_called_once_with()
+
+
+@Options.mock()
+def test_authentication_frozen_linux_handles_missing_xdg_open(monkeypatch):
+    application = make_application(api=Mock(), manager=Mock())
+    params = {"server_url": "https://server"}
+    environment = {"PATH": "/usr/bin"}
+
+    Options.set("is_frozen", True, setter="local")
+    monkeypatch.setattr(application_module, "LINUX", True)
+    with (
+        patch("subprocess.Popen", side_effect=FileNotFoundError) as popen,
+        patch("nxdrive.drive.utils.host_env", return_value=environment),
+        patch.object(application_module.log, "exception") as log_exception,
+        patch.object(application_module.webbrowser, "open_new_tab") as open_tab,
+        patch.object(
+            application_module.QApplication, "setOverrideCursor"
+        ) as set_cursor,
+        patch.object(
+            application_module.QApplication, "restoreOverrideCursor"
+        ) as restore_cursor,
+    ):
+        application.open_authentication_dialog("https://login", params)
+
+    popen.assert_called_once_with(["xdg-open", "https://login"], env=environment)
+    log_exception.assert_called_once_with(
+        "Failed to open authentication dialog: %s", exc_info=True
+    )
+    open_tab.assert_not_called()
+    set_cursor.assert_called_once_with(qt.WaitCursor)
+    restore_cursor.assert_called_once_with()
 
 
 def test_icon_conflict_and_systray_setup(monkeypatch):

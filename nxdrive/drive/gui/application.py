@@ -1,6 +1,7 @@
 """Main Qt application handling OS events and system tray UI."""
 
 import os
+import subprocess
 import webbrowser
 from contextlib import suppress
 from functools import partial
@@ -1358,7 +1359,15 @@ class Application(QApplication):
             """
             QApplication.setOverrideCursor(qt.WaitCursor)
             try:
-                webbrowser.open_new_tab(url)
+                # On Linux use native 'xdg-open' command for compatibility
+                if LINUX:
+                    from nxdrive.drive.utils import host_env
+
+                    subprocess.Popen(["xdg-open", url], env=host_env())
+                else:
+                    webbrowser.open_new_tab(url)
+            except FileNotFoundError:
+                log.exception("Failed to open authentication dialog: %s", exc_info=True)
             finally:
                 QApplication.restoreOverrideCursor()
         else:
