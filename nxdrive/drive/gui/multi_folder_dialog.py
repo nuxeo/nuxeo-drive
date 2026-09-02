@@ -354,6 +354,15 @@ class MultiFolderDialog(QDialog):
         # Handle double-click to navigate into directories
         self.tree.doubleClicked.connect(self.load_directory)
 
+        # On Linux, set text color of QTreeView based on background color
+        # Qt does not always switch to a dark background in dark mode.
+        # MFD has to be reloaded for the color to update
+        if LINUX:
+            widget_color = self.palette().color(self.backgroundRole())
+            r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()
+            if not (r <= 99 and g <= 99 and b <= 99):
+                self.tree.setProperty("linuxDarkText", "true")
+
         # Resize the width when the directory is collapsed/expanded
         self.tree.expanded.connect(self._resize_column_to_contents)
         self.tree.collapsed.connect(self._resize_column_to_contents)

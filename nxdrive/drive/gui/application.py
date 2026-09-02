@@ -2417,7 +2417,13 @@ class Application(QApplication):
     def open_task(self, engine: Engine, task_id: str) -> None:
         endpoint = "/ui/#!/tasks/"
         url = f"{engine.server_url}{endpoint}{task_id}"
-        webbrowser.open(url)
+        # On Linux use native 'xdg-open' command for compatibility
+        if LINUX:
+            from nxdrive.drive.utils import host_env
+
+            subprocess.Popen(["xdg-open", url], env=host_env())
+        else:
+            webbrowser.open(url)
 
     def fetch_pending_tasks(self, engine: Engine, /) -> list:
         remote = engine.remote

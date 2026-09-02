@@ -352,6 +352,64 @@ def test_constructor_loads_dark_qss_and_connects_theme_signal(
     signal.connect.assert_called_once_with(dialog._on_dark_mode_changed)
 
 
+@pytest.mark.parametrize(
+    ("rgb", "expected_property"),
+    [
+        ((99, 99, 99), None),
+        ((100, 100, 100), "true"),
+    ],
+)
+def test_constructor_sets_linux_dark_text_for_light_background(
+    keep_object, monkeypatch, rgb, expected_property
+):
+    color = SimpleNamespace(
+        red=lambda: rgb[0], green=lambda: rgb[1], blue=lambda: rgb[2]
+    )
+    palette = SimpleNamespace(color=lambda _role: color)
+
+    _set_platform(monkeypatch, "linux")
+    monkeypatch.setattr(
+        dialog_module.MultiFolderDialog, "palette", lambda _self: palette
+    )
+    monkeypatch.setattr(
+        dialog_module.MultiFolderDialog, "backgroundRole", lambda _self: object()
+    )
+
+    dialog = keep_object(dialog_module.MultiFolderDialog(dark_mode=True))
+
+    assert dialog.tree.property("linuxDarkText") == expected_property
+
+
+def test_linux_dark_text_property_applies_black_tree_text(
+    qapp, keep_object, deterministic_environment, monkeypatch
+):
+    production_qss = (
+        RealPath(dialog_module.__file__).parents[1]
+        / "data"
+        / "styles"
+        / "multi_folder_dialog_dark.qss"
+    ).read_text(encoding="utf-8")
+    (deterministic_environment.styles / "multi_folder_dialog_dark.qss").write_text(
+        production_qss, encoding="utf-8"
+    )
+    color = SimpleNamespace(red=lambda: 255, green=lambda: 255, blue=lambda: 255)
+    palette = SimpleNamespace(color=lambda _role: color)
+
+    _set_platform(monkeypatch, "linux")
+    monkeypatch.setattr(
+        dialog_module.MultiFolderDialog, "palette", lambda _self: palette
+    )
+    monkeypatch.setattr(
+        dialog_module.MultiFolderDialog, "backgroundRole", lambda _self: object()
+    )
+
+    dialog = keep_object(dialog_module.MultiFolderDialog(dark_mode=True))
+    dialog.show()
+    qapp.processEvents()
+
+    assert dialog.tree.palette().text().color().getRgb()[:3] == (0, 0, 0)
+
+
 def test_constructor_missing_qss_and_missing_style_are_safe(
     keep_object, deterministic_environment, monkeypatch
 ):

@@ -373,6 +373,37 @@ def test_authentication_frozen_linux_handles_missing_xdg_open(monkeypatch):
     restore_cursor.assert_called_once_with()
 
 
+def test_open_task_uses_platform_launcher(monkeypatch):
+    application = make_application()
+    engine = SimpleNamespace(server_url="https://server")
+    environment = {"PATH": "/usr/bin"}
+    expected_url = "https://server/ui/#!/tasks/task-1"
+
+    monkeypatch.setattr(application_module, "LINUX", True)
+    with (
+        patch.object(application_module.subprocess, "Popen") as popen,
+        patch(
+            "nxdrive.drive.utils.host_env", return_value=environment
+        ) as host_environment,
+        patch.object(application_module.webbrowser, "open") as open_browser,
+    ):
+        application.open_task(engine, "task-1")
+
+    host_environment.assert_called_once_with()
+    popen.assert_called_once_with(["xdg-open", expected_url], env=environment)
+    open_browser.assert_not_called()
+
+    monkeypatch.setattr(application_module, "LINUX", False)
+    with (
+        patch.object(application_module.subprocess, "Popen") as popen,
+        patch.object(application_module.webbrowser, "open") as open_browser,
+    ):
+        application.open_task(engine, "task-1")
+
+    popen.assert_not_called()
+    open_browser.assert_called_once_with(expected_url)
+
+
 def test_icon_conflict_and_systray_setup(monkeypatch):
     tray = Mock()
     tray.isSystemTrayAvailable.return_value = True
