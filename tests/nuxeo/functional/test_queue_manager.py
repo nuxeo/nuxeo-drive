@@ -165,9 +165,9 @@ class TestQueueManagerInitialization:
 
     def test_init_processors(self, queue_manager):
         """Test processor initialization."""
-        with patch.object(queue_manager, "queueProcessing") as mock_signal:
+        with patch.object(queue_manager, "resume") as resume:
             queue_manager.init_processors()
-            mock_signal.emit.assert_called_once()
+            resume.assert_called_once_with()
             assert queue_manager._processors_initialized
 
     def test_shutdown_processors(self, queue_manager):
@@ -176,7 +176,7 @@ class TestQueueManagerInitialization:
         queue_manager.shutdown_processors()
         assert not queue_manager._processors_initialized
 
-        with patch.object(queue_manager, "queueProcessing"):
+        with patch.object(queue_manager, "resume"):
             queue_manager.init_processors()
         queue_manager.shutdown_processors()
         assert not queue_manager._processors_initialized

@@ -405,6 +405,18 @@ class TestExecute:
             # Should continue to next iteration
             assert processor._get_item.call_count == 2
 
+    def test_execute_skips_conflicted_pair(self, processor, doc_pair):
+        """Test that stale queued work cannot synchronize a conflicted pair."""
+        item = Mock(id=doc_pair.id)
+        doc_pair.pair_state = "conflicted"
+        processor._get_item = Mock(side_effect=[item, None])
+
+        with patch.object(processor, "_get_next_doc_pair", return_value=doc_pair):
+            with patch.object(processor, "_synchronize_conflicted") as synchronize:
+                processor._execute()
+
+        synchronize.assert_not_called()
+
     def test_execute_thread_interrupt(self, processor, doc_pair):
         """Test handling ThreadInterrupt exception."""
         from nxdrive.drive.exceptions import ThreadInterrupt
@@ -449,6 +461,27 @@ class TestExecute:
 
                                     # Should call remove_void_transfers for NotFound
                                     assert processor.remove_void_transfers.called
+
+    def test_execute_handles_upload_cancelled(self, processor, doc_pair):
+        """A conflict-cancelled upload leaves the pair for manual resolution."""
+        item = Mock(id=doc_pair.id)
+        doc_pair.pair_state = "locally_created"
+        processor._get_item = Mock(side_effect=[item, None])
+
+        with patch.object(processor, "_get_next_doc_pair", return_value=doc_pair):
+            with patch.object(processor, "check_pair_state", return_value=True):
+                with patch.object(
+                    processor,
+                    "_handle_doc_pair_sync",
+                    side_effect=UploadCancelled(123),
+                ):
+                    with patch.object(processor, "_interact"):
+                        with patch.object(
+                            processor, "increase_error"
+                        ) as increase_error:
+                            processor._execute()
+
+        increase_error.assert_not_called()
 
     def test_execute_pair_interrupt(self, processor, doc_pair):
         """Test handling PairInterrupt exception."""
@@ -799,6 +832,13 @@ class TestCheckPairState:
         from nxdrive.nuxeo.engine.processor import Processor
 
         doc_pair.pair_state = "unsynchronized"
+        assert not Processor.check_pair_state(doc_pair)
+
+    def test_check_pair_state_conflicted(self, doc_pair):
+        """Test that conflicted state waits for manual resolution."""
+        from nxdrive.nuxeo.engine.processor import Processor
+
+        doc_pair.pair_state = "conflicted"
         assert not Processor.check_pair_state(doc_pair)
 
     def test_check_pair_state_parent_prefix(self, doc_pair):

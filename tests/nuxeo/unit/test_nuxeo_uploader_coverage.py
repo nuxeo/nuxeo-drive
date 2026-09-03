@@ -340,6 +340,32 @@ def test_upload_impl_closes_blob_when_chunk_upload_fails():
     assert transfer.status is TransferStatus.ONGOING
 
 
+def test_upload_impl_cancels_conflicted_pair_before_linking():
+    uploader = _uploader()
+    blob = _blob()
+    transfer = _transfer(doc_pair=12)
+    uploader._get_transfer = Mock(return_value=transfer)
+    uploader.upload_chunks = Mock()
+    uploader._complete_upload = Mock()
+    uploader._link_blob_to_doc = Mock()
+    uploader.dao.get_state_from_id.return_value = SimpleNamespace(
+        pair_state="conflicted"
+    )
+
+    with patch(f"{MODULE}.FileBlob", return_value=blob), patch(
+        f"{MODULE}.Options", SimpleNamespace(chunk_upload=False)
+    ):
+        with pytest.raises(UploadCancelled) as exc:
+            uploader.upload_impl(
+                Path("/virtual/file.txt"), "NuxeoDrive.CreateFile", doc_pair=12
+            )
+
+    assert exc.value.transfer_id == transfer.uid
+    transfer.batch_obj.delete.assert_called_once_with(0)
+    uploader.dao.remove_transfer.assert_called_once_with("upload", doc_pair=12)
+    uploader._link_blob_to_doc.assert_not_called()
+
+
 def test_upload_impl_skips_completed_s3_data_and_resumes_done_transfer():
     uploader = _uploader()
     blob = _blob(size=100, fd=Mock())

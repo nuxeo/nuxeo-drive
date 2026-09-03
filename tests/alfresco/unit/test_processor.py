@@ -66,6 +66,11 @@ class TestCheckPairState:
         pair.pair_state = "unsynchronized"
         assert AlfrescoProcessor.check_pair_state(pair) is False
 
+    def test_conflicted_pair_is_skipped(self) -> None:
+        pair = Mock()
+        pair.pair_state = "conflicted"
+        assert AlfrescoProcessor.check_pair_state(pair) is False
+
     def test_parent_prefixed_state_is_skipped(self) -> None:
         pair = Mock()
         pair.pair_state = "parent_updated"
@@ -880,6 +885,19 @@ class TestExecute:
         proc._get_item = Mock(side_effect=[item, None])
         proc.dao.acquire_state.return_value = item
         proc._execute()
+        proc.dao.release_state.assert_called()
+
+    def test_skips_conflicted_pair(self, proc):
+        item = Mock()
+        item.pair_state = "conflicted"
+        item.id = 1
+        proc._get_item = Mock(side_effect=[item, None])
+        proc.dao.acquire_state.return_value = item
+        proc._synchronize_conflicted = Mock()
+
+        proc._execute()
+
+        proc._synchronize_conflicted.assert_not_called()
         proc.dao.release_state.assert_called()
 
     def test_illegal_state_increases_error(self, proc):

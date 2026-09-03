@@ -42,14 +42,7 @@ from nxdrive.drive.exceptions import (
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import Binder, DocPairs, EngineDef, Metrics, Session
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import (
-    QObject,
-    QThread,
-    QThreadPool,
-    QTimer,
-    Signal,
-    Slot,
-)
+from nxdrive.drive.qt.imports import QObject, QThread, QThreadPool, QTimer, Signal, Slot
 from nxdrive.drive.state import State
 from nxdrive.drive.utils import (
     decrypt,
@@ -950,6 +943,9 @@ class Engine(QObject):
             ):
                 self.dao.synchronize_state(pair)
             elif emit:
+                self.queue_manager.interrupt_processors_on(
+                    pair.local_path, exact_match=True
+                )
                 self.newConflict.emit(row_id)
                 self.manager.osi.send_sync_status(
                     pair, self.local.abspath(pair.local_path)

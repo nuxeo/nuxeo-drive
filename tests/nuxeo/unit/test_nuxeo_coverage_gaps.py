@@ -274,6 +274,7 @@ class TestProcessorSynchronizationGaps:
 
         processor._synchronize_locally_created(pair)
 
+        assert processor.remote.stream_file.call_args.kwargs["doc_pair"] == pair.id
         processor.local.set_remote_id.assert_any_call(moved.local_path, "new-ref")
         processor._synchronize_locally_moved.assert_called_once_with(
             moved, update=False

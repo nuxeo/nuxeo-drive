@@ -188,7 +188,8 @@ class AlfrescoProcessor(_ProcessorBase):
     def check_pair_state(doc_pair: DocPair, /) -> bool:
         return all(
             (
-                doc_pair.pair_state not in ("synchronized", "unsynchronized"),
+                doc_pair.pair_state
+                not in ("synchronized", "unsynchronized", "conflicted"),
                 not doc_pair.pair_state.startswith("parent_"),
             )
         )
