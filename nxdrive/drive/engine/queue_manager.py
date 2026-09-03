@@ -103,7 +103,7 @@ class QueueManager(QObject):
         if not self._processors_initialized:
             self.newItem.connect(self.launch_processors)
             self._processors_initialized = True
-        self.resume()
+        self.queueProcessing.emit()
 
     def shutdown_processors(self) -> None:
         log.debug("Shutdown processors")

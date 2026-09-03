@@ -34,6 +34,13 @@ class RemoteWatcherBase(EngineWorker):
 
         self.empty_polls = 0
         self._next_check = 0.0
+        self.first_pass_done = False
+
+    def _notify_pass_done(self, first_pass: bool, /) -> None:
+        """End of a polling cycle; local creations are held back until the first one."""
+        if first_pass:
+            self.first_pass_done = True
+        (self.updated, self.initiate)[first_pass].emit()
 
     def _execute(self) -> None:
         first_pass = True

@@ -14,6 +14,7 @@ from nxdrive.drive.engine.activity import DownloadAction, UploadAction
 from nxdrive.drive.exceptions import (
     DownloadPaused,
     NotFound,
+    PairInterrupt,
     ScrollDescendantsError,
     UploadPaused,
 )
@@ -247,6 +248,30 @@ class TestProcessorSynchronizationGaps:
 
         processor._synchronize_locally_moved.assert_called_once_with(pair)
         processor.dao.synchronize_state.assert_called_once_with(pair)
+
+    def test_local_creation_waits_for_the_first_remote_pass(self):
+        processor = _processor()
+        pair = _pair(pair_state="locally_created", local_state="created")
+        processor.engine._remote_watcher.first_pass_done = False
+
+        with pytest.raises(PairInterrupt):
+            processor._synchronize_locally_created(pair)
+
+        processor.remote.stream_file.assert_not_called()
+
+    def test_guard_lets_the_pair_through_once_the_first_pass_ran(self):
+        processor = _processor()
+        pair = _pair(pair_state="locally_created", local_state="created")
+        processor.engine._remote_watcher.first_pass_done = True
+
+        processor._ensure_remote_first_pass(pair)
+
+    def test_guard_is_inactive_without_a_remote_watcher(self):
+        processor = _processor()
+        pair = _pair(pair_state="locally_created", local_state="created")
+        processor.engine = SimpleNamespace()
+
+        processor._ensure_remote_first_pass(pair)
 
     def test_created_file_moved_while_remote_id_is_written(self):
         processor = _processor()

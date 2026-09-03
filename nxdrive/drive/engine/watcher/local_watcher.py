@@ -277,6 +277,8 @@ class LocalWatcher(EngineWorker):
         self._scan_handle_deleted_files()
         self._metrics["last_local_scan_time"] = current_milli_time() - start_ms
         log.info(f"Full scan finished in {self._metrics['last_local_scan_time']}ms")
+        if to_pause:
+            self.engine.queue_manager.resume()
         self.localScanFinished.emit()
 
     def _scan_handle_deleted_files(self) -> None:

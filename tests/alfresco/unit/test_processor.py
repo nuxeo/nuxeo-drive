@@ -13,6 +13,7 @@ import pytest
 
 from nxdrive.alfresco.engine.processor import AlfrescoProcessor
 from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.exceptions import PairInterrupt
 
 
 @pytest.fixture
@@ -70,6 +71,31 @@ class TestCheckPairState:
         pair = Mock()
         pair.pair_state = "conflicted"
         assert AlfrescoProcessor.check_pair_state(pair) is False
+
+
+class TestLocalCreationFirstPassGuard:
+    """Local creations wait for the remote watcher's first pass."""
+
+    def test_local_creation_waits_for_the_first_remote_pass(
+        self, processor, mock_engine
+    ) -> None:
+        pair = Mock()
+        pair.pair_state = "locally_created"
+        mock_engine._remote_watcher.first_pass_done = False
+
+        with pytest.raises(PairInterrupt):
+            processor._synchronize_locally_created(pair)
+
+        mock_engine.remote.stream_file.assert_not_called()
+
+    def test_guard_lets_the_pair_through_once_the_first_pass_ran(
+        self, processor, mock_engine
+    ) -> None:
+        pair = Mock()
+        pair.pair_state = "locally_created"
+        mock_engine._remote_watcher.first_pass_done = True
+
+        processor._ensure_remote_first_pass(pair)
 
     def test_parent_prefixed_state_is_skipped(self) -> None:
         pair = Mock()

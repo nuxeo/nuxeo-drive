@@ -790,6 +790,9 @@ class Processor(_ProcessorBase):
                                with the same title on the server.
         """
 
+        if doc_pair.pair_state == "locally_created":
+            self._ensure_remote_first_pass(doc_pair)
+
         name = doc_pair.local_path.name
         if not doc_pair.folderish:
             ignore, delay = is_generated_tmp_file(name)

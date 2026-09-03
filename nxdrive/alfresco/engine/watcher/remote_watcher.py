@@ -360,7 +360,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         else:
             self.empty_polls += 1
 
-        (self.updated, self.initiate)[first_pass].emit()
+        self._notify_pass_done(first_pass)
 
         # Directly call _check_last_sync because the @tooltip decorator
         # swallows return values, preventing the signal-based path from

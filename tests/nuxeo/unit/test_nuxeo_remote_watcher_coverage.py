@@ -29,6 +29,16 @@ from nxdrive.nuxeo.engine.watcher.remote_watcher import (
 MODULE = "nxdrive.nuxeo.engine.watcher.remote_watcher"
 
 
+def test_first_pass_done_flips_when_the_first_pass_completes():
+    watcher = RemoteWatcher(MagicMock(), MagicMock())
+
+    assert watcher.first_pass_done is False
+    watcher._notify_pass_done(False)
+    assert watcher.first_pass_done is False
+    watcher._notify_pass_done(True)
+    assert watcher.first_pass_done is True
+
+
 def _signal() -> MagicMock:
     signal = MagicMock()
     signal.emit = Mock()

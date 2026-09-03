@@ -608,7 +608,7 @@ class RemoteWatcher(RemoteWatcherBase):
 
                 # Might need to handle the changes now
                 if first_pass:
-                    self.initiate.emit()
+                    self._notify_pass_done(True)
                 return True
 
             full_scan = self.dao.get_config("remote_need_full_scan")
@@ -624,7 +624,7 @@ class RemoteWatcher(RemoteWatcherBase):
                 paths = self.dao.get_paths_to_scan()
 
             self._update_remote_states()
-            (self.updated, self.initiate)[first_pass].emit()
+            self._notify_pass_done(first_pass)
         except BadQuery:
             # This should never happen: there is an error in the operation's
             # parameters sent to the server.  This exception is possible only
