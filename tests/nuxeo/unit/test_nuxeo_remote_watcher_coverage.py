@@ -719,6 +719,21 @@ def test_first_pass_done_is_set_when_synchronization_is_disabled(monkeypatch):
     watcher.initiate.emit.assert_called_once_with()
 
 
+def test_scan_failure_leaves_the_first_pass_undone(monkeypatch):
+    watcher = _watcher()
+    watcher.first_pass_done = False
+    monkeypatch.setattr(Feature, "synchronization", True)
+    watcher._check_offline = Mock(return_value=False)
+    watcher._last_remote_full_scan = None
+    watcher.scan_remote = Mock(side_effect=OSError("network is down"))
+
+    with patch(f"{MODULE}.Action.finish_action"):
+        assert watcher._handle_changes(True) is False
+
+    assert watcher.first_pass_done is False
+    watcher.initiate.emit.assert_not_called()
+
+
 def test_handle_changes_disabled_offline_initial_and_queued_paths(monkeypatch):
     watcher = _watcher()
     monkeypatch.setattr(Feature, "synchronization", False)
