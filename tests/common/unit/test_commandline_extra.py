@@ -303,7 +303,8 @@ def test_handle_returns_error_when_packaged_server_list_is_empty(cli, tmp_path):
     find_resource.assert_called_once_with(
         "server_list", file="supported_server_list.txt"
     )
-    log_error.assert_called_once_with(
+    log_error.assert_called_once()
+    assert log_error.call_args.args[0].startswith(
         "No supported server type found in supported_server_list.txt"
     )
 
@@ -359,6 +360,20 @@ def test_handle_configures_nuxeo_and_dispatches_command(cli, tmp_path):
     ssl_socket.supportsSsl.assert_called_once_with()
     command.assert_called_once_with(options)
     assert Options.update_site_url == "https://updates.example/nuxeo"
+
+
+def test_handle_rejects_server_key_missing_from_registry(cli, tmp_path):
+    options = _options(tmp_path, "uninstall")
+
+    with _handle_runtime(cli, tmp_path, options, server_type="ABCD") as runtime:
+        result = cli.handle(["uninstall"])
+
+    assert result == 1
+    runtime.set_app_server.assert_not_called()
+    runtime.set_app_version.assert_not_called()
+    runtime.apply_restrictions.assert_not_called()
+    runtime.refresh_branding.assert_not_called()
+    runtime.get_manager.assert_not_called()
 
 
 def test_handle_alfresco_alpha_uninstall_skips_manager(cli, tmp_path):

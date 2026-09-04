@@ -602,10 +602,18 @@ class CliHandler:
                 for line in f
                 if line.strip() and not line.strip().startswith("#")
             ]
-        supported_server = supported_server_keys[0] if supported_server_keys else None
+        # Keys not backed by a registered ServerTypeConfig would otherwise reach
+        # set_app_server()/set_app_version() and mislabel the whole application.
+        known_server_keys = set(_st.all_keys())
+        supported_server = next(
+            (key for key in supported_server_keys if key in known_server_keys), None
+        )
 
         if not supported_server:
-            log.error("No supported server type found in supported_server_list.txt")
+            log.error(
+                "No supported server type found in supported_server_list.txt "
+                f"(got {supported_server_keys}, known: {sorted(known_server_keys)})"
+            )
             return 1
 
         Options.server_type = supported_server

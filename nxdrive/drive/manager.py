@@ -16,7 +16,6 @@ import requests
 from packaging.version import InvalidVersion, Version
 
 from nxdrive import __alfresco_version__, __version__
-
 from nxdrive.drive import server_type as st
 from nxdrive.drive.auth import Token
 from nxdrive.drive.autolocker import ProcessAutoLockerWorker
@@ -419,13 +418,13 @@ class Manager(QObject):
 
         server_name = (Options.server_type or st.get_default_key()).upper()
         if original_version:
-            if server_name != "NUXEO":
+            rollout_version = FIRST_RUN_METRIC_ROLLOUT_VERSIONS.get(server_name)
+            if rollout_version is None:
                 return
             try:
-                if (
-                    Version(str(original_version))
-                    >= FIRST_RUN_METRIC_ROLLOUT_VERSIONS["NUXEO"]
-                ):
+                # Only a downgrade is skipped: an install still on the current
+                # version has no sent marker, so its metric never went through.
+                if Version(str(original_version)) > rollout_version:
                     return
             except InvalidVersion:
                 log.warning(
