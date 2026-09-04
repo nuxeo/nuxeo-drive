@@ -354,19 +354,19 @@ def test_constructor_uses_rollout_client_version_on_later_upgrade(
     Options.nxdrive_home = tmp_path
     dao = make_dao(
         {
-            "client_version": "7.1.0",
+            "client_version": "8.0.0",
             "original_version": None,
             "deletion_behavior": "delete_server",
         }
     )
     deps = patch_constructor_dependencies(monkeypatch, dao)
 
-    with patch.object(manager_module, "APP_VERSION", "8.0.0"):
+    with patch.object(manager_module, "APP_VERSION", "9.0.0"):
         Manager(tmp_path / "home")
 
-    deps.capture_first_run_metric.assert_called_once_with("7.1.0")
-    assert dao.values["original_version"] == "8.0.0"
-    assert dao.values["client_version"] == "8.0.0"
+    deps.capture_first_run_metric.assert_called_once_with("8.0.0")
+    assert dao.values["original_version"] == "9.0.0"
+    assert dao.values["client_version"] == "9.0.0"
 
 
 def test_constructor_exits_after_failed_dao_migration(app, tmp_path, monkeypatch):
@@ -648,7 +648,7 @@ def test_first_run_sentry_metric_is_captured_once(manager_obj):
 
 
 def test_first_run_metric_rollout_versions_match_current_products():
-    assert str(manager_module.FIRST_RUN_METRIC_ROLLOUT_VERSIONS["NUXEO"]) == "7.1.0"
+    assert str(manager_module.FIRST_RUN_METRIC_ROLLOUT_VERSIONS["NUXEO"]) == "8.0.0"
     assert str(manager_module.FIRST_RUN_METRIC_ROLLOUT_VERSIONS["ALFRESCO"]) == "1.0.0"
 
 
@@ -678,7 +678,7 @@ def test_legacy_nuxeo_install_captures_first_run_metric(manager_obj, original_ve
     capture_first_run_metric.assert_called_once_with(manager_obj.version, "NUXEO")
 
 
-@pytest.mark.parametrize("original_version", ["7.1.0", "8.0.0"])
+@pytest.mark.parametrize("original_version", ["8.0.0", "9.0.0"])
 def test_feature_era_nuxeo_install_does_not_capture_first_run_metric(
     manager_obj, original_version
 ):
@@ -741,16 +741,16 @@ def test_first_run_sent_marker_prevents_duplicate(manager_obj):
     capture_first_run_metric.assert_not_called()
 
 
-def test_later_upgrade_does_not_recapture_registered_7_1_install(manager_obj):
+def test_later_upgrade_does_not_recapture_registered_8_0_install(manager_obj):
     Options.server_type = "NUXEO"
     manager_obj.dao.values["sentry_first_run_metric_sent_at"] = (
         "2026-08-20T12:00:00+00:00"
     )
 
-    with patch.object(manager_module, "APP_VERSION", "8.0.0"), patch(
+    with patch.object(manager_module, "APP_VERSION", "9.0.0"), patch(
         "nxdrive.drive.tracing.capture_first_run_metric"
     ) as capture_first_run_metric:
-        manager_obj._capture_first_run_metric("7.1.0")
+        manager_obj._capture_first_run_metric("8.0.0")
 
     capture_first_run_metric.assert_not_called()
 
