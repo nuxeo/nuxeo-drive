@@ -17,8 +17,6 @@ from nxdrive.drive.qt.imports import (
     QDir,
     QEvent,
     QFileSystemModel,
-    QFont,
-    QFontMetricsF,
     QFrame,
     QHBoxLayout,
     QIcon,
@@ -1259,20 +1257,7 @@ class MultiFolderDialog(QDialog):
                     if last_item:
                         last_item.setIcon(self.fetch_icon(f"Mount/{item}"))
 
-        # Compute width based on longest item text (using bold font for hover/selection)
-        bold_font = QFont(locations.font())
-        bold_font.setBold(True)
-        fm = QFontMetricsF(bold_font)
-        max_text_width = 0
-        for i in range(locations.count()):
-            item = locations.item(i)
-            if item:
-                text_width = fm.horizontalAdvance(item.text())
-                if text_width > max_text_width:
-                    max_text_width = text_width
-        # Item padding (8px*2) + list padding (4px*2) + icon padding (16px + (16/2)px) + scrollbar margin + extra
-        panel_width = int(max_text_width) + 8 * 2 + 4 * 2 + (16 + 8) + 20
-        locations.setFixedWidth(max(80, panel_width))
+        locations.setFixedWidth(140)
         locations.setSpacing(3)
         # Enable mouse tracking for hover detection
         locations.setMouseTracking(True)
