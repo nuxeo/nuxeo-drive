@@ -83,7 +83,7 @@ class TestVersionCompare:
 
 class TestVersionCompareClient:
     def test_semver(self):
-        assert version_compare_client("7.0.0", "7.1.0") == -1
+        assert version_compare_client("7.0.0", "8.0.0") == -1
 
     def test_with_suffix(self):
         assert version_compare_client("7.0.0-I123", "7.0.0-I124") == 0

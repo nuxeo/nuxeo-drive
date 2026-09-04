@@ -626,7 +626,7 @@ error reporting.
 
 - Default value (bool): `False`
 - Version added: 4.1.0
-- Version changed: 7.1.0, metrics are sent to Sentry instead of Google Analytics
+- Version changed: 8.0.0, metrics are sent to Sentry instead of Google Analytics
 
 #### `use-idempotent-requests`
 
@@ -650,7 +650,7 @@ Allow sharing error reports when something unusual happens.
 
 - Default value (bool): `False`
 - Version added: 4.1.0
-- Version changed: 7.1.0, Sentry is initialized only after explicit user consent
+- Version changed: 8.0.0, Sentry is initialized only after explicit user consent
 
 ## Behaviors
 
