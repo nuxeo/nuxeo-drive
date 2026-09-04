@@ -591,11 +591,8 @@ class RemoteWatcher(RemoteWatcherBase):
         # If synchronization features are disabled, we just need to emit
         # the appropriate signal to let the systray icon be updated.
         if not Feature.synchronization:
-            if first_pass:
-                self.initiate.emit()
-                return True
-            self.updated.emit()
-            return False
+            self._notify_pass_done(first_pass)
+            return first_pass
 
         if self._check_offline():
             return False

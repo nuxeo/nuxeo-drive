@@ -708,6 +708,17 @@ def test_readonly_partial_scan_and_offline_state_transitions(monkeypatch):
     assert watcher._check_offline() is True
 
 
+def test_first_pass_done_is_set_when_synchronization_is_disabled(monkeypatch):
+    watcher = _watcher()
+    watcher.first_pass_done = False
+    monkeypatch.setattr(Feature, "synchronization", False)
+
+    assert watcher._handle_changes(True) is True
+
+    assert watcher.first_pass_done is True
+    watcher.initiate.emit.assert_called_once_with()
+
+
 def test_handle_changes_disabled_offline_initial_and_queued_paths(monkeypatch):
     watcher = _watcher()
     monkeypatch.setattr(Feature, "synchronization", False)
