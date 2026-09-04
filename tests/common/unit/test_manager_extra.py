@@ -7,10 +7,12 @@ from unittest.mock import MagicMock, Mock, call, patch
 from urllib.parse import urlsplit
 
 import pytest
+from packaging.version import Version
 
 import nxdrive.drive.constants as constants
 import nxdrive.drive.feature as feature_module
 import nxdrive.drive.manager as manager_module
+from nxdrive import __alfresco_version__
 from nxdrive.drive import server_type as st
 from nxdrive.drive.constants import DelAction
 from nxdrive.drive.exceptions import (
@@ -678,8 +680,8 @@ def test_legacy_nuxeo_install_captures_first_run_metric(manager_obj, original_ve
     capture_first_run_metric.assert_called_once_with(manager_obj.version, "NUXEO")
 
 
-@pytest.mark.parametrize("original_version", ["8.0.0", "9.0.0"])
-def test_feature_era_nuxeo_install_does_not_capture_first_run_metric(
+@pytest.mark.parametrize("original_version", ["9.0.0", "10.0.0"])
+def test_downgraded_nuxeo_install_does_not_capture_first_run_metric(
     manager_obj, original_version
 ):
     Options.server_type = "NUXEO"
@@ -693,6 +695,38 @@ def test_feature_era_nuxeo_install_does_not_capture_first_run_metric(
     assert "sentry_first_run_metric_sent_at" not in manager_obj.dao.values
 
 
+def test_unsent_current_version_install_retries_first_run_metric(manager_obj):
+    Options.server_type = "NUXEO"
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric", return_value=True
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric(manager_obj.version)
+
+    capture_first_run_metric.assert_called_once_with(manager_obj.version, "NUXEO")
+    assert datetime.fromisoformat(
+        manager_obj.dao.values["sentry_first_run_metric_sent_at"]
+    )
+
+
+def test_unsent_install_retries_first_run_metric_after_upgrade(manager_obj):
+    Options.server_type = "NUXEO"
+
+    # Both the running version and the rollout table must move together,
+    # otherwise the two sides of the comparison describe different releases.
+    with patch.object(manager_module, "APP_VERSION", "9.0.0"), patch.dict(
+        manager_module.FIRST_RUN_METRIC_ROLLOUT_VERSIONS, {"NUXEO": Version("9.0.0")}
+    ), patch(
+        "nxdrive.drive.tracing.capture_first_run_metric", return_value=True
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric("8.0.0")
+
+    capture_first_run_metric.assert_called_once_with("9.0.0", "NUXEO")
+    assert datetime.fromisoformat(
+        manager_obj.dao.values["sentry_first_run_metric_sent_at"]
+    )
+
+
 def test_fresh_alfresco_install_captures_first_run_metric(manager_obj):
     Options.server_type = "ALFRESCO"
 
@@ -704,15 +738,42 @@ def test_fresh_alfresco_install_captures_first_run_metric(manager_obj):
     capture_first_run_metric.assert_called_once_with(manager_obj.version, "ALFRESCO")
 
 
-def test_existing_alfresco_install_does_not_capture_first_run_metric(manager_obj):
+def test_unsent_alfresco_install_retries_first_run_metric(manager_obj):
+    Options.server_type = "ALFRESCO"
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric", return_value=True
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric(__alfresco_version__)
+
+    capture_first_run_metric.assert_called_once_with(manager_obj.version, "ALFRESCO")
+    assert datetime.fromisoformat(
+        manager_obj.dao.values["sentry_first_run_metric_sent_at"]
+    )
+
+
+def test_downgraded_alfresco_install_does_not_capture_first_run_metric(manager_obj):
     Options.server_type = "ALFRESCO"
 
     with patch(
         "nxdrive.drive.tracing.capture_first_run_metric"
     ) as capture_first_run_metric:
-        manager_obj._capture_first_run_metric("0.9.0")
+        manager_obj._capture_first_run_metric("2.0.0")
 
     capture_first_run_metric.assert_not_called()
+    assert "sentry_first_run_metric_sent_at" not in manager_obj.dao.values
+
+
+def test_unknown_server_type_does_not_capture_first_run_metric(manager_obj):
+    Options.server_type = "UNKNOWN"
+
+    with patch(
+        "nxdrive.drive.tracing.capture_first_run_metric"
+    ) as capture_first_run_metric:
+        manager_obj._capture_first_run_metric("1.0.0")
+
+    capture_first_run_metric.assert_not_called()
+    assert "sentry_first_run_metric_sent_at" not in manager_obj.dao.values
 
 
 def test_legacy_first_run_sent_marker_prevents_duplicate(manager_obj):
