@@ -533,6 +533,38 @@ class TestHandleChangesExtended:
         watcher.engine.set_invalid_credentials.assert_not_called()
         watcher.updated.emit.assert_called_once()
 
+    def test_scan_failure_leaves_the_first_pass_undone(self):
+        watcher = _make_watcher()
+        watcher.engine.remote = MagicMock()
+        watcher.engine.queue_manager.get_overall_size.return_value = 0
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+        watcher.empty_polls = 0
+        watcher.first_pass_done = False
+
+        with patch.object(
+            watcher, "scan_remote", side_effect=RuntimeError("unexpected")
+        ):
+            watcher._handle_changes(first_pass=True)
+
+        assert watcher.first_pass_done is False
+        watcher.initiate.emit.assert_not_called()
+
+    def test_successful_first_pass_marks_it_done(self):
+        watcher = _make_watcher()
+        watcher.engine.remote = MagicMock()
+        watcher.engine.queue_manager.get_overall_size.return_value = 0
+        watcher.updated = MagicMock()
+        watcher.initiate = MagicMock()
+        watcher.empty_polls = 0
+        watcher.first_pass_done = False
+
+        with patch.object(watcher, "scan_remote"):
+            with patch.object(watcher, "_scan_local_changes"):
+                watcher._handle_changes(first_pass=True)
+
+        assert watcher.first_pass_done is True
+
     def test_no_remote_returns_early(self):
         watcher = _make_watcher()
         watcher.engine.remote = None

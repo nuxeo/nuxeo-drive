@@ -12,6 +12,7 @@ from nxdrive.drive.engine.engine import Engine, ServerBindingSettings
 from nxdrive.drive.exceptions import NoAssociatedSoftware
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import DirectEditDetails
+from nxdrive.drive.qt.imports import Qt
 from nxdrive.drive.translator import Translator
 from nxdrive.drive.utils import find_resource
 
@@ -118,7 +119,9 @@ def test_corrupted_download(app, manager_factory, tmp_path):
         direct_edit = manager.direct_edit
         direct_edit._folder.mkdir()
 
-        direct_edit.directEditError.connect(corrupted_error_signals)
+        direct_edit.directEditError.connect(
+            corrupted_error_signals, Qt.ConnectionType.DirectConnection
+        )
 
         blob = Mock()
         blob.digest = None
@@ -289,7 +292,9 @@ def test_document_not_found(manager_factory):
     with manager:
         direct_edit = manager.direct_edit
         received = False
-        direct_edit.directEditError.connect(error_signal)
+        direct_edit.directEditError.connect(
+            error_signal, Qt.ConnectionType.DirectConnection
+        )
 
         direct_edit._prepare_edit(engine.server_url, doc_uid)
         assert received
@@ -316,7 +321,9 @@ def test_document_without_assiciated_software(manager_factory):
     with manager:
         direct_edit = manager.direct_edit
         received = False
-        direct_edit.directEditError.connect(error_signal)
+        direct_edit.directEditError.connect(
+            error_signal, Qt.ConnectionType.DirectConnection
+        )
 
         with patch.object(direct_edit, "_prepare_edit", prepare_edit), patch.object(
             direct_edit._manager, "open_local_file", open_local_file
@@ -344,7 +351,9 @@ def test_download_http_error_404(manager_factory, obj_factory):
     with manager:
         direct_edit = manager.direct_edit
         direct_edit._folder.mkdir()
-        direct_edit.directEditError[str, list, str].connect(error_signal)
+        direct_edit.directEditError[str, list, str].connect(
+            error_signal, Qt.ConnectionType.DirectConnection
+        )
         doc = obj_factory(
             title="test 404.odt",
             nature="File",
@@ -384,7 +393,9 @@ def test_get_info_bad_response(manager_factory, obj_factory):
     with manager:
         direct_edit = manager.direct_edit
         direct_edit._folder.mkdir()
-        direct_edit.directEditError[str, list].connect(error_signal)
+        direct_edit.directEditError[str, list].connect(
+            error_signal, Qt.ConnectionType.DirectConnection
+        )
         doc = obj_factory(
             title="test_bad_response.odt",
             nature="File",

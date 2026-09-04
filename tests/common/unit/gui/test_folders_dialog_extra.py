@@ -20,7 +20,7 @@ from nxdrive.drive.qt.imports import (
     QModelIndex,
     Qt,
     QTreeView,
-    pyqtSignal,
+    Signal,
 )
 from nxdrive.drive.translator import Translator
 from nxdrive.drive.utils import find_resource
@@ -66,7 +66,7 @@ def application():
 class StubFolderTreeView(QTreeView):
     """A real QWidget with the small FolderTreeView API used by the dialog."""
 
-    update = pyqtSignal()
+    update = Signal()
 
     def __init__(self):
         super().__init__()
@@ -107,6 +107,10 @@ def test_constructor_builds_real_widget_and_initial_state(
         qapp, application, engine, tree_view, source, "/remote/selected"
     )
     try:
+        assert dialog.windowFlags() & Qt.WindowType.WindowCloseButtonHint
+        assert dialog.windowFlags() & Qt.WindowType.WindowMinimizeButtonHint
+        assert dialog.windowFlags() & Qt.WindowType.WindowMaximizeButtonHint
+        assert not dialog.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
         assert "alice" in dialog.windowTitle()
         assert dialog.remote_folder.text() == "/remote/selected"
         assert dialog.remote_folder_title == "selected"
@@ -566,7 +570,7 @@ def test_schedule_later_cancel_none_and_accepted_time(
         future = datetime.now(timezone.utc) + timedelta(seconds=90)
         time_value = MagicMock()
         time_value.toString.return_value = "2030-01-02 03:04:05"
-        time_value.toPyDateTime.return_value = future
+        time_value.toPython.return_value = future
         schedule.get_time.return_value = time_value
         with (
             patch.object(dialog_module, "ScheduleDialog", return_value=schedule),
@@ -579,7 +583,7 @@ def test_schedule_later_cancel_none_and_accepted_time(
         assert 88 <= dialog.scheduled_delay <= 90
 
         past = datetime.now(timezone.utc) - timedelta(minutes=1)
-        time_value.toPyDateTime.return_value = past
+        time_value.toPython.return_value = past
         with (
             patch.object(dialog_module, "ScheduleDialog", return_value=schedule),
             patch.object(dialog, "accept"),

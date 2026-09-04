@@ -12,7 +12,7 @@ from win32com.shell import shell, shellcon
 from ...constants import APP_NAME, CONFIG_REGISTRY_KEY
 from ...objects import DocPair
 from ...options import Options
-from ...qt.imports import pyqtSlot
+from ...qt.imports import Slot
 from ...translator import Translator
 from ...utils import force_encode, get_value, if_frozen
 from .. import AbstractOSIntegration
@@ -46,7 +46,7 @@ class WindowsIntegration(AbstractOSIntegration):
     def cleanup(self) -> None:
         disable_overlay()
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def addons_installed(self) -> bool:
         """Check if add-ons are installed or not."""
         return bool(
@@ -84,7 +84,7 @@ class WindowsIntegration(AbstractOSIntegration):
         win32clipboard.CloseClipboard()
         log.debug("Clipboard data set successfully")
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def install_addons(self, *, setup: str = None) -> bool:
         """Install addons using the installer shipped within the main installer."""
         from .windows_config import get_addon_installer_name

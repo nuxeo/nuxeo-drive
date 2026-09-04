@@ -4,13 +4,11 @@ from sqlite3 import Connection, Cursor
 from threading import RLock
 from typing import Any, List
 
-from PyQt6 import QtCore
-from PyQt6.QtCore import Qt
-
 from nxdrive.drive.client.local.base import FileInfo, LocalClientMixin
 from nxdrive.drive.constants import TransferStatus
 from nxdrive.drive.gui.folders_model import FilteredDoc
 from nxdrive.drive.objects import DocPair, RemoteFileInfo
+from nxdrive.drive.qt.imports import Qt, SignalInstance
 
 
 class Mock_Local_Client(LocalClientMixin):
@@ -522,11 +520,11 @@ class Mock_Qt:
         self.changed = self
         self.getLastFiles = self
         self.setEngine = Mock_Emitter()
-        self.setMessage: QtCore.PYQT_SLOT = QtCore.pyqtBoundSignal
+        self.setMessage = SignalInstance
         self.setSection = Mock_Emitter()
         self.setStatus = self
-        self.updateAvailable: QtCore.PYQT_SLOT = QtCore.pyqtBoundSignal
-        self.updateProgress: QtCore.PYQT_SLOT = QtCore.pyqtBoundSignal
+        self.updateAvailable = SignalInstance
+        self.updateProgress = SignalInstance
 
     def addButton(self, *args):
         pass

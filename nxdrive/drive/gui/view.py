@@ -9,15 +9,16 @@ from ..constants import DT_ACTIVE_SESSIONS_MAX_ITEMS, DT_MONITORING_MAX_ITEMS
 from ..options import Options
 from ..qt import constants as qt
 from ..qt.imports import (
+    Property,
     QAbstractListModel,
+    QByteArray,
     QModelIndex,
     QObject,
     QStandardItem,
     QStandardItemModel,
     Qt,
-    pyqtProperty,
-    pyqtSignal,
-    pyqtSlot,
+    Signal,
+    Slot,
 )
 from ..translator import Translator
 from ..utils import force_decode, get_date_from_sqlite, sizeof_fmt
@@ -43,10 +44,10 @@ __all__ = (
 
 
 class EngineModel(QAbstractListModel):
-    engineChanged = pyqtSignal()
-    statusChanged = pyqtSignal(object)
-    uiChanged = pyqtSignal(str)
-    authChanged = pyqtSignal(str)
+    engineChanged = Signal()
+    statusChanged = Signal(object)
+    uiChanged = Signal(str)
+    authChanged = Signal(str)
 
     UID_ROLE = qt.UserRole + 1
     TYPE_ROLE = qt.UserRole + 2
@@ -108,7 +109,7 @@ class EngineModel(QAbstractListModel):
 
         return getattr(engine, self.names[role].decode())
 
-    @pyqtSlot(int, str, result=str)
+    @Slot(int, str, result=str)
     def get(self, index: int, role: str = "uid", /) -> str:
         if index < 0 or index >= self.count:
             return ""
@@ -139,7 +140,7 @@ class EngineModel(QAbstractListModel):
     def rowCount(self, parent: QModelIndex = QModelIndex(), /) -> int:
         return len(self.engines_uid)
 
-    @pyqtProperty("int", notify=engineChanged)
+    @Property(int, notify=engineChanged)
     def count(self) -> int:
         return self.rowCount()
 
@@ -160,7 +161,7 @@ class EngineModel(QAbstractListModel):
 
 
 class TransferModel(QAbstractListModel):
-    fileChanged = pyqtSignal()
+    fileChanged = Signal()
 
     ID = qt.UserRole + 1
     NAME = qt.UserRole + 2
@@ -196,7 +197,7 @@ class TransferModel(QAbstractListModel):
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
 
-    @pyqtProperty("int", notify=fileChanged)
+    @Property(int, notify=fileChanged)
     def count(self) -> int:
         return self.rowCount()
 
@@ -255,7 +256,7 @@ class TransferModel(QAbstractListModel):
         self.transfers[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    @pyqtSlot(dict)
+    @Slot(dict)
     def set_progress(self, action: Dict[str, Any], /) -> None:
         for i, item in enumerate(self.transfers):
             action_engine = action.get("engine")
@@ -289,7 +290,7 @@ class TransferModel(QAbstractListModel):
 
 
 class DirectTransferModel(QAbstractListModel):
-    fileChanged = pyqtSignal()
+    fileChanged = Signal()
 
     ID = qt.UserRole + 1
     NAME = qt.UserRole + 2
@@ -396,7 +397,7 @@ class DirectTransferModel(QAbstractListModel):
         self.items[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    @pyqtSlot(dict)
+    @Slot(dict)
     def set_progress(self, action: Dict[str, Any], /) -> None:
         for i, item in enumerate(self.items):
             if (
@@ -425,11 +426,11 @@ class DirectTransferModel(QAbstractListModel):
         if "finalizing" not in n_item:
             n_item["finalizing"] = False
         self.items[row] = n_item
-        self.dataChanged.emit(idx, idx, self.roleNames())
+        self.dataChanged.emit(idx, idx, list(self.roleNames()))
 
 
 class ActiveSessionModel(QAbstractListModel):
-    sessionChanged = pyqtSignal()
+    sessionChanged = Signal()
 
     UID = qt.UserRole + 1
     STATUS = qt.UserRole + 2
@@ -584,23 +585,23 @@ class ActiveSessionModel(QAbstractListModel):
         """Replace an existing session with *n_session*."""
         idx = self.index(row, 0)
         self.sessions[row] = n_session
-        self.dataChanged.emit(idx, idx, self.roleNames())
+        self.dataChanged.emit(idx, idx, list(self.roleNames()))
 
-    @pyqtProperty("int", notify=sessionChanged)
+    @Property(int, notify=sessionChanged)
     def count(self) -> int:
         return self.rowCount()
 
-    @pyqtProperty("int", notify=sessionChanged)
+    @Property(int, notify=sessionChanged)
     def count_no_shadow(self) -> int:
         return self.row_count_no_shadow()
 
-    @pyqtProperty("bool", notify=sessionChanged)
+    @Property(bool, notify=sessionChanged)
     def is_full(self) -> bool:
         return self.row_count_no_shadow() >= DT_ACTIVE_SESSIONS_MAX_ITEMS
 
 
 class CompletedSessionModel(QAbstractListModel):
-    sessionChanged = pyqtSignal()
+    sessionChanged = Signal()
 
     UID = qt.UserRole + 1
     STATUS = qt.UserRole + 2
@@ -706,7 +707,7 @@ class CompletedSessionModel(QAbstractListModel):
         self.sessions[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    @pyqtProperty("int", notify=sessionChanged)
+    @Property(int, notify=sessionChanged)
     def count(self) -> int:
         return self.rowCount()
 
@@ -785,7 +786,7 @@ def format_file_names_for_display(all_names: List[str], max_length: int = 60) ->
 class ActiveDirectDownloadModel(QAbstractListModel):
     """Model for active direct downloads (pending, in_progress, paused)."""
 
-    downloadChanged = pyqtSignal()
+    downloadChanged = Signal()
 
     UID = qt.UserRole + 1
     DOC_UID = qt.UserRole + 2
@@ -924,11 +925,11 @@ class ActiveDirectDownloadModel(QAbstractListModel):
         self.downloads[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    @pyqtProperty("int", notify=downloadChanged)
+    @Property(int, notify=downloadChanged)
     def count(self) -> int:
         return self.rowCount()
 
-    @pyqtProperty("int", notify=downloadChanged)
+    @Property(int, notify=downloadChanged)
     def count_no_shadow(self) -> int:
         return self.row_count_no_shadow()
 
@@ -936,7 +937,7 @@ class ActiveDirectDownloadModel(QAbstractListModel):
 class CompletedDirectDownloadModel(QAbstractListModel):
     """Model for completed/cancelled direct downloads."""
 
-    downloadChanged = pyqtSignal()
+    downloadChanged = Signal()
 
     UID = qt.UserRole + 1
     DOC_UID = qt.UserRole + 2
@@ -1045,7 +1046,7 @@ class CompletedDirectDownloadModel(QAbstractListModel):
         key = self.names.get(role, b"").decode()
         return row.get(key, "")
 
-    @pyqtProperty("int", notify=downloadChanged)
+    @Property(int, notify=downloadChanged)
     def count(self) -> int:
         return self.rowCount()
 
@@ -1053,7 +1054,7 @@ class CompletedDirectDownloadModel(QAbstractListModel):
 class DirectDownloadMonitoringModel(QAbstractListModel):
     """Model for monitoring active direct downloads with real-time progress."""
 
-    itemChanged = pyqtSignal()
+    itemChanged = Signal()
 
     UID = qt.UserRole + 1
     DOC_NAME = qt.UserRole + 2
@@ -1147,7 +1148,7 @@ class DirectDownloadMonitoringModel(QAbstractListModel):
         self.items[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    @pyqtSlot(dict)
+    @Slot(dict)
     def set_progress(self, action: Dict[str, Any], /) -> None:
         """Update download progress for a specific item."""
         for i, item in enumerate(self.items):
@@ -1191,13 +1192,13 @@ class DirectDownloadMonitoringModel(QAbstractListModel):
         self.endInsertRows()
         self.itemChanged.emit()
 
-    @pyqtProperty("int", notify=itemChanged)
+    @Property(int, notify=itemChanged)
     def count(self) -> int:
         return self.rowCount()
 
 
 class FileModel(QAbstractListModel):
-    fileChanged = pyqtSignal()
+    fileChanged = Signal()
 
     ID = qt.UserRole + 1
     DETAILS = qt.UserRole + 2
@@ -1279,7 +1280,7 @@ class FileModel(QAbstractListModel):
         self.files[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    @pyqtProperty("int", notify=fileChanged)
+    @Property(int, notify=fileChanged)
     def count(self) -> int:
         return self.rowCount()
 
@@ -1318,11 +1319,11 @@ class LanguageModel(QAbstractListModel):
             return row[0]
         return ""
 
-    @pyqtSlot(int, result=str)
+    @Slot(int, result=str)
     def getTag(self, index: int) -> str:
         return self.languages[index][0]
 
-    @pyqtSlot(int, result=str)
+    @Slot(int, result=str)
     def getName(self, index: int) -> str:
         return self.languages[index][1]
 
@@ -1343,14 +1344,14 @@ class LanguageModel(QAbstractListModel):
 
 
 class FeatureModel(QObject):
-    stateChanged = pyqtSignal()
+    stateChanged = Signal()
 
     def __init__(self, enabled: bool, /, *, restart_needed: bool = False) -> None:
         super().__init__()
         self._enabled = enabled
         self._restart_needed = restart_needed
 
-    @pyqtProperty(bool, notify=stateChanged)
+    @Property(bool, notify=stateChanged)
     def enabled(self) -> bool:
         return self._enabled
 
@@ -1375,16 +1376,16 @@ class TasksModel(QObject):
         self.taskmodel = QStandardItemModel()
         self.taskmodel.setItemRoleNames(
             {
-                self.TASK_ROLE: b"task",
-                self.TASK_ID: b"task_id",
+                int(self.TASK_ROLE): QByteArray(b"task"),
+                int(self.TASK_ID): QByteArray(b"task_id"),
             }
         )
 
         self.self_taskmodel = QStandardItemModel()
         self.self_taskmodel.setItemRoleNames(
             {
-                self.TASK_ROLE: b"task",
-                self.TASK_ID: b"task_id",
+                int(self.TASK_ROLE): QByteArray(b"task"),
+                int(self.TASK_ID): QByteArray(b"task_id"),
             }
         )
 
@@ -1394,10 +1395,10 @@ class TasksModel(QObject):
     def get_self_model(self) -> QStandardItemModel:
         return self.self_taskmodel
 
-    model = pyqtProperty(QObject, fget=get_model, constant=True)
-    self_model = pyqtProperty(QObject, fget=get_self_model, constant=True)
+    model = Property(QObject, fget=get_model, constant=True)
+    self_model = Property(QObject, fget=get_self_model, constant=True)
 
-    @pyqtSlot(list, str)
+    @Slot(list, str)
     def loadList(self, tasks_list: list, username: str, /) -> None:
         self.taskmodel.clear()
         self.self_taskmodel.clear()

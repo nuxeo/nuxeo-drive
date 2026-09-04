@@ -1,5 +1,4 @@
 import time
-from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from queue import Empty, Queue
@@ -10,7 +9,7 @@ from ..constants import WINDOWS
 from ..exceptions import RemoteOngoingRequestError
 from ..objects import DocPair, Metrics
 from ..options import Options
-from ..qt.imports import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
+from ..qt.imports import QObject, QThread, QTimer, Signal, Slot
 from .processor import Processor
 
 if TYPE_CHECKING:
@@ -39,11 +38,11 @@ class QueueItem:
 
 class QueueManager(QObject):
     # Always create thread from the main thread
-    newItem = pyqtSignal(object)
-    newError = pyqtSignal(object)
-    newErrorGiveUp = pyqtSignal(object)
-    queueProcessing = pyqtSignal()
-    queueFinishedProcessing = pyqtSignal()
+    newItem = Signal(object)
+    newError = Signal(object)
+    newErrorGiveUp = Signal(object)
+    queueProcessing = Signal()
+    queueFinishedProcessing = Signal()
 
     # Only used by Unit Test
     _disable = False
@@ -70,6 +69,7 @@ class QueueManager(QObject):
         self._error_interval = 60
         self.set_max_processors(max_file_processors)
         self._processors_pool: List[QThread] = []
+        self._processors_initialized = False
         self._get_file_lock = Lock()
         # Should not operate on thread while we are inspecting them
         """
@@ -100,14 +100,16 @@ class QueueManager(QObject):
 
     def init_processors(self) -> None:
         log.debug("Init processors")
-        self.newItem.connect(self.launch_processors)
+        if not self._processors_initialized:
+            self.newItem.connect(self.launch_processors)
+            self._processors_initialized = True
         self.queueProcessing.emit()
 
     def shutdown_processors(self) -> None:
         log.debug("Shutdown processors")
-        with suppress(TypeError):
-            # TypeError: disconnect() failed between 'newItem' and 'launch_processors'
+        if self._processors_initialized:
             self.newItem.disconnect(self.launch_processors)
+            self._processors_initialized = False
 
     def set_max_processors(self, max_file_processors: int, /) -> None:
         if max_file_processors < 2:
@@ -213,7 +215,7 @@ class QueueManager(QObject):
             # deleted and conflicted
             log.info(f"Not processable state: {state!r}")
 
-    @pyqtSlot()
+    @Slot()
     def _on_error_timer(self) -> None:
         with self._error_lock:
             cur_time = int(time.time())
@@ -231,7 +233,7 @@ class QueueManager(QObject):
     def _is_on_error(self, row_id: int) -> bool:
         return row_id in self._on_error_queue
 
-    @pyqtSlot()
+    @Slot()
     def _on_new_error(self) -> None:
         self._error_timer.start(1000)
 
@@ -363,7 +365,7 @@ class QueueManager(QObject):
             return self._get_file()
         return state
 
-    @pyqtSlot()
+    @Slot()
     def _thread_finished(self) -> None:
         with self._thread_inspection:
             for thread in self._processors_pool:
@@ -513,7 +515,7 @@ class QueueManager(QObject):
                 for thread in self._processors_pool
             )
 
-    @pyqtSlot()
+    @Slot()
     def launch_processors(self) -> None:
         if (
             self._disable

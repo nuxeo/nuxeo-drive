@@ -7,14 +7,25 @@ from unittest.mock import Mock, call, patch
 import pytest
 
 from nxdrive.drive.gui import application as application_module
+from nxdrive.drive.gui.custom_window import CustomWindow
 from nxdrive.drive.gui.application import Application
+from nxdrive.drive.gui.systray import DriveSystrayIcon, SystrayWindow
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import Qt
+from nxdrive.drive.qt.imports import QObject, Qt, Signal
+
+
+class ApplicationMethodHost:
+    """Bind real Application methods without creating another QApplication."""
+
+    def __getattr__(self, name):
+        attribute = getattr(Application, name)
+        descriptor = getattr(attribute, "__get__", None)
+        return descriptor(self, type(self)) if descriptor else attribute
 
 
 def make_application(**attributes):
     """Build an Application without running its process-wide constructor."""
-    application = Application.__new__(Application)
+    application = ApplicationMethodHost()
     application.tasks_management_feature_model = Mock()
     for name, value in attributes.items():
         setattr(application, name, value)
@@ -49,6 +60,89 @@ def test_dark_mode_without_style_hints_is_light():
     application = make_application()
     with patch.object(Application, "styleHints", return_value=None):
         assert application.is_dark_mode() is False
+
+
+def test_native_window_callbacks_are_registered_slots():
+    cases = (
+        (DriveSystrayIcon, "handle_mouse_click(QSystemTrayIcon::ActivationReason)"),
+        (SystrayWindow, "_on_active_changed()"),
+        (CustomWindow, "_handle_visibility_change(QWindow::Visibility)"),
+    )
+
+    for owner, signature in cases:
+        assert owner.staticMetaObject.indexOfSlot(signature) >= 0
+
+
+@pytest.mark.parametrize(
+    ("section", "expected_index"),
+    [("Features", 0), ("Accounts", 1), ("About", 4), ("unknown", 0)],
+)
+def test_show_settings_uses_existing_qml_window(section, expected_index):
+    root = SimpleNamespace(setSection=Mock())
+    root.setSection.emit = Mock()
+    settings_window = Mock()
+    application = make_application(
+        settings_window=settings_window,
+        _window_root=Mock(return_value=root),
+        _center_on_screen=Mock(),
+    )
+
+    application.show_settings(section)
+
+    application._window_root.assert_called_once_with(settings_window)
+    root.setSection.emit.assert_called_once_with(expected_index)
+    application._center_on_screen.assert_called_once_with(settings_window)
+
+
+def test_init_checks_does_not_show_accounts_during_startup():
+    manager = Mock()
+    manager.engines = {}
+    manager.notification_service = Mock()
+    manager.updater = Mock()
+    application = make_application(
+        manager=manager,
+        _show_next_pending_filter=Mock(),
+        show_settings=Mock(),
+    )
+
+    application.init_checks()
+
+    application.show_settings.assert_not_called()
+    manager.start.assert_called_once_with()
+
+
+@Options.mock()
+def test_update_notification_slot_connects_and_honors_frozen_guard(monkeypatch):
+    class Sender(QObject):
+        updateAvailable = Signal()
+
+    class Receiver(QObject):
+        _update_notification = Application._update_notification
+
+    sender = Sender()
+    receiver = Receiver()
+    receiver.change_systray_icon = Mock()
+    receiver.manager = SimpleNamespace(
+        updater=SimpleNamespace(status="available", version="1.2.3"),
+        notification_service=Mock(),
+    )
+    monkeypatch.setattr(
+        application_module.Translator,
+        "get",
+        staticmethod(lambda key, values=None: key),
+    )
+
+    sender.updateAvailable.connect(receiver._update_notification)
+
+    Options.is_frozen = False
+    sender.updateAvailable.emit()
+    receiver.change_systray_icon.assert_not_called()
+    receiver.manager.notification_service.send_notification.assert_not_called()
+
+    Options.is_frozen = True
+    sender.updateAvailable.emit()
+    receiver.change_systray_icon.assert_called_once_with()
+    receiver.manager.notification_service.send_notification.assert_called_once()
 
 
 def test_metrics_acceptance_persists_choices_through_manager():

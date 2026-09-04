@@ -8,6 +8,8 @@ from typing import List, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
+
+from nxdrive.drive.qt.imports import Qt
 import psutil
 
 import nxdrive.drive.autolocker
@@ -190,7 +192,7 @@ def test_poll_emits_orphans_only_on_first_successful_poll(app, autolock):
     emitted = []
     autolock.dao.get_locked_paths = Mock(return_value=locked)
     autolock._process = Mock()
-    autolock.orphanLocks.connect(emitted.append)
+    autolock.orphanLocks.connect(emitted.append, Qt.ConnectionType.DirectConnection)
 
     assert autolock._poll() is True
     assert autolock._poll() is True

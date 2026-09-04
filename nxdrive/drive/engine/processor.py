@@ -11,8 +11,9 @@ from threading import Lock
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
 from nxdrive.drive.engine.workers import EngineWorker
+from nxdrive.drive.exceptions import PairInterrupt
 from nxdrive.drive.objects import DocPair
-from nxdrive.drive.qt.imports import pyqtSignal
+from nxdrive.drive.qt.imports import Signal
 
 if TYPE_CHECKING:
     from nxdrive.drive.engine.engine import Engine
@@ -23,8 +24,8 @@ __all__ = ("Processor",)
 class Processor(EngineWorker):
     """Base processor — subclass in each server-type package."""
 
-    pairSyncStarted = pyqtSignal(object)
-    pairSyncEnded = pyqtSignal(object)
+    pairSyncStarted = Signal(object)
+    pairSyncEnded = Signal(object)
 
     path_locker = Lock()
     soft_locks: Dict[str, Dict[Path, bool]] = {}
@@ -41,6 +42,14 @@ class Processor(EngineWorker):
 
     def get_current_pair(self) -> Optional[DocPair]:
         return self._current_doc_pair
+
+    def _ensure_remote_first_pass(self, doc_pair: DocPair, /) -> None:
+        """Hold back local creations until the remote watcher completed its first pass,
+        else a document created server-side while Drive was stopped is duplicated
+        instead of being flagged as a conflict."""
+        watcher = getattr(self.engine, "_remote_watcher", None)
+        if watcher is not None and not watcher.first_pass_done:
+            raise PairInterrupt(f"Waiting for the first remote pass: {doc_pair!r}")
 
     def _execute(self) -> None:
         raise NotImplementedError

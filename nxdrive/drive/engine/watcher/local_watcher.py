@@ -25,7 +25,7 @@ from ...exceptions import ThreadInterrupt
 from ...feature import Feature
 from ...objects import DocPair, Metrics
 from ...options import Options
-from ...qt.imports import pyqtSignal
+from ...qt.imports import Signal
 from ...utils import (
     current_milli_time,
     find_real_libreoffice_file,
@@ -74,11 +74,11 @@ def is_text_edit_tmp_file(name: str, /) -> bool:
 
 
 class LocalWatcher(EngineWorker):
-    localScanFinished = pyqtSignal()
-    rootMoved = pyqtSignal(Path)
-    rootDeleted = pyqtSignal()
-    docDeleted = pyqtSignal(Path)
-    fileAlreadyExists = pyqtSignal(Path, Path)
+    localScanFinished = Signal()
+    rootMoved = Signal(Path)
+    rootDeleted = Signal()
+    docDeleted = Signal(Path)
+    fileAlreadyExists = Signal(Path, Path)
 
     def __init__(self, engine: "Engine", dao: "EngineDAO", /) -> None:
         super().__init__(engine, dao, "LocalWatcher")

@@ -1232,7 +1232,7 @@ class TestQMLDriveApiJsonDefault:
             nature2, transfer_uid2, progress2, is_direct_transfer=False
         )
 
-        # Test 3: Pause transfer with is_direct_transfer=True
+        # Test 3: Pause transfer with QML-style is_direct_transfer=True
         self.mock_manager.reset_mock()
         mock_engine.reset_mock()
         mock_dao.reset_mock()
@@ -1245,11 +1245,7 @@ class TestQMLDriveApiJsonDefault:
 
         with patch("nxdrive.drive.gui.api.log") as mock_log:
             self.api.pause_transfer(
-                nature3,
-                engine_uid3,
-                transfer_uid3,
-                progress3,
-                is_direct_transfer=is_direct_transfer,
+                nature3, engine_uid3, transfer_uid3, progress3, is_direct_transfer
             )
 
             # Verify logging
@@ -1676,21 +1672,19 @@ class TestQMLDriveApiJsonDefault:
             "downloads", 123, is_direct_transfer=False
         )
 
-        # Test with keyword argument
+        # Test with QML-style positional argument
         mock_engine.reset_mock()
         self.mock_manager.reset_mock()
 
         with patch("nxdrive.drive.gui.api.log"):
-            self.api.resume_transfer(
-                "uploads", "kw_engine", 456, is_direct_transfer=True
-            )
+            self.api.resume_transfer("uploads", "pos_engine", 456, True)
 
         mock_engine.resume_transfer.assert_called_with(
             "uploads", 456, is_direct_transfer=True
         )
 
         # Test 12: Verify method signature matches expected Qt slot signature
-        # This test ensures the pyqtSlot decorator parameters match the function signature
+        # This test ensures the Slot decorator parameters match the function signature
         import inspect
 
         sig = inspect.signature(self.api.resume_transfer)
@@ -1704,7 +1698,7 @@ class TestQMLDriveApiJsonDefault:
         # Verify is_direct_transfer has default value
         is_direct_param = sig.parameters["is_direct_transfer"]
         assert is_direct_param.default is False
-        assert is_direct_param.kind == inspect.Parameter.KEYWORD_ONLY
+        assert is_direct_param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
 
     def test_resume_session_comprehensive_functionality(self):
         """Comprehensive test covering all functionality of resume_session method."""
@@ -2106,9 +2100,7 @@ class TestQMLDriveApiJsonDefault:
             )
 
             # Verify settings window shown
-            self.mock_application._show_window.assert_called_once_with(
-                self.mock_application.settings_window
-            )
+            self.mock_application.show_settings.assert_called_once_with("Accounts")
 
             # Verify _bind_server called with correct parameters
             mock_bind_server.assert_called_once_with(

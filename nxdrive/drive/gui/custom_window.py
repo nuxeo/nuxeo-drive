@@ -1,13 +1,10 @@
 from typing import Optional
 
-from ..constants import WINDOWS
 from ..qt import constants as qt
-from ..qt.imports import QKeyEvent, QQuickView, QQuickWindow, QWindow
-
-inherited_base_class = QQuickView if WINDOWS else QQuickWindow
+from ..qt.imports import QKeyEvent, QQuickWindow, QWindow, Slot
 
 
-class CustomWindow(inherited_base_class):  # type: ignore
+class CustomWindow(QQuickWindow):
     def __init__(self, parent: Optional[QWindow] = None) -> None:
         super().__init__(parent=parent)
         self.visibilityChanged.connect(self._handle_visibility_change)
@@ -19,6 +16,7 @@ class CustomWindow(inherited_base_class):  # type: ignore
         else:
             super().keyPressEvent(event)
 
+    @Slot(QWindow.Visibility)
     def _handle_visibility_change(self, visibility: QWindow.Visibility) -> None:
         if visibility == QWindow.Visibility.FullScreen:
             self.showMaximized()

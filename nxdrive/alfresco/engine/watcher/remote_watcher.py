@@ -336,7 +336,8 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 reason="remote scan failed — re-login required"
             )
             self.updated.emit()
-            return first_pass
+            # Remote state is still unknown: keep polling as a first pass.
+            return False
         except Exception:
             # Anything that is NOT an auth error is a bug or transient
             # infra issue — log it, but do NOT force the user through a
@@ -344,7 +345,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             # banner is misleading and blocks recovery on the next poll).
             log.exception("Remote scan failed unexpectedly")
             self.updated.emit()
-            return first_pass
+            return False
 
         # Detect local changes that the watchdog may have missed
         # (atomic saves, copies during busy event loop, etc.)
@@ -360,7 +361,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         else:
             self.empty_polls += 1
 
-        (self.updated, self.initiate)[first_pass].emit()
+        self._notify_pass_done(first_pass)
 
         # Directly call _check_last_sync because the @tooltip decorator
         # swallows return values, preventing the signal-based path from

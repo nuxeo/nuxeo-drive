@@ -17,8 +17,6 @@ from nxdrive.drive.qt.imports import (
     QDir,
     QEvent,
     QFileSystemModel,
-    QFont,
-    QFontMetricsF,
     QFrame,
     QHBoxLayout,
     QIcon,
@@ -39,7 +37,7 @@ from nxdrive.drive.qt.imports import (
     QTreeView,
     QVBoxLayout,
     QWidget,
-    pyqtBoundSignal,
+    SignalInstance,
 )
 
 from ..constants import LINUX, MAC, WINDOWS
@@ -209,7 +207,7 @@ class MultiFolderDialog(QDialog):
     def __init__(
         self,
         dark_mode: bool = False,
-        dark_mode_signal: pyqtBoundSignal | None = None,
+        dark_mode_signal: SignalInstance | None = None,
         parent: QDialog | None = None,
     ) -> None:
         super().__init__(parent)
@@ -353,6 +351,15 @@ class MultiFolderDialog(QDialog):
         self.tree.setHeaderHidden(False)
         # Handle double-click to navigate into directories
         self.tree.doubleClicked.connect(self.load_directory)
+
+        # On Linux, set text color of QTreeView based on background color
+        # Qt does not always switch to a dark background in dark mode.
+        # MFD has to be reloaded for the color to update
+        if LINUX:
+            widget_color = self.palette().color(self.backgroundRole())
+            r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()
+            if not (r <= 99 and g <= 99 and b <= 99):
+                self.tree.setProperty("linuxDarkText", "true")
 
         # Resize the width when the directory is collapsed/expanded
         self.tree.expanded.connect(self._resize_column_to_contents)
@@ -1250,20 +1257,7 @@ class MultiFolderDialog(QDialog):
                     if last_item:
                         last_item.setIcon(self.fetch_icon(f"Mount/{item}"))
 
-        # Compute width based on longest item text (using bold font for hover/selection)
-        bold_font = QFont(locations.font())
-        bold_font.setBold(True)
-        fm = QFontMetricsF(bold_font)
-        max_text_width = 0
-        for i in range(locations.count()):
-            item = locations.item(i)
-            if item:
-                text_width = fm.horizontalAdvance(item.text())
-                if text_width > max_text_width:
-                    max_text_width = text_width
-        # Item padding (8px*2) + list padding (4px*2) + icon padding (16px + (16/2)px) + scrollbar margin + extra
-        panel_width = int(max_text_width) + 8 * 2 + 4 * 2 + (16 + 8) + 20
-        locations.setFixedWidth(max(80, panel_width))
+        locations.setFixedWidth(140)
         locations.setSpacing(3)
         # Enable mouse tracking for hover detection
         locations.setMouseTracking(True)
@@ -1285,7 +1279,7 @@ class MultiFolderDialog(QDialog):
         icon_color = "light" if self._dark_mode else "dark"
         if LINUX:
             # For Linux, we also check the background color
-            # This is because PyQt6 does not always switch to dark background in dark mode
+            # Qt does not always switch to a dark background in dark mode.
             # MFD has to be reloaded for the color to update
             widget_color = self.palette().color(self.backgroundRole())
             r, g, b = widget_color.red(), widget_color.green(), widget_color.blue()

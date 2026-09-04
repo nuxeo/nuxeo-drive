@@ -9,7 +9,7 @@ from nxdrive.drive.engine.engine import Engine
 
 from ..objects import DocPair
 from ..qt import constants as qt
-from ..qt.imports import QHostAddress, QHostInfo, QTcpServer, QTcpSocket, pyqtSignal
+from ..qt.imports import QHostAddress, QHostInfo, QTcpServer, QTcpSocket, Signal
 from ..utils import force_decode, force_encode
 
 if TYPE_CHECKING:
@@ -59,7 +59,7 @@ class ExtensionListener(QTcpServer):
     It will look for the callable associated with the command in its `handlers` dict.
     """
 
-    listening = pyqtSignal()
+    listening = Signal()
     explorer_name = ""
 
     def __init__(self, manager: "Manager") -> None:

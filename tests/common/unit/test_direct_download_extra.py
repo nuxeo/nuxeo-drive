@@ -7,6 +7,8 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 
+from nxdrive.drive.qt.imports import Qt
+
 from nxdrive.drive.constants import DirectDownloadStatus
 from nxdrive.drive.direct_download import DirectDownload
 from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
@@ -336,7 +338,8 @@ def test_process_batch_failure_persists_error_and_avoids_completion(
 ):
     errors = []
     direct_download.downloadError.connect(
-        lambda filename, message: errors.append((filename, message))
+        lambda filename, message: errors.append((filename, message)),
+        Qt.ConnectionType.DirectConnection,
     )
     doc = {"doc_id": "broken", "filename": "broken.txt"}
     failed_record = _record(9, DirectDownloadStatus.FAILED)
@@ -497,7 +500,9 @@ def test_progress_persists_aggregate_and_emits_per_file_values(
     direct_download, manager
 ):
     progress_events = []
-    direct_download.downloadProgress.connect(progress_events.append)
+    direct_download.downloadProgress.connect(
+        progress_events.append, Qt.ConnectionType.DirectConnection
+    )
     engine = _engine()
     record = _record(11, DirectDownloadStatus.IN_PROGRESS)
     engine.dao.get_direct_download.return_value = record

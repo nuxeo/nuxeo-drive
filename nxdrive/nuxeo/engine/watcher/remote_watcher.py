@@ -20,7 +20,7 @@ from nxdrive.drive.engine.watcher.remote_watcher_base import RemoteWatcherBase
 from nxdrive.drive.exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import DocPair, DocPairs, Metrics, RemoteFileInfo
-from nxdrive.drive.qt.imports import pyqtSignal, pyqtSlot
+from nxdrive.drive.qt.imports import Signal, Slot
 from nxdrive.drive.utils import get_date_from_sqlite, safe_filename
 from nxdrive.nuxeo.engine.watcher.constants import (
     DELETED_EVENT,
@@ -42,8 +42,8 @@ COLLECTION_SYNC_ROOT_FACTORY_NAME = "collectionSyncRootFolderItemFactory"
 
 
 class RemoteWatcher(RemoteWatcherBase):
-    changesFound = pyqtSignal(int)
-    noChangesFound = pyqtSignal()
+    changesFound = Signal(int)
+    noChangesFound = Signal()
 
     def __init__(self, engine: "Engine", dao: "EngineDAO", /) -> None:
         super().__init__(engine, dao, "RemoteWatcher")
@@ -101,7 +101,7 @@ class RemoteWatcher(RemoteWatcherBase):
         log.info(f"Remote scan finished in {monotonic() - start:.02f} sec")
         self.remoteScanFinished.emit()
 
-    @pyqtSlot(str)
+    @Slot(str)
     def scan_pair(self, remote_path: str, /) -> None:
         self.dao.add_path_to_scan(str(remote_path).replace("\\", "/"))
         self._next_check = 0
@@ -591,11 +591,8 @@ class RemoteWatcher(RemoteWatcherBase):
         # If synchronization features are disabled, we just need to emit
         # the appropriate signal to let the systray icon be updated.
         if not Feature.synchronization:
-            if first_pass:
-                self.initiate.emit()
-                return True
-            self.updated.emit()
-            return False
+            self._notify_pass_done(first_pass)
+            return first_pass
 
         if self._check_offline():
             return False
@@ -608,7 +605,7 @@ class RemoteWatcher(RemoteWatcherBase):
 
                 # Might need to handle the changes now
                 if first_pass:
-                    self.initiate.emit()
+                    self._notify_pass_done(True)
                 return True
 
             full_scan = self.dao.get_config("remote_need_full_scan")
@@ -624,7 +621,7 @@ class RemoteWatcher(RemoteWatcherBase):
                 paths = self.dao.get_paths_to_scan()
 
             self._update_remote_states()
-            (self.updated, self.initiate)[first_pass].emit()
+            self._notify_pass_done(first_pass)
         except BadQuery:
             # This should never happen: there is an error in the operation's
             # parameters sent to the server.  This exception is possible only

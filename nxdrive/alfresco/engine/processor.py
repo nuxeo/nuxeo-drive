@@ -188,7 +188,8 @@ class AlfrescoProcessor(_ProcessorBase):
     def check_pair_state(doc_pair: DocPair, /) -> bool:
         return all(
             (
-                doc_pair.pair_state not in ("synchronized", "unsynchronized"),
+                doc_pair.pair_state
+                not in ("synchronized", "unsynchronized", "conflicted"),
                 not doc_pair.pair_state.startswith("parent_"),
             )
         )
@@ -651,6 +652,9 @@ class AlfrescoProcessor(_ProcessorBase):
                 self.engine.release_folder_lock()
 
     def _synchronize_locally_created(self, doc_pair: DocPair, /) -> None:
+        if doc_pair.pair_state == "locally_created":
+            self._ensure_remote_first_pass(doc_pair)
+
         name = doc_pair.local_path.name
         if not doc_pair.folderish:
             ignore, delay = is_generated_tmp_file(name)

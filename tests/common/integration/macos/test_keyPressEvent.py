@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock
 
-from PyQt6.QtCore import Qt
+from nxdrive.drive.qt.imports import Qt
 
 from ....markers import mac_only
 

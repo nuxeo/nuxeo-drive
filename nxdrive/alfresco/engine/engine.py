@@ -27,7 +27,7 @@ from nxdrive.drive.exceptions import RemoteUnauthorized
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import Binder, EngineDef
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import pyqtSlot
+from nxdrive.drive.qt.imports import Slot
 from nxdrive.drive.utils import set_path_readonly, unset_path_readonly
 
 if TYPE_CHECKING:
@@ -159,8 +159,8 @@ class AlfrescoEngine(Engine):
 
     # -- Sync state tracking -------------------------------------------------
 
-    @pyqtSlot(object)
-    def _check_sync_start(self, *, row_id: str = None) -> None:
+    @Slot(object)
+    def _check_sync_start(self, row_id: str = None) -> None:
         if not self._sync_started:
             queue_size = self.queue_manager.get_overall_size()
             if queue_size > 0:
@@ -372,7 +372,7 @@ class AlfrescoEngine(Engine):
         self._remote_watcher.updated.connect(self._check_last_sync)
         self._scanPair.connect(self._remote_watcher.scan_pair)
 
-    @pyqtSlot()
+    @Slot()
     def _check_last_sync(self) -> None:
         """Check whether sync has completed for this Alfresco engine."""
         if not self._sync_started:

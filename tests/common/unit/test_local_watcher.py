@@ -8,6 +8,7 @@ import pytest
 
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.exceptions import ThreadInterrupt
+from nxdrive.drive.qt.imports import Qt
 
 
 def test_execute(tmp_path):
@@ -30,7 +31,9 @@ def test_execute(tmp_path):
     # Test Case 1: Root doesn't exist - should emit rootDeleted signal
     mock_local.exists.return_value = False
     signal_emitted = []
-    watcher.rootDeleted.connect(lambda: signal_emitted.append(True))
+    watcher.rootDeleted.connect(
+        lambda: signal_emitted.append(True), Qt.ConnectionType.DirectConnection
+    )
 
     watcher._execute()
 
@@ -2276,6 +2279,7 @@ def test_scan_method():
         watcher._scan_recursive.assert_called_once_with(root_info)
         watcher._scan_handle_deleted_files.assert_called_once()
         assert watcher._metrics["last_local_scan_time"] == end_time - start_time
+        mock_engine.queue_manager.resume.assert_called()
 
     # Test Case 2: Scan without Windows
     watcher._suspend_queue.reset_mock()
@@ -2301,6 +2305,7 @@ def test_scan_method():
         watcher._scan_recursive.assert_called_once_with(root_info2)
         watcher._scan_handle_deleted_files.assert_called_once()
         assert watcher._metrics["last_local_scan_time"] == end_time - start_time
+        mock_engine.queue_manager.resume.assert_called()
 
 
 def test_win_dequeue_folder_scan():

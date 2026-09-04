@@ -340,7 +340,7 @@ class DirectEdit(_DirectEditBase):
                     info = self._get_info(engine, doc_id)
                     if info:
                         info_name = info.name
-                self.directEditError[str, list, str].emit(
+                self.directEditError[str, list, str].emit(  # type: ignore[index]
                     "DIRECT_EDIT_DOC_NOT_FOUND", [info_name], str(exc.message)
                 )
                 return None

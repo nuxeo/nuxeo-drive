@@ -410,13 +410,14 @@ def test_handle_disables_ssl_validation_when_ssl_is_unavailable(cli, tmp_path):
 
     with patch.object(cli, "launch", return_value=4) as launch, _handle_runtime(
         cli, tmp_path, options, qssl_socket=ssl_socket
-    ):
+    ) as runtime:
         result = cli.handle([])
 
     assert result == 4
     assert options.cert_file is None
     assert options.cert_key_file is None
     assert options.ssl_no_verify is True
+    runtime.get_manager.assert_not_called()
     launch.assert_called_once_with(options)
 
 
@@ -616,11 +617,14 @@ def test_get_application_gui_registers_qml_types(cli):
     application_class.assert_called_once_with(cli.manager)
 
 
-def test_launch_forwards_protocol_to_existing_instance(cli, tmp_path):
-    cli.manager = SimpleNamespace(home=tmp_path)
+@pytest.mark.parametrize(
+    "protocol_url",
+    ("nxdrive://edit/document", "nxdrive://direct-download/documents"),
+)
+def test_launch_forwards_protocol_without_creating_manager(cli, protocol_url):
     lock = MagicMock()
     lock.lock.return_value = 314
-    Options.protocol_url = "nxdrive://edit/document"
+    Options.protocol_url = protocol_url
 
     with patch(
         "nxdrive.drive.utils.PidLockFile", return_value=lock
@@ -628,13 +632,30 @@ def test_launch_forwards_protocol_to_existing_instance(cli, tmp_path):
         commandline, "force_encode", return_value=b"encoded"
     ) as encode, patch.object(
         cli, "_send_to_running_instance", return_value=True
-    ) as send:
+    ) as send, patch.object(
+        cli, "get_manager"
+    ) as get_manager:
         assert cli.launch(None) == 0
 
-    lock_class.assert_called_once_with(tmp_path, "qt")
-    encode.assert_called_once_with("nxdrive://edit/document")
+    lock_class.assert_called_once_with(Options.nxdrive_home, "qt")
+    encode.assert_called_once_with(protocol_url)
     send.assert_called_once_with(b"encoded", 314)
+    get_manager.assert_not_called()
     lock.refresh_lock.assert_not_called()
+    lock.unlock.assert_not_called()
+
+
+def test_launch_existing_instance_without_protocol_skips_manager(cli):
+    lock = MagicMock()
+    lock.lock.return_value = 314
+    Options.protocol_url = ""
+
+    with patch("nxdrive.drive.utils.PidLockFile", return_value=lock), patch.object(
+        cli, "get_manager"
+    ) as get_manager:
+        assert cli.launch(None) == 0
+
+    get_manager.assert_not_called()
     lock.unlock.assert_not_called()
 
 
@@ -673,13 +694,15 @@ def test_launch_stops_retrying_at_limit(cli, tmp_path):
 
 
 def test_launch_runs_application_with_linux_software_rendering(cli, tmp_path):
-    cli.manager = SimpleNamespace(home=tmp_path)
+    manager = SimpleNamespace(home=tmp_path)
     lock = MagicMock()
     lock.lock.return_value = 0
     app = MagicMock()
     app.exec.return_value = 19
 
     with patch("nxdrive.drive.utils.PidLockFile", return_value=lock), patch.object(
+        cli, "get_manager", return_value=manager
+    ) as get_manager, patch.object(
         commandline, "HealthCheck"
     ) as health_check, patch.object(
         cli, "_get_application", return_value=app
@@ -691,6 +714,8 @@ def test_launch_runs_application_with_linux_software_rendering(cli, tmp_path):
         result = cli.launch(None, console=True)
 
     assert result == 19
+    get_manager.assert_called_once_with()
+    assert cli.manager is manager
     assert os.environ["QT_QUICK_BACKEND"] == "software"
     assert os.environ["QT_XCB_GL_INTEGRATION"] == "none"
     health_check.assert_called_once_with()
@@ -704,7 +729,7 @@ def test_launch_handles_windows_clipboard(cli, tmp_path, has_clipboard):
     class FakeApplication:
         pass
 
-    cli.manager = SimpleNamespace(home=tmp_path)
+    manager = SimpleNamespace(home=tmp_path)
     lock = MagicMock()
     lock.lock.return_value = 0
     app = FakeApplication()
@@ -713,8 +738,10 @@ def test_launch_handles_windows_clipboard(cli, tmp_path, has_clipboard):
     app.clipboard = MagicMock(return_value=clipboard)
 
     with patch("nxdrive.drive.utils.PidLockFile", return_value=lock), patch.object(
-        commandline, "HealthCheck"
-    ), patch.object(cli, "_get_application", return_value=app), patch(
+        cli, "get_manager", return_value=manager
+    ) as get_manager, patch.object(commandline, "HealthCheck"), patch.object(
+        cli, "_get_application", return_value=app
+    ), patch(
         "nxdrive.drive.gui.application.Application", FakeApplication
     ), patch.object(
         commandline, "LINUX", False
@@ -725,6 +752,8 @@ def test_launch_handles_windows_clipboard(cli, tmp_path, has_clipboard):
     ) as log_error:
         assert cli.launch(None) == 0
 
+    get_manager.assert_called_once_with()
+    assert cli.manager is manager
     app.clipboard.assert_called_once_with()
     if clipboard:
         clipboard.blockSignals.assert_called_once_with(True)

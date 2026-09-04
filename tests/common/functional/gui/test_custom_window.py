@@ -8,9 +8,7 @@ from ....markers import not_linux
 # For testing class definition without Qt issues
 def _get_custom_window_class():
     """Safely import CustomWindow class for testing."""
-    with patch("nxdrive.drive.gui.custom_window.QQuickView"), patch(
-        "nxdrive.drive.gui.custom_window.QQuickWindow"
-    ):
+    with patch("nxdrive.drive.gui.custom_window.QQuickWindow"):
         from nxdrive.drive.gui.custom_window import CustomWindow
 
         return CustomWindow
@@ -21,32 +19,17 @@ class TestCustomWindow:
 
     @not_linux(reason="Qt GUI tests don't work reliably on Linux")
     def test_custom_window_inheritance(self):
-        """Test CustomWindow inherits from correct base class based on platform."""
-        with patch("nxdrive.drive.gui.custom_window.WINDOWS", True):
-            # Reload the module to apply the Windows condition
-            import importlib
+        """CustomWindow uses QQuickWindow on every platform."""
+        from nxdrive.drive.gui.custom_window import CustomWindow
+        from nxdrive.drive.qt.imports import QQuickWindow
 
-            import nxdrive.drive.gui.custom_window
-
-            importlib.reload(nxdrive.drive.gui.custom_window)
-
-            # Check that base class is QQuickView on Windows
-            assert hasattr(nxdrive.drive.gui.custom_window, "inherited_base_class")
-
-        with patch("nxdrive.drive.gui.custom_window.WINDOWS", False):
-            # Reload for non-Windows
-            importlib.reload(nxdrive.drive.gui.custom_window)
-
-            # Check that base class is QQuickWindow on non-Windows
-            assert hasattr(nxdrive.drive.gui.custom_window, "inherited_base_class")
+        assert issubclass(CustomWindow, QQuickWindow)
 
     @not_linux(reason="Qt GUI tests don't work reliably on Linux")
     def test_custom_window_initialization(self):
         """Test CustomWindow initialization."""
         # Mock the base classes to prevent Qt object creation
-        with patch("nxdrive.drive.gui.custom_window.QQuickView"), patch(
-            "nxdrive.drive.gui.custom_window.QQuickWindow"
-        ):
+        with patch("nxdrive.drive.gui.custom_window.QQuickWindow"):
 
             # Create a mock instance instead of real CustomWindow
             mock_window = MagicMock()
@@ -64,9 +47,7 @@ class TestCustomWindow:
     @not_linux(reason="Qt GUI tests don't work reliably on Linux")
     def test_custom_window_initialization_with_parent(self):
         """Test CustomWindow initialization with parent."""
-        with patch("nxdrive.drive.gui.custom_window.QQuickView"), patch(
-            "nxdrive.drive.gui.custom_window.QQuickWindow"
-        ):
+        with patch("nxdrive.drive.gui.custom_window.QQuickWindow"):
 
             mock_window = MagicMock()
             mock_parent = MagicMock()
@@ -84,9 +65,7 @@ class TestCustomWindow:
     @not_linux(reason="Qt GUI tests don't work reliably on Linux")
     def test_key_press_event_escape(self):
         """Test handling of Escape key press."""
-        with patch("nxdrive.drive.gui.custom_window.QQuickView"), patch(
-            "nxdrive.drive.gui.custom_window.QQuickWindow"
-        ):
+        with patch("nxdrive.drive.gui.custom_window.QQuickWindow"):
 
             mock_window = MagicMock()
             mock_window.showNormal = MagicMock()
@@ -111,9 +90,7 @@ class TestCustomWindow:
     @not_linux(reason="Qt GUI tests don't work reliably on Linux")
     def test_key_press_event_non_escape(self):
         """Test handling of non-Escape key press."""
-        with patch("nxdrive.drive.gui.custom_window.QQuickView"), patch(
-            "nxdrive.drive.gui.custom_window.QQuickWindow"
-        ):
+        with patch("nxdrive.drive.gui.custom_window.QQuickWindow"):
 
             mock_window = MagicMock()
             parent_key_press = MagicMock()
@@ -139,9 +116,9 @@ class TestCustomWindow:
     @not_linux(reason="Qt GUI tests don't work reliably on Linux")
     def test_handle_visibility_change_fullscreen(self):
         """Test visibility change handler for fullscreen."""
-        with patch("nxdrive.drive.gui.custom_window.QQuickView"), patch(
-            "nxdrive.drive.gui.custom_window.QQuickWindow"
-        ), patch("nxdrive.drive.gui.custom_window.QWindow") as mock_qwindow:
+        with patch("nxdrive.drive.gui.custom_window.QQuickWindow"), patch(
+            "nxdrive.drive.gui.custom_window.QWindow"
+        ) as mock_qwindow:
 
             mock_window = MagicMock()
             mock_window.showMaximized = MagicMock()
@@ -165,9 +142,9 @@ class TestCustomWindow:
     @not_linux(reason="Qt GUI tests don't work reliably on Linux")
     def test_handle_visibility_change_non_fullscreen(self):
         """Test visibility change handler for non-fullscreen."""
-        with patch("nxdrive.drive.gui.custom_window.QQuickView"), patch(
-            "nxdrive.drive.gui.custom_window.QQuickWindow"
-        ), patch("nxdrive.drive.gui.custom_window.QWindow") as mock_qwindow:
+        with patch("nxdrive.drive.gui.custom_window.QQuickWindow"), patch(
+            "nxdrive.drive.gui.custom_window.QWindow"
+        ) as mock_qwindow:
 
             mock_window = MagicMock()
             mock_window.showMaximized = MagicMock()
@@ -192,9 +169,7 @@ class TestCustomWindow:
     @not_linux(reason="Qt GUI tests don't work reliably on Linux")
     def test_visibility_changed_signal_connection(self):
         """Test that visibility changed signal is properly connected."""
-        with patch("nxdrive.drive.gui.custom_window.QQuickView"), patch(
-            "nxdrive.drive.gui.custom_window.QQuickWindow"
-        ):
+        with patch("nxdrive.drive.gui.custom_window.QQuickWindow"):
 
             mock_window = MagicMock()
             mock_signal = MagicMock()
@@ -223,11 +198,9 @@ class TestCustomWindow:
     @not_linux(reason="Qt GUI tests don't work reliably on Linux")
     def test_custom_window_integration(self):
         """Test CustomWindow integration with Qt components."""
-        with patch("nxdrive.drive.gui.custom_window.QQuickView"), patch(
-            "nxdrive.drive.gui.custom_window.QQuickWindow"
-        ), patch("nxdrive.drive.gui.custom_window.qt") as mock_qt, patch(
-            "nxdrive.drive.gui.custom_window.QWindow"
-        ) as mock_qwindow:
+        with patch("nxdrive.drive.gui.custom_window.QQuickWindow"), patch(
+            "nxdrive.drive.gui.custom_window.qt"
+        ) as mock_qt, patch("nxdrive.drive.gui.custom_window.QWindow") as mock_qwindow:
 
             mock_window = MagicMock()
             mock_window.showNormal = MagicMock()

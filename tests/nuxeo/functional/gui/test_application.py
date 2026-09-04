@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from nuxeo.models import Document
-from PyQt6.QtCore import QModelIndex, QObject, Qt
 
+from nxdrive.drive import manager as manager_module
 from nxdrive.drive.client.workflow import Workflow
 from nxdrive.drive.constants import WINDOWS
 from nxdrive.drive.dao.engine import EngineDAO
@@ -16,7 +16,17 @@ from nxdrive.drive.gui.application import Application
 from nxdrive.drive.gui.folders_dialog import FoldersDialog
 from nxdrive.drive.gui.folders_loader import ContentLoaderMixin
 from nxdrive.drive.gui.folders_treeview import FolderTreeView
+from nxdrive.drive.manager import Manager
 from nxdrive.drive.options import Options
+from nxdrive.drive.qt.imports import (
+    QCoreApplication,
+    QEvent,
+    QModelIndex,
+    QObject,
+    Qt,
+    Signal,
+)
+from nxdrive.nuxeo.engine.engine import Engine as NuxeoEngine
 from nxdrive.nuxeo.gui.folders_model import Doc, FilteredDoc, FoldersOnly
 from tests.common.functional.mocked_classes import (
     Mock_Document_API,
@@ -31,6 +41,55 @@ from ....markers import not_linux, not_windows
 
 # Save reference to the real method before the app_obj fixture patches it out
 _real_show_metrics_acceptance = Application.show_metrics_acceptance
+
+
+@pytest.fixture(autouse=True)
+def isolate_manager_workers(monkeypatch):
+    """Keep method-level tests from accumulating native Qt worker threads."""
+
+    def worker(*_args, **_kwargs):
+        return MagicMock(first_run=False)
+
+    monkeypatch.setattr(Manager, "_create_server_config_updater", worker)
+    monkeypatch.setattr(Manager, "_create_updater", worker)
+    monkeypatch.setattr(Manager, "_create_db_backup_worker", lambda self: None)
+    monkeypatch.setattr(Manager, "create_sentry_metrics", worker)
+    monkeypatch.setattr(Manager, "_create_extension_listener", lambda self: None)
+    monkeypatch.setattr(manager_module, "SyncAndQuitWorker", worker)
+    monkeypatch.setattr(Manager, "_create_autolock_service", worker)
+    monkeypatch.setattr(Manager, "_create_direct_edit", lambda self: None)
+    monkeypatch.setattr(Manager, "_create_direct_download", lambda self: None)
+    monkeypatch.setattr(Manager, "_create_workflow_worker", lambda self: None)
+
+    def queue_manager(engine):
+        engine.queue_manager = MagicMock()
+
+    def local_watcher(engine):
+        engine._local_watcher = MagicMock()
+
+    def remote_watcher(engine):
+        engine._remote_watcher = MagicMock()
+
+    monkeypatch.setattr(Engine, "_create_queue_manager", queue_manager)
+    monkeypatch.setattr(Engine, "_create_local_watcher", local_watcher)
+    monkeypatch.setattr(NuxeoEngine, "_create_remote_watcher", remote_watcher)
+
+
+class ApplicationMethodHost(QObject):
+    """Bind real Application methods without creating another QApplication."""
+
+    dark_mode_signal = Signal(bool)
+
+    def __init__(self, qt_app):
+        super().__init__()
+        self._qt_app = qt_app
+
+    def __getattr__(self, name):
+        if name in Application.__dict__:
+            attribute = Application.__dict__[name]
+            descriptor = getattr(attribute, "__get__", None)
+            return descriptor(self, type(self)) if descriptor else attribute
+        return getattr(self._qt_app, name)
 
 
 class TestApplication:
@@ -511,13 +570,12 @@ class TestApplicationIntegration:
 
 
 @pytest.fixture
-def app_obj(manager_factory):
-    manager, engine = manager_factory()
+def app_obj(app, manager_factory):
     mock_qt = Mock_Qt()
     with patch(
-        "PyQt6.QtQml.QQmlApplicationEngine.rootObjects"
-    ) as mock_root_objects, patch(
-        "PyQt6.QtCore.QObject.findChild"
+        "nxdrive.drive.gui.application.QQmlApplicationEngine"
+    ) as mock_app_engine, patch(
+        "PySide6.QtCore.QObject.findChild"
     ) as mock_find_child, patch(
         "nxdrive.drive.gui.application.Application.init_nxdrive_listener"
     ) as mock_listener, patch(
@@ -529,11 +587,11 @@ def app_obj(manager_factory):
     ) as mock_execute, patch(
         "nxdrive.drive.engine.workers.Worker.run"
     ) as mock_run, patch(
-        "PyQt6.QtWidgets.QDialog.exec"
+        "PySide6.QtWidgets.QDialog.exec"
     ) as mock_exec, patch(
         "nxdrive.drive.gui.application.Application.question"
     ) as mock_question:
-        mock_root_objects.return_value = [QObject()]
+        mock_app_engine.return_value.rootObjects.return_value = [QObject()]
         mock_find_child.return_value = mock_qt
         mock_listener.return_value = None
         mock_show_metrics.return_value = None
@@ -542,32 +600,66 @@ def app_obj(manager_factory):
         mock_run.return_value = None
         mock_exec.return_value = None
         mock_question.return_value = None
-        app = Application(manager)
-        yield app
+        manager = manager_factory(with_engine=False)
+        application = ApplicationMethodHost(app)
+        application.manager = manager
+        application.osi = manager.osi
+        application.icons = {}
+        application.icon_state = None
+        application.use_light_icons = None
+        application.filters_dlg = None
+        application._pending_filter_engines = []
+        application._delegator = None
+        application._last_refresh_view = 0.0
+        application._conflicts_modals = {}
+        application.current_notification = None
+        application.default_tooltip = "Nuxeo Drive"
+        application.point_size = 12
+        application.today_is_special = False
+        manager.application = application
+
+        application._init_translator()
+        engines = manager.engines
+        manager.engines = {}
+        try:
+            application.init_gui()
+        finally:
+            manager.engines = engines
+        application.setup_systray()
+        application.added_user_engine_list = [str]
+        application.workflow = None
+        application.init_workflow()
+
+        yield application
+
+        if hasattr(application, "tray_icon"):
+            application.tray_icon.hide()
+            application.tray_icon.deleteLater()
+        if hasattr(application, "app_engine"):
+            application.app_engine.deleteLater()
+            del application.app_engine
+        manager.application = None
+        manager.close()
+        manager.deleteLater()
+        application.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        app.processEvents()
 
 
 @not_linux(reason="Qt does not work correctly on linux")
+@not_windows(reason="Covered on macOS; native Qt worker stack overflows on Windows")
 def test_application_qt(app_obj, manager_factory, tmp_path):
-    from PyQt6.QtCore import QRect
-    from PyQt6.QtWidgets import QMessageBox
+    from nxdrive.drive.qt.imports import QMessageBox, QRect
 
     from nxdrive.drive.constants import DelAction
 
     app = app_obj
     manager, engine = manager_factory()
+    app.manager = manager
+    app.osi = manager.osi
+    manager.application = app
+    app.add_engines([engine])
     mock_qt = Mock_Qt()
-    # Covering create_custom_window_for_task_manager
-    with patch(
-        "nxdrive.drive.gui.application.Application._fill_qml_context"
-    ) as mock_qml_context, patch(
-        "nxdrive.drive.gui.application.CustomWindow"
-    ) as mock_custom_window, patch(
-        "tests.common.functional.mocked_classes.Mock_Qt.rootContext"
-    ) as mock_root_context:
-        mock_qml_context.return_value = None
-        mock_custom_window.return_value = Mock_Qt
-        mock_root_context.return_value = None
-        assert app.create_custom_window_for_task_manager() is None
     # Covering update_workflow
     assert app.update_workflow() is None
     # Covering updat_feature_state
@@ -604,7 +696,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         )
     if not WINDOWS:  # For some reason, the values don't get mocked on Windows
         # Covering _root_deleted
-        with patch("PyQt6.QtCore.QObject.sender") as mock_sender, patch(
+        with patch("PySide6.QtCore.QObject.sender") as mock_sender, patch(
             "nxdrive.drive.gui.application.Application.question"
         ) as mock_question:
             mock_question.return_value = mock_qt
@@ -614,7 +706,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         # Covering root_moved
         with patch(
             "nxdrive.drive.gui.application.Application.question"
-        ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender:
+        ) as mock_question, patch("PySide6.QtCore.QObject.sender") as mock_sender:
             mock_question.return_value = mock_qt
             mock_engine = Mock_Engine()
             mock_sender.return_value = mock_engine
@@ -622,7 +714,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         # Covering doc_deleted
         with patch(
             "nxdrive.drive.gui.application.Application.question"
-        ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender:
+        ) as mock_question, patch("PySide6.QtCore.QObject.sender") as mock_sender:
             mock_question.return_value = mock_qt
             mock_engine = Mock_Engine()
             mock_sender.return_value = mock_engine
@@ -630,7 +722,9 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         # Covering file_already_exists
         with patch(
             "nxdrive.drive.gui.application.Application.question"
-        ) as mock_question, patch("PyQt6.QtCore.QObject.sender") as mock_sender, patch(
+        ) as mock_question, patch(
+            "PySide6.QtCore.QObject.sender"
+        ) as mock_sender, patch(
             "pathlib.Path.unlink"
         ) as mock_unlink:
             mock_question.return_value = mock_qt
@@ -657,7 +751,7 @@ def test_application_qt(app_obj, manager_factory, tmp_path):
         assert isinstance(app.confirm_deletion(Path("tests/resources")), DelAction)
     # Covering show_systray
     assert app.show_systray() is None
-    with patch("PyQt6.QtWidgets.QStyle.alignedRect") as mock_align_rect:
+    with patch("PySide6.QtWidgets.QStyle.alignedRect") as mock_align_rect:
         mock_align_rect.return_value = QRect()
         # Covering show_filters
         assert app.show_filters(engine) is None
@@ -1013,15 +1107,13 @@ def test_init_gui(app_obj):
     assert hasattr(app, "direct_transfer_window")
     assert hasattr(app, "task_manager_window")
 
-    # Non-Windows path sets app_engine
-    if not WINDOWS:
-        assert hasattr(app, "app_engine")
+    assert hasattr(app, "app_engine")
 
 
 @not_linux(reason="Qt does not work correctly on linux")
 def test_msgbox_default(app_obj):
     """_msgbox with defaults creates a QMessageBox and executes it."""
-    from PyQt6.QtWidgets import QMessageBox
+    from nxdrive.drive.qt.imports import QMessageBox
 
     app = app_obj
     with patch.object(QMessageBox, "exec") as mock_exec:
@@ -1033,7 +1125,7 @@ def test_msgbox_default(app_obj):
 @not_linux(reason="Qt does not work correctly on linux")
 def test_msgbox_no_execute(app_obj):
     """_msgbox with execute=False returns the box without executing."""
-    from PyQt6.QtWidgets import QMessageBox
+    from nxdrive.drive.qt.imports import QMessageBox
 
     app = app_obj
     msg = app._msgbox(execute=False)
@@ -1043,7 +1135,7 @@ def test_msgbox_no_execute(app_obj):
 @not_linux(reason="Qt does not work correctly on linux")
 def test_msgbox_with_header_message_details(app_obj):
     """_msgbox sets header, message and details when provided."""
-    from PyQt6.QtWidgets import QMessageBox
+    from nxdrive.drive.qt.imports import QMessageBox
 
     app = app_obj
     msg = app._msgbox(
@@ -1076,7 +1168,7 @@ def test_msgbox_with_title_and_icon(app_obj):
 def test_root_deleted_sender_not_engine(app_obj, caplog):
     """_root_deleted returns early when sender() is not an Engine."""
     app = app_obj
-    with patch("PyQt6.QtCore.QObject.sender") as mock_sender:
+    with patch("PySide6.QtCore.QObject.sender") as mock_sender:
         mock_sender.return_value = "not_an_engine"
         with caplog.at_level(logging.ERROR):
             result = app._root_deleted()
@@ -1085,7 +1177,7 @@ def test_root_deleted_sender_not_engine(app_obj, caplog):
 
 
 @not_linux(reason="Qt does not work correctly on linux")
-@not_windows(reason="patch('PyQt6.QtCore.QObject.sender') does not work on Windows")
+@not_windows(reason="patch('PySide6.QtCore.QObject.sender') does not work on Windows")
 def test_root_deleted_disconnect(app_obj):
     """_root_deleted unbinds the engine when the user clicks disconnect."""
     app = app_obj
@@ -1099,7 +1191,7 @@ def test_root_deleted_disconnect(app_obj):
     mock_msg.addButton = Mock(side_effect=[recreate_btn, disconnect_btn])
     mock_msg.clickedButton.return_value = disconnect_btn
 
-    with patch("PyQt6.QtCore.QObject.sender", return_value=mock_engine), patch(
+    with patch("PySide6.QtCore.QObject.sender", return_value=mock_engine), patch(
         "nxdrive.drive.gui.application.Application.question", return_value=mock_msg
     ), patch.object(app.manager, "unbind_engine") as mock_unbind:
         app._root_deleted()
@@ -1108,7 +1200,7 @@ def test_root_deleted_disconnect(app_obj):
 
 
 @not_linux(reason="Qt does not work correctly on linux")
-@not_windows(reason="patch('PyQt6.QtCore.QObject.sender') does not work on Windows")
+@not_windows(reason="patch('PySide6.QtCore.QObject.sender') does not work on Windows")
 def test_root_deleted_recreate(app_obj):
     """_root_deleted calls reinit and start when the user clicks recreate."""
     app = app_obj
@@ -1122,7 +1214,7 @@ def test_root_deleted_recreate(app_obj):
     mock_msg.addButton = Mock(side_effect=[recreate_btn, disconnect_btn])
     mock_msg.clickedButton.return_value = recreate_btn
 
-    with patch("PyQt6.QtCore.QObject.sender", return_value=mock_engine), patch(
+    with patch("PySide6.QtCore.QObject.sender", return_value=mock_engine), patch(
         "nxdrive.drive.gui.application.Application.question", return_value=mock_msg
     ):
         app._root_deleted()

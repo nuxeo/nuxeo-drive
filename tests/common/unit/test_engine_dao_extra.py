@@ -757,6 +757,7 @@ def test_force_conflict_unsynchronize_and_folder_sync_fallback(dao):
     )
     assert dao.force_remote(remote)
     assert _raw_state(dao, remote.id).pair_state == "remotely_modified"
+    manager.push_ref.assert_any_call(remote.id, False, "remotely_modified")
 
     creation = _insert_state(dao, "/force-creation")
     assert dao.force_remote_creation(creation)
@@ -765,6 +766,7 @@ def test_force_conflict_unsynchronize_and_folder_sync_fallback(dao):
     local = _insert_state(dao, "/force-local")
     assert dao.force_local(local)
     assert _raw_state(dao, local.id).pair_state == "locally_resolved"
+    manager.push_ref.assert_any_call(local.id, False, "locally_resolved")
 
     stale = _insert_state(dao, "/stale", version=2)
     stale.version = 1

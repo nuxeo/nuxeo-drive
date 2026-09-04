@@ -124,7 +124,8 @@ class Processor(_ProcessorBase):
         """Eliminate unprocessable states."""
         return all(
             (
-                doc_pair.pair_state not in ("synchronized", "unsynchronized"),
+                doc_pair.pair_state
+                not in ("synchronized", "unsynchronized", "conflicted"),
                 not doc_pair.pair_state.startswith("parent_"),
                 doc_pair.remote_state != "todo",  # Specific to Direct Transfer
             )
@@ -421,6 +422,10 @@ class Processor(_ProcessorBase):
                 log.info(f"Pausing {nature} {exc.transfer_id!r}")
                 self.engine.dao.set_transfer_doc(
                     nature, exc.transfer_id, self.engine.uid, doc_pair.id
+                )
+            except UploadCancelled as exc:
+                log.info(
+                    f"Upload {exc.transfer_id!r} canceled before document creation"
                 )
             except DuplicationDisabledError:
                 self.giveup_error(doc_pair, "DEDUP")
@@ -785,6 +790,9 @@ class Processor(_ProcessorBase):
                                with the same title on the server.
         """
 
+        if doc_pair.pair_state == "locally_created":
+            self._ensure_remote_first_pass(doc_pair)
+
         name = doc_pair.local_path.name
         if not doc_pair.folderish:
             ignore, delay = is_generated_tmp_file(name)
@@ -1000,6 +1008,7 @@ class Processor(_ProcessorBase):
                     filename=name,
                     overwrite=overwrite,
                     engine_uid=self.engine.uid,
+                    doc_pair=doc_pair.id,
                 )
                 remote_ref = fs_item_info.uid
                 self.dao.update_last_transfer(doc_pair.id, "upload")

@@ -1,8 +1,11 @@
-"""
-Put here all PyQt constants used across the project.
+"""Qt constants shared across the project.
+
+The top-level constants and the retained ``PySide`` namespace are sourced
+from PySide6 through ``.imports``.
 """
 
 from .imports import (
+    PySide as _PySide,
     QAbstractSocket,
     QDialogButtonBox,
     QEvent,
@@ -73,3 +76,23 @@ WhatsThisCursor = Qt.CursorShape.WhatsThisCursor
 WindowModal = Qt.WindowModality.WindowModal
 WindowStaysOnTopHint = Qt.WindowType.WindowStaysOnTopHint
 WorldAccessOption = QLocalServer.SocketOption.WorldAccessOption
+
+
+# ---------------------------------------------------------------------------
+# Compatibility namespace for the existing settings-host adapters.
+# Access as ``constants.PySide.RichText`` etc.
+# ---------------------------------------------------------------------------
+_ps_Qt = _PySide.Qt
+_ps_QDialogButtonBox = _PySide.QDialogButtonBox
+
+
+class PySide:
+    """Curated enum values for the opt-in PySide6 windows."""
+
+    # Share Debug Info dialog
+    AlignCenter = _ps_Qt.AlignmentFlag.AlignCenter
+    Apply = _ps_QDialogButtonBox.StandardButton.Apply
+    Checked = _ps_Qt.CheckState.Checked
+    RichText = _ps_Qt.TextFormat.RichText
+    Unchecked = _ps_Qt.CheckState.Unchecked
+    WA_DeleteOnClose = _ps_Qt.WidgetAttribute.WA_DeleteOnClose

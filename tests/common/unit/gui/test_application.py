@@ -8,6 +8,8 @@ import pytest
 from nxdrive.drive.client.workflow import Workflow
 from nxdrive.drive.constants import DelAction
 from nxdrive.drive.engine.activity import Action
+from nxdrive.drive.gui import application as application_module
+from nxdrive.drive.gui.application import Application as RealApplication
 from nxdrive.drive.metrics.constants import CRASHED_HIT, CRASHED_TRACE
 from nxdrive.drive.qt import constants as qt
 from nxdrive.drive.qt.imports import QCheckBox, QMessageBox, QRect
@@ -16,6 +18,22 @@ from nxdrive.drive.updater.constants import (
     UPDATE_STATUS_INCOMPATIBLE_SERVER,
     UPDATE_STATUS_UP_TO_DATE,
 )
+
+
+class ApplicationMethodHost:
+    """Bind real Application methods without creating another QApplication."""
+
+    _msgbox = RealApplication._msgbox
+
+    def __getattr__(self, name):
+        attribute = getattr(RealApplication, name)
+        descriptor = getattr(attribute, "__get__", None)
+        return descriptor(self, type(self)) if descriptor else attribute
+
+
+@pytest.fixture(autouse=True)
+def application_method_host(monkeypatch):
+    monkeypatch.setattr(application_module, "Application", ApplicationMethodHost)
 
 
 @pytest.fixture

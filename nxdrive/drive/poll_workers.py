@@ -6,7 +6,7 @@ from nxdrive.drive.feature import Feature
 from .behavior import Behavior
 from .engine.workers import PollWorker
 from .options import Options
-from .qt.imports import pyqtSignal, pyqtSlot
+from .qt.imports import Signal, Slot
 from .updater.constants import UPDATE_STATUS_UPDATING
 from .utils import normalize_and_expand_path
 
@@ -25,7 +25,7 @@ class DatabaseBackupWorker(PollWorker):
         super().__init__(60 * 60, "DatabaseBackup")
         self.manager = manager
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def _poll(self) -> bool:
         """Perform the backups."""
 
@@ -46,7 +46,7 @@ class ServerOptionsUpdater(PollWorker):
     """Class for checking the server's config.json updates."""
 
     # A signal to let other component know that the first run has been done
-    firstRunCompleted = pyqtSignal()
+    firstRunCompleted = Signal()
 
     def __init__(self, manager: "Manager", /):
         default_delay = 60 * 60  # 1 hour
@@ -67,7 +67,7 @@ class ServerOptionsUpdater(PollWorker):
         """
         self.first_run = False
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def _poll(self) -> bool:
         """Check for the configuration file and apply updates."""
 
@@ -152,7 +152,7 @@ class SyncAndQuitWorker(PollWorker):
         # Skip the first check to let engines having time to start
         self._first_check = True
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def _poll(self) -> bool:
         """Check for the synchronization state."""
 
@@ -185,7 +185,7 @@ class WorkflowWorker(PollWorker):
 
         self._first_workflow_check = True
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def _poll(self) -> bool:
         """Start polling workflow after an hour. Initial trigger is via application"""
 

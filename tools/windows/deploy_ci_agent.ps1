@@ -43,6 +43,7 @@ $ErrorActionPreference = "Stop"
 # Global variables
 $global:PYTHON_OPT = "-Xutf8", "-E", "-s"
 $global:PIP_OPT = "-m", "pip", "install", "--no-cache-dir", "--upgrade", "--upgrade-strategy=only-if-needed", "--progress-bar=off"
+$global:SIGNATURES_USED = 0
 
 # Imports
 Import-Module BitsTransfer
@@ -489,15 +490,6 @@ function install_deps {
 		Install-PythonRequirements "tools\deps\requirements.txt" "main requirements"
 	}
 
-	# See NXDRIVE-1554 for details
-	$bluetooth_pyd = "$Env:STORAGE_DIR\Lib\site-packages\PyQt6\QtBluetooth.pyd"
-	$bluetooth_dll = "$Env:STORAGE_DIR\Lib\site-packages\PyQt6\Qt\bin\Qt6Bluetooth.dll"
-	if (Test-Path $bluetooth_pyd) {
-		Remove-Item -Path $bluetooth_pyd -Verbose
-	}
-	if (Test-Path $bluetooth_dll) {
-		Remove-Item -Path $bluetooth_dll -Verbose
-	}
 }
 
 function install_python {
@@ -837,6 +829,8 @@ function sign($file) {
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
+
+		$global:SIGNATURES_USED += 1
 	}
 	else {
 		Write-Output ">>> Signing is disabled, signing process skipped."
@@ -844,6 +838,8 @@ function sign($file) {
 }
 
 function build_nuxeo_installer_and_sign {
+	$global:SIGNATURES_USED = 0
+
 	# Move icons from nxdrive/data/icons/nuxeo to nxdrive/drive/data/icons
 	xcopy "nxdrive\data\icons\nuxeo\*" "nxdrive\drive\data\icons" /e /y /i
 
@@ -874,6 +870,7 @@ function build_nuxeo_installer_and_sign {
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
+		Write-Output ">>> Signing completed !!  $global:SIGNATURES_USED signatures used !!"
 		return 0
 	}
 
@@ -893,9 +890,12 @@ function build_nuxeo_installer_and_sign {
 	sign "dist\nuxeo-drive-$app_version-admin.exe"
 
 	cleanup_copied_icons "nuxeo"
+	Write-Output ">>> Signing completed !!  $global:SIGNATURES_USED signatures used !!"
 }
 
 function build_alfresco_installer_and_sign {
+	$global:SIGNATURES_USED = 0
+
 	# Move icons from nxdrive/data/icons/alfresco to nxdrive/drive/data/icons
 	xcopy "nxdrive\data\icons\alfresco\*" "nxdrive\drive\data\icons" /e /y /i
 
@@ -926,6 +926,7 @@ function build_alfresco_installer_and_sign {
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
+		Write-Output ">>> Signing completed !!  $global:SIGNATURES_USED signatures used !!"
 		return 0
 	}
 
@@ -945,6 +946,7 @@ function build_alfresco_installer_and_sign {
 	sign "dist\alfresco-drive-$app_version-admin.exe"
 
 	cleanup_copied_icons "alfresco"
+	Write-Output ">>> Signing completed !!  $global:SIGNATURES_USED signatures used !!"
 }
 
 function sign_dlls($server_name) {
@@ -1012,8 +1014,8 @@ function main {
 	}
  	elseif ($install -or $install_release) {
 		install_deps
-		if ((check_import "import PyQt6") -ne 1) {
-			Write-Output ">>> No PyQt6. Installation failed."
+		if ((check_import "import PySide6") -ne 1) {
+			Write-Output ">>> No PySide6. Installation failed."
 			ExitWithCode 1
 		}
 	}

@@ -3,7 +3,7 @@ import webbrowser
 from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union, cast
 
 from nxdrive.drive import server_type as _st
 from nxdrive.drive.engine.engine import Engine
@@ -33,7 +33,7 @@ from ..qt.imports import (
     QSize,
     Qt,
     QVBoxLayout,
-    pyqtSignal,
+    Signal,
 )
 from ..translator import Translator
 from ..utils import find_icon, get_tree_list, sizeof_fmt
@@ -88,7 +88,7 @@ class DialogMixin(QDialog):
         # so after the login in the browser, we open the filters window with
         # the "stay on top" hint to make sure it comes back to the front
         # instead of just having a blinking icon in the taskbar.
-        self.setWindowFlags(qt.WindowStaysOnTopHint)
+        self.setWindowFlag(qt.WindowStaysOnTopHint, True)
 
         self.engine = engine
         self.application = application
@@ -287,7 +287,7 @@ class FoldersDialog(DialogMixin):
         "QToolTip { padding: 10px; color: #000; background-color: #F4F4F4 }"
     )
 
-    newCtxTransfer = pyqtSignal(list)
+    newCtxTransfer = Signal(list)
 
     def __init__(
         self,
@@ -300,7 +300,10 @@ class FoldersDialog(DialogMixin):
         """*path* is None when the dialog window is opened from a click on the systray menu icon."""
 
         super().__init__(application, engine, selected_folder)
-        self.setWindowFlags(self.windowFlags() & ~qt.WindowStaysOnTopHint)
+        self.setWindowFlag(qt.WindowStaysOnTopHint, False)
+        self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
+        self.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
+        self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
         self.remote_folder = QLineEdit(self)
 
         self.path: Optional[Path] = None
@@ -916,7 +919,7 @@ class FoldersDialog(DialogMixin):
 
     def _select_files_and_folders(self) -> None:
         """Open a dialog to select multiple files and folders to upload."""
-        # Send the dark mode pyqtSignal
+        # Send the dark mode Signal
         mfd = MultiFolderDialog(
             dark_mode=self.application.is_dark_mode(),
             dark_mode_signal=self.application.dark_mode_signal,
@@ -938,7 +941,7 @@ class FoldersDialog(DialogMixin):
             time_val = dialog.get_time()
             if time_val is not None:
                 self.scheduled_time = time_val.toString("yyyy-MM-dd HH:mm:ss")
-                time_val_py = time_val.toPyDateTime()
+                time_val_py = cast(datetime, time_val.toPython())
                 self.scheduled_at_iso = time_val_py.astimezone(timezone.utc).isoformat()
 
                 now = datetime.now(timezone.utc)

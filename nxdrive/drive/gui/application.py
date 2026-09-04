@@ -1,6 +1,7 @@
 """Main Qt application handling OS events and system tray UI."""
 
 import os
+import subprocess
 import webbrowser
 from contextlib import suppress
 from functools import partial
@@ -9,7 +10,7 @@ from math import sqrt
 from pathlib import Path
 from random import choice
 from time import monotonic
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote_plus, urlparse
 
 from nxdrive.drive import server_type as _st
@@ -67,7 +68,6 @@ from nxdrive.drive.qt.imports import (
     QObject,
     QQmlApplicationEngine,
     QQmlContext,
-    QQuickView,
     QRect,
     QSizePolicy,
     QSpacerItem,
@@ -78,8 +78,8 @@ from nxdrive.drive.qt.imports import (
     QUrl,
     QVBoxLayout,
     QWindow,
-    pyqtSignal,
-    pyqtSlot,
+    Signal,
+    Slot,
 )
 from nxdrive.drive.state import State
 from nxdrive.drive.translator import Translator
@@ -135,7 +135,7 @@ class Application(QApplication):
     _pending_filter_engines: List[Engine] = []
     _delegator: Optional["NotificationDelegator"] = None
     tray_icon: DriveSystrayIcon
-    dark_mode_signal = pyqtSignal(bool)
+    dark_mode_signal = Signal(bool)
 
     def __init__(self, manager: "Manager", *args: Any) -> None:
         # This 1st line is needed to fix:
@@ -270,7 +270,7 @@ class Application(QApplication):
         if Options.protocol_url:
             self._handle_nxdrive_url(Options.protocol_url)
 
-    @pyqtSlot()
+    @Slot()
     def exit_app(self) -> None:
         """Initiate the application exit."""
         State.about_to_quit = True
@@ -296,17 +296,9 @@ class Application(QApplication):
 
         See https://bugreports.qt.io/browse/QTBUG-81247.
         """
-        if WINDOWS:
-            del self.conflicts_window
-            del self.settings_window
-            del self.systray_window
-            del self.direct_transfer_window
-            del self.task_manager_window
-        else:
-            # deleteLater() deletes the C++ object binding for app_engine
-            # This is required to prevent shutdown issues (mainly on MacOS)
-            self.app_engine.deleteLater()
-            del self.app_engine
+        # Delete the engine before its QML context properties are released.
+        self.app_engine.deleteLater()
+        del self.app_engine
 
     def init_gui(self) -> None:
         self.api = QMLDriveApi(self)
@@ -345,76 +337,51 @@ class Application(QApplication):
 
         flags = qt.FramelessWindowHint | qt.WindowStaysOnTopHint
 
+        self.app_engine = QQmlApplicationEngine()
+        self._fill_qml_context(self.app_engine.rootContext())
+        main_qml_url = QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
+        self.app_engine.load(main_qml_url)
+
+        root_objects = self.app_engine.rootObjects()
+        if not root_objects:
+            log.error("Failed to load QML!")
+            raise RuntimeError("QML engine failed to load Main.qml")
+
+        root = root_objects[0]
+        self.conflicts_window = cast(
+            CustomWindow, root.findChild(CustomWindow, "conflictsWindow")
+        )
+        self.settings_window = cast(
+            CustomWindow, root.findChild(CustomWindow, "settingsWindow")
+        )
+        self.systray_window = cast(
+            SystrayWindow, root.findChild(SystrayWindow, "systrayWindow")
+        )
+        self.direct_transfer_window = cast(
+            CustomWindow,
+            root.findChild(CustomWindow, "directTransferWindow"),
+        )
+        self.task_manager_window = cast(
+            CustomWindow,
+            root.findChild(CustomWindow, "taskManagerWindow"),
+        )
+
+        if any(
+            window is None
+            for window in (
+                self.conflicts_window,
+                self.settings_window,
+                self.systray_window,
+                self.direct_transfer_window,
+                self.task_manager_window,
+            )
+        ):
+            raise RuntimeError("Main.qml did not create all application windows")
+
         if WINDOWS:
-            # Conflicts
-            self.conflicts_window = CustomWindow()
-            self.conflicts_window.setMinimumWidth(550)
-            self.conflicts_window.setMinimumHeight(600)
-            self._fill_qml_context(self.conflicts_window.rootContext())
-            self.conflicts_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", file="Conflicts.qml")))
-            )
-
-            # Settings
-            self.settings_window = CustomWindow()
-            self.settings_window.setMinimumWidth(640)
-            self.settings_window.setMinimumHeight(580)
-            self._fill_qml_context(self.settings_window.rootContext())
-            self.settings_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", file="Settings.qml")))
-            )
-
-            # Systray
-            self.systray_window = SystrayWindow()
-            self._fill_qml_context(self.systray_window.rootContext())
-            self.systray_window.rootContext().setContextProperty(
-                "systrayWindow", self.systray_window
-            )
-            self.systray_window.setSource(
-                QUrl.fromLocalFile(str(find_resource("qml", file="Systray.qml")))
-            )
-
-            # Direct Transfer
-            self.direct_transfer_window = CustomWindow()
-            self.direct_transfer_window.setMinimumWidth(600)
-            self.direct_transfer_window.setMinimumHeight(480)
-            self._fill_qml_context(self.direct_transfer_window.rootContext())
-            self.direct_transfer_window.setSource(
-                QUrl.fromLocalFile(
-                    str(find_resource("qml", file="DirectTransferWindow.qml"))
-                )
-            )
-
-            self.create_custom_window_for_task_manager()
-
             flags |= qt.Popup
-        else:
-            self.app_engine = QQmlApplicationEngine()
-            self._fill_qml_context(self.app_engine.rootContext())
-            self.app_engine.load(
-                QUrl.fromLocalFile(str(find_resource("qml", file="Main.qml")))
-            )
-            log.info(
-                f"QUrl.fromLocalFile: {QUrl.fromLocalFile(str(find_resource('qml', file='Main.qml')))}"
-            )
-
-            # Check if QML loaded successfully
-            root_objects = self.app_engine.rootObjects()
-            if not root_objects:
-                log.error("Failed to load QML!")
-                raise RuntimeError("QML engine failed to load Main.qml")
-
-            root = root_objects[0]
-            self.conflicts_window = root.findChild(CustomWindow, "conflictsWindow")
-            self.settings_window = root.findChild(CustomWindow, "settingsWindow")
-            self.systray_window = root.findChild(SystrayWindow, "systrayWindow")
-            self.direct_transfer_window = root.findChild(
-                CustomWindow, "directTransferWindow"
-            )
-            self.task_manager_window = root.findChild(CustomWindow, "taskManagerWindow")
-
-            if LINUX:
-                flags |= qt.Drawer
+        elif LINUX:
+            flags |= qt.Drawer
 
         self.aboutToQuit.connect(self._shutdown)
         self.systray_window.setFlags(flags)
@@ -448,18 +415,6 @@ class Application(QApplication):
         style_hints = self.styleHints()
         if style_hints:
             style_hints.colorSchemeChanged.connect(self._on_color_scheme_changed)
-
-    def create_custom_window_for_task_manager(self) -> None:
-        # Task Manager
-        self.task_manager_window = CustomWindow()
-        self.task_manager_window.setMinimumWidth(500)
-        self.task_manager_window.setMinimumHeight(600)
-        self._fill_qml_context(self.task_manager_window.rootContext())
-        self.task_manager_window.setSource(
-            QUrl.fromLocalFile(
-                str(find_resource("qml/tasksManager", file="TaskManager.qml"))
-            )
-        )
 
     def is_dark_mode(self) -> bool:
         # Detect the current scheme
@@ -549,7 +504,7 @@ class Application(QApplication):
                     Workflow.user_task_list = {}
                 self.manager.stop_workflow_worker()
 
-    def _center_on_screen(self, window: QQuickView, /) -> None:
+    def _center_on_screen(self, window: QWindow, /) -> None:
         """Display and center the window on the screen."""
         # Display the window
         self._show_window(window)
@@ -573,7 +528,7 @@ class Application(QApplication):
         # Ensure the window is shown on top of others
         self._show_window(window)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def action_progressing(self, action: Action, /) -> None:
         if not isinstance(action, Action):
             log.warning(f"An action is needed, got {action!r}")
@@ -785,9 +740,7 @@ class Application(QApplication):
         log.debug("Using fallback %s popup: %s", popup_type, fallback_path)
         return QUrl.fromLocalFile(str(fallback_path)).toString()
 
-    def _window_root(self, window: QWindow, /) -> QWindow:
-        if WINDOWS:
-            return window.rootObject()
+    def _window_root(self, window: Any, /) -> Any:
         return window
 
     def translate(self, message: str, /, *, values: List[Any] = None) -> str:
@@ -871,7 +824,7 @@ class Application(QApplication):
         log.debug(f"Question: {message}")
         return self._msgbox(icon=icon, header=header, message=message, execute=False)
 
-    @pyqtSlot(str, Path, str)
+    @Slot(str, Path, str)
     def _direct_edit_conflict(self, filename: str, ref: Path, digest: str, /) -> None:
         log.debug(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
         try:
@@ -901,8 +854,8 @@ class Application(QApplication):
                 f"Error while displaying Direct Edit conflict modal dialog for {filename!r}"
             )
 
-    @pyqtSlot(str, list)
-    @pyqtSlot(str, list, str)
+    @Slot(str, list)
+    @Slot(str, list, str)
     def _direct_edit_error(
         self, message: str, values: List[str], details: str = ""
     ) -> None:
@@ -911,7 +864,7 @@ class Application(QApplication):
             f"Direct Edit - {APP_NAME}", message, values, details=details
         )
 
-    @pyqtSlot()
+    @Slot()
     def _root_deleted(self) -> None:
         engine = self.sender()
         if not isinstance(engine, Engine):
@@ -952,11 +905,11 @@ class Application(QApplication):
                 engine.remote.metrics.send(metrics)
                 break
 
-    @pyqtSlot()
+    @Slot()
     def _no_space_left(self) -> None:
         self.display_warning(APP_NAME, "NO_SPACE_LEFT_ON_DEVICE", [])
 
-    @pyqtSlot(Path)
+    @Slot(Path)
     def _root_moved(self, new_path: Path, /) -> None:
         engine = self.sender()
         if not isinstance(engine, Engine):
@@ -1033,7 +986,7 @@ class Application(QApplication):
 
         return DelAction.ROLLBACK
 
-    @pyqtSlot(Path)
+    @Slot(Path)
     def _doc_deleted(self, path: Path, /) -> None:
         engine: Engine = self.sender()
 
@@ -1050,7 +1003,7 @@ class Application(QApplication):
             # Delete or filter out the document
             engine.delete_doc(path, mode=mode)
 
-    @pyqtSlot(Path, Path)
+    @Slot(Path, Path)
     def _file_already_exists(self, oldpath: Path, newpath: Path, /) -> None:
         msg = self.question(
             Translator.get("FILE_ALREADY_EXISTS_HEADER"),
@@ -1066,14 +1019,14 @@ class Application(QApplication):
         else:
             newpath.unlink()
 
-    @pyqtSlot(object)
+    @Slot(object)
     def dropped_engine(self, engine: Engine, /) -> None:
         # Update icon in case the engine dropped was syncing
         self.change_systray_icon()
         # Clear the systray file list so stale entries don't linger
         self.file_model.add_files([])
 
-    @pyqtSlot()
+    @Slot()
     def _on_engine_state_cleared(self) -> None:
         """Refresh QML models after an engine wiped its DAO state.
 
@@ -1094,7 +1047,7 @@ class Application(QApplication):
         # Icon (syncing → idle/disabled) and syncing counter
         self.change_systray_icon()
 
-    @pyqtSlot()
+    @Slot()
     def change_systray_icon(self) -> None:
         # Update status has the precedence over other ones
         if self.manager.updater.status not in (
@@ -1143,14 +1096,14 @@ class Application(QApplication):
         self.errors_model.add_files(self.api.get_errors(uid))
         self.ignoreds_model.add_files(self.api.get_unsynchronizeds(uid))
 
-    @pyqtSlot(object)
+    @Slot(object)
     def show_conflicts_resolution(self, engine: Engine, /) -> None:
         """Display the conflicts/errors window."""
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
         self._center_on_screen(self.conflicts_window)
 
-    @pyqtSlot(str)
+    @Slot(str)
     def show_settings(self, section: str, /) -> None:
         # Note: Keep synced with the Settings.qml file
         sections = {
@@ -1160,14 +1113,17 @@ class Application(QApplication):
             "Advanced": 3,
             "About": 4,
         }
+        if section not in sections:
+            section = "Features"
         self._window_root(self.settings_window).setSection.emit(sections[section])
         self._center_on_screen(self.settings_window)
 
-    @pyqtSlot()
+    @Slot()
     def show_systray(self) -> None:
         log.info("Showing systray window in application.py")
         self.close_tasks_window()
-        self.systray_window.close()
+        if self.systray_window is not None:
+            self.systray_window.close()
         icon = self.tray_icon.geometry()
 
         if not icon or icon.isEmpty():
@@ -1193,19 +1149,19 @@ class Application(QApplication):
         self.systray_window.show()
         self.systray_window.raise_()
 
-    @pyqtSlot()
+    @Slot()
     def hide_systray(self) -> None:
         self.systray_window.hide()
 
-    @pyqtSlot()
+    @Slot()
     def open_help(self) -> None:
         self.manager.open_help()
 
-    @pyqtSlot()
+    @Slot()
     def destroyed_filters_dialog(self) -> None:
         self.filters_dlg = None
 
-    @pyqtSlot(object)
+    @Slot(object)
     def show_filters(self, engine: Engine, /) -> None:
         if self.filters_dlg:
             self.filters_dlg.close()
@@ -1242,7 +1198,7 @@ class Application(QApplication):
         self.filters_dlg.accepted.connect(lambda: engine.mark_filters_configured())
         self._show_window(self.filters_dlg)
 
-    @pyqtSlot()
+    @Slot()
     def _show_next_pending_filter(self) -> None:
         """Pop the next pending engine off the queue and show its filter dialog.
 
@@ -1270,7 +1226,7 @@ class Application(QApplication):
         self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
         self.filters_dlg.show()
 
-    @pyqtSlot()
+    @Slot()
     def _show_direct_transfer_window(self) -> None:
         """
         Called when the server folders selection dialog is destroyed.
@@ -1280,7 +1236,7 @@ class Application(QApplication):
             return
         self.show_direct_transfer_window(self.filters_dlg.engine.uid)
 
-    @pyqtSlot(str)
+    @Slot(str)
     def show_direct_transfer_window(self, engine_uid: str, /) -> None:
         """Display the Direct Transfer window."""
         window = self._window_root(self.direct_transfer_window)
@@ -1306,7 +1262,7 @@ class Application(QApplication):
         self._center_on_screen(self.direct_transfer_window)
         return engine
 
-    @pyqtSlot()
+    @Slot()
     def close_direct_transfer_window(self) -> None:
         """Close the Direct Transfer window."""
         self.direct_transfer_window.close()
@@ -1343,7 +1299,7 @@ class Application(QApplication):
             log.error("Cannot get layout from message box")
         msg_box.exec()
 
-    @pyqtSlot(str, int, str)
+    @Slot(str, int, str)
     def confirm_cancel_transfer(
         self, engine_uid: str, transfer_uid: int, name: str, /
     ) -> None:
@@ -1365,7 +1321,7 @@ class Application(QApplication):
                 return
             engine.cancel_upload(transfer_uid)
 
-    @pyqtSlot(str, int, str, int, result=bool)
+    @Slot(str, int, str, int, result=bool)
     def confirm_cancel_session(
         self, engine_uid: str, session_uid: int, destination: str, pending_files: int, /
     ) -> bool:
@@ -1387,7 +1343,7 @@ class Application(QApplication):
             return True
         return False
 
-    @pyqtSlot(str, object)
+    @Slot(str, object)
     def open_authentication_dialog(
         self, url: str, callback_params: Dict[str, str], /
     ) -> None:
@@ -1403,7 +1359,15 @@ class Application(QApplication):
             """
             QApplication.setOverrideCursor(qt.WaitCursor)
             try:
-                webbrowser.open_new_tab(url)
+                # On Linux use native 'xdg-open' command for compatibility
+                if LINUX:
+                    from nxdrive.drive.utils import host_env
+
+                    subprocess.Popen(["xdg-open", url], env=host_env())
+                else:
+                    webbrowser.open_new_tab(url)
+            except FileNotFoundError:
+                log.exception("Failed to open authentication dialog: %s", exc_info=True)
             finally:
                 QApplication.restoreOverrideCursor()
         else:
@@ -1429,7 +1393,7 @@ class Application(QApplication):
                 config.key,
             )
 
-    @pyqtSlot(object)
+    @Slot(object)
     def _connect_engine(self, engine: Engine, /) -> None:
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
@@ -1524,15 +1488,6 @@ class Application(QApplication):
         self.manager.updater.updateAvailable.connect(self._update_notification)
         self.manager.updater.noSpaceLeftOnDevice.connect(self._no_space_left)
 
-        if not self.manager.engines:
-            self.show_settings("Accounts")
-        else:
-            for engine in self.manager.engines.copy().values():
-                # Prompt for settings if needed
-                if engine.has_invalid_credentials():
-                    self.show_settings("Accounts")  # f"Account_{engine.uid}"
-                    break
-
         self.manager.start()
 
         # Collect every engine that still needs first-time folder selection
@@ -1547,9 +1502,11 @@ class Application(QApplication):
         ]
         self._show_next_pending_filter()
 
-    @pyqtSlot()
-    @if_frozen
+    @Slot()
     def _update_notification(self) -> None:
+        if not Options.is_frozen:
+            return
+
         self.change_systray_icon()
 
         # Display a notification
@@ -1570,7 +1527,7 @@ class Application(QApplication):
         )
         self.manager.notification_service.send_notification(notification)
 
-    @pyqtSlot()
+    @Slot()
     def _server_incompatible(self) -> None:
         version = self.manager.version
         downgrade_version = (
@@ -1598,7 +1555,7 @@ class Application(QApplication):
         if downgrade_version and msg.clickedButton() == downgrade:
             self.manager.updater.update(downgrade_version)
 
-    @pyqtSlot()
+    @Slot()
     def _wrong_channel(self) -> None:
         if self.manager.prompted_wrong_channel:
             log.debug(
@@ -1636,7 +1593,7 @@ class Application(QApplication):
         elif res == switch_channel:
             self.manager.set_update_channel(version_channel)
 
-    @pyqtSlot()
+    @Slot()
     def message_clicked(self) -> None:
         if self.current_notification:
             self.manager.notification_service.trigger_notification(
@@ -1650,7 +1607,7 @@ class Application(QApplication):
                 self._delegator.manager = self.manager
         setup_delegator(self._delegator)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def _new_notification(self, notif: Notification, /) -> None:
         if not notif.is_bubble():
             return
@@ -1673,7 +1630,7 @@ class Application(QApplication):
         self.current_notification = notif
         self.tray_icon.showMessage(notif.title, notif.description, icon, 10000)
 
-    @pyqtSlot(str, object)
+    @Slot(str, object)
     def _handle_notification_action(
         self, action: str, action_args: Tuple[Any, ...], /
     ) -> None:
@@ -1840,7 +1797,7 @@ class Application(QApplication):
     def show_metadata(self, path: Path, /) -> None:
         self.manager.ctx_edit_metadata(path)
 
-    @pyqtSlot(bool)
+    @Slot(bool)
     def load_icons_set(self, use_light_icons: bool, /) -> None:
         """Load a given icons set (either the default one "dark", or the light one)."""
         if self.use_light_icons is use_light_icons:
@@ -1918,6 +1875,7 @@ class Application(QApplication):
             self.tray_icon.setToolTip(APP_NAME)
             self.set_icon_state("disabled")
             self.tray_icon.show()
+            log.debug("System tray icon displayed")
 
     def _handle_language_change(self) -> None:
         self.manager.set_config("locale", Translator.locale())
@@ -1959,17 +1917,17 @@ class Application(QApplication):
             log.exception(f"Error handling URL event {final_url!r}")
             return False
 
-    @pyqtSlot()
+    @Slot()
     def show_msgbox_restart_needed(self) -> None:
         """Display a message to ask the user to restart the application."""
         self.display_warning(APP_NAME, "RESTART_NEEDED_MSG", [APP_NAME])
 
-    @pyqtSlot(result=str)
+    @Slot(result=str)
     def _nxdrive_url_env(self) -> str:
         """Get the NXDRIVE_URL envar value, empty string if not defined."""
         return os.getenv("NXDRIVE_URL", "")
 
-    @pyqtSlot(str, result=bool)
+    @Slot(str, result=bool)
     def _handle_nxdrive_url(self, url: str, /) -> bool:
         """Handle an nxdrive protocol URL."""
 
@@ -2255,13 +2213,13 @@ class Application(QApplication):
             sync_state, error_state, update_state
         )
 
-    @pyqtSlot(object)
+    @Slot(object)
     def refresh_transfers(self, dao: EngineDAO, /) -> None:
         transfers = self.api.get_transfers(dao)
         if transfers != self.transfer_model.transfers:
             self.transfer_model.set_transfers(transfers)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def refresh_direct_transfer_items(self, dao: EngineDAO, /) -> None:
         transfers = self.api.get_direct_transfer_items(dao)
         items = self.direct_transfer_model.items
@@ -2281,7 +2239,7 @@ class Application(QApplication):
                         transfer["finalizing"] = True
                 self.direct_transfer_model.update_items(transfers)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def refresh_active_sessions_items(self, dao: EngineDAO, _: bool = False, /) -> None:
         """Refresh the list of active sessions if a change is detected."""
         sessions = self.api.get_active_sessions_items(dao)
@@ -2292,7 +2250,7 @@ class Application(QApplication):
             else:
                 self.active_session_model.update_sessions(sessions)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def refresh_active_direct_downloads_items(
         self, dao: EngineDAO, _: bool = False, /
     ) -> None:
@@ -2301,7 +2259,7 @@ class Application(QApplication):
         if downloads != self.active_direct_download_model.downloads:
             self.active_direct_download_model.set_downloads(downloads)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def refresh_completed_direct_downloads_items(
         self, dao: EngineDAO, _: bool = False, /
     ) -> None:
@@ -2311,7 +2269,7 @@ class Application(QApplication):
         if downloads != current_downloads:
             self.completed_direct_download_model.set_downloads(downloads)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def refresh_direct_download_monitoring_items(
         self, dao: EngineDAO, _: bool = False, /
     ) -> None:
@@ -2320,7 +2278,7 @@ class Application(QApplication):
         if items != self.direct_download_monitoring_model.items:
             self.direct_download_monitoring_model.set_items(items)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def refresh_completed_sessions_items(
         self, dao: EngineDAO, force: bool = False, /
     ) -> None:
@@ -2345,13 +2303,13 @@ class Application(QApplication):
             row["csv_path"] = str(csv_path) if csv_path.is_file() else ""
         return row
 
-    @pyqtSlot()
+    @Slot()
     def force_refresh_files(self) -> None:
         """Force a refreshing of the files list."""
         self._last_refresh_view = 0.0
         self.refresh_files({})
 
-    @pyqtSlot(object)
+    @Slot(object)
     def refresh_files(self, metrics: Dict[str, Any], /) -> None:
         """Refresh the files list every second to go easy on the QML side and prevent GUI lags."""
         if monotonic() - self._last_refresh_view > 1.0:
@@ -2362,7 +2320,7 @@ class Application(QApplication):
             self.get_last_files(engine.uid)
             self._last_refresh_view = monotonic()
 
-    @pyqtSlot(str)
+    @Slot(str)
     def get_last_files(self, uid: str, /) -> None:
         files = self.api.get_last_files(uid, 10)
         if files != self.file_model.files:
@@ -2380,13 +2338,21 @@ class Application(QApplication):
 
         Server type selection is handled earlier (in commandline.py before
         Manager creation), so this dialog only handles metrics consent.
+
+        The dialog is created with ``parent=None`` and is modal via ``exec()``.
         """
 
         tr = Translator.get
 
         dialog = QDialog()
         dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", values=[APP_NAME]))
-        dialog.setWindowIcon(self.icon)
+        # Build the icon from the resource so this dialog stays self-contained.
+        try:
+            dialog.setWindowIcon(QIcon(str(find_icon("app_icon.svg"))))
+        except Exception:
+            # If icon resolution fails for any reason, fall back silently —
+            # the dialog is still fully usable without a custom window icon.
+            pass
         layout = QVBoxLayout()
 
         info = QLabel(tr("SHARE_METRICS_MSG", values=[COMPANY]))
@@ -2427,38 +2393,49 @@ class Application(QApplication):
 
         self.manager.set_metrics_preferences(Options.use_sentry, Options.use_analytics)
 
-    @pyqtSlot(str)
+    @Slot(str)
     def show_tasks_window(self, engine_uid: str, /) -> None:
         """Display the Tasks window."""
         self._window_root(self.task_manager_window).setEngine.emit(engine_uid)
         self._window_root(self.task_manager_window).setSection.emit(0)
         self._center_on_screen(self.task_manager_window)
 
-    @pyqtSlot()
+    @Slot()
     def close_tasks_window(self) -> None:
         """Close the Tasks window."""
         if self.task_manager_window:
             self.task_manager_window.close()
 
-    @pyqtSlot(int)
+    @Slot(int)
     def show_hide_refresh_button(self, height: int, /) -> None:
         """Shows and Hides the refresh button of task window"""
         if self.task_manager_window:
             r_button = self.task_manager_window.findChild(QObject, "refresh")
-            r_button.setProperty("height", height)
+            if r_button:
+                r_button.setProperty("height", height)
 
     def open_task(self, engine: Engine, task_id: str) -> None:
         endpoint = "/ui/#!/tasks/"
         url = f"{engine.server_url}{endpoint}{task_id}"
-        webbrowser.open(url)
+        # On Linux use native 'xdg-open' command for compatibility
+        if LINUX:
+            from nxdrive.drive.utils import host_env
+
+            subprocess.Popen(["xdg-open", url], env=host_env())
+        else:
+            webbrowser.open(url)
 
     def fetch_pending_tasks(self, engine: Engine, /) -> list:
         remote = engine.remote
         user = {"userId": remote.user_id}
         try:
             tasks = remote.tasks.get(user)
-        except Exception as e:
-            log.info(f"Unable to fetch tasks due to: {e!r}")
+        except Exception:
+            log.error(
+                "Unable to fetch pending tasks for engine %s",
+                engine.uid,
+                exc_info=True,
+            )
             tasks = []
         self.last_engine_uid = engine.uid
         return tasks

@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from nxdrive.drive.engine.workers import EngineWorker
 from nxdrive.drive.exceptions import ThreadInterrupt
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import pyqtSignal
+from nxdrive.drive.qt.imports import Signal
 
 if TYPE_CHECKING:
     from nxdrive.drive.dao.engine import EngineDAO
@@ -24,16 +24,23 @@ __all__ = ("RemoteWatcherBase",)
 class RemoteWatcherBase(EngineWorker):
     """Shared base for remote watchers across all server types."""
 
-    initiate = pyqtSignal()
-    updated = pyqtSignal()
-    remoteScanFinished = pyqtSignal()
-    remoteWatcherStopped = pyqtSignal()
+    initiate = Signal()
+    updated = Signal()
+    remoteScanFinished = Signal()
+    remoteWatcherStopped = Signal()
 
     def __init__(self, engine: "EngineWorker", dao: "EngineDAO", name: str, /) -> None:
         super().__init__(engine, dao, name)
 
         self.empty_polls = 0
         self._next_check = 0.0
+        self.first_pass_done = False
+
+    def _notify_pass_done(self, first_pass: bool, /) -> None:
+        """End of a polling cycle; local creations are held back until the first one."""
+        if first_pass:
+            self.first_pass_done = True
+        (self.updated, self.initiate)[first_pass].emit()
 
     def _execute(self) -> None:
         first_pass = True

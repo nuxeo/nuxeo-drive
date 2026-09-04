@@ -23,6 +23,8 @@ class CustomTransport(transport.Transport):
 
 @pytest.fixture(scope="function")
 def sentry_init_custom(monkeypatch):
+    nxdrive.drive.tracing._EVENTS.clear()
+
     def inner(*a, **kw):
         scope = get_current_scope()
         client = Client(*a, **kw)
@@ -30,6 +32,7 @@ def sentry_init_custom(monkeypatch):
         monkeypatch.setattr(scope.get_client(), "transport", CustomTransport())
 
     yield inner
+    nxdrive.drive.tracing._EVENTS.clear()
 
 
 #

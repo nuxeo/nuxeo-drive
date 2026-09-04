@@ -46,7 +46,7 @@ from nxdrive.drive.metrics.constants import (
 )
 from nxdrive.drive.objects import Binder, EngineDef, Session
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import pyqtSlot
+from nxdrive.drive.qt.imports import Slot
 from nxdrive.drive.utils import (
     client_certificate,
     current_thread_id,
@@ -186,7 +186,7 @@ class Engine(_EngineBase):
                     )
                     log.info(f"Removed staled {transfer}")
 
-    @pyqtSlot()
+    @Slot()
     def _check_last_sync(self) -> None:
         if not self._sync_started:
             return

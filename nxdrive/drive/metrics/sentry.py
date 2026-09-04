@@ -6,7 +6,7 @@ from sentry_sdk import metrics
 
 from ..engine.workers import PollWorker
 from ..options import Options
-from ..qt.imports import pyqtSlot
+from ..qt.imports import Slot
 
 if TYPE_CHECKING:
     from ..manager import Manager
@@ -21,7 +21,7 @@ class SentryMetrics(PollWorker):
     def enable(self) -> bool:
         return Options.use_analytics
 
-    @pyqtSlot(object)
+    @Slot(object)
     def send_sync_event(self, event: Dict[str, Any], /) -> None:
         if not self.enable:
             return
@@ -39,11 +39,11 @@ class SentryMetrics(PollWorker):
                 unit="byte",
             )
 
-    @pyqtSlot(str, int)
+    @Slot(str, int)
     def send_direct_edit_open(self, filename: str, timing: int, /) -> None:
         self._send_direct_edit("open", filename, timing)
 
-    @pyqtSlot(str, int)
+    @Slot(str, int)
     def send_direct_edit_edit(self, filename: str, timing: int, /) -> None:
         self._send_direct_edit("edit", filename, timing)
 
@@ -59,7 +59,7 @@ class SentryMetrics(PollWorker):
             attributes={"action": action, "extension": extension},
         )
 
-    @pyqtSlot(bool, int)
+    @Slot(bool, int)
     def send_direct_transfer(self, folderish: bool, size: int, /) -> None:
         if not self.enable:
             return
@@ -71,7 +71,7 @@ class SentryMetrics(PollWorker):
             attributes={"type": "folder" if folderish else "file"},
         )
 
-    @pyqtSlot()
+    @Slot()
     def send_stats(self) -> None:
         if not self.enable:
             return
@@ -81,7 +81,7 @@ class SentryMetrics(PollWorker):
                 if isinstance(value, int):
                     metrics.gauge(f"drive.engine.{key}", value)
 
-    @pyqtSlot()
+    @Slot()
     def _poll(self) -> bool:
         self.send_stats()
         return self.enable

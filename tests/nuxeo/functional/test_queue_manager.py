@@ -168,11 +168,18 @@ class TestQueueManagerInitialization:
         with patch.object(queue_manager, "queueProcessing") as mock_signal:
             queue_manager.init_processors()
             mock_signal.emit.assert_called_once()
+            assert queue_manager._processors_initialized
 
     def test_shutdown_processors(self, queue_manager):
         """Test processor shutdown."""
-        # Should not raise exception even if disconnect fails
+        # Shutdown before initialization must be a no-op.
         queue_manager.shutdown_processors()
+        assert not queue_manager._processors_initialized
+
+        with patch.object(queue_manager, "queueProcessing"):
+            queue_manager.init_processors()
+        queue_manager.shutdown_processors()
+        assert not queue_manager._processors_initialized
 
 
 class TestQueueControl:

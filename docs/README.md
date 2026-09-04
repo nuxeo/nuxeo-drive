@@ -10,6 +10,7 @@
 - [gnu_linux_qa.md](gnu_linux_qa.md): GNU/Linux troubleshooting.
 - [installer.md](installer.md): How we package Nuxeo Drive and installers OS-specific information.
 - [manual_init.md](manual_init.md): How to manually initialize a Nuxeo Drive instance.
+- [sbom_generation.md](sbom_generation.md): How to generate a SBOM of the shipped dependencies and check their licenses.
 - [sentry.md](sentry.md): Data collected by Sentry and the controls governing collection.
 - [sentry_metrics.md](sentry_metrics.md): Advanced analytics metric names and example payloads.
 - [support.md](support.md): List of supported OS versions, Python version, limitations and translations. Useful for the **support**.

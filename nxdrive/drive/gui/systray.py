@@ -1,16 +1,16 @@
 from logging import getLogger
 from typing import TYPE_CHECKING, Optional
 
-from ..constants import MAC, WINDOWS
+from ..constants import MAC
 from ..qt import constants as qt
 from ..qt.imports import (
     QApplication,
     QMenu,
-    QQuickView,
     QQuickWindow,
     QSize,
     QSystemTrayIcon,
     QWindow,
+    Slot,
 )
 from ..translator import Translator
 
@@ -38,7 +38,8 @@ class DriveSystrayIcon(QSystemTrayIcon):
             # will show up every click on the systray icon.
             self.setContextMenu(self.get_context_menu())
 
-    def handle_mouse_click(self, reason: int, /) -> None:
+    @Slot(QSystemTrayIcon.ActivationReason)
+    def handle_mouse_click(self, reason: QSystemTrayIcon.ActivationReason, /) -> None:
         """
         Handle any mouse click on the systray icon.
         It is not needed to handle the right click as it
@@ -98,18 +99,14 @@ class DriveSystrayIcon(QSystemTrayIcon):
         return menu
 
 
-# Use QQuickView on Windows to work around platform-specific integration/focus issues
-# with the systray popup; on other platforms QQuickWindow is sufficient and lighter.
-inherited_base_class = QQuickView if WINDOWS else QQuickWindow
-
-
-class SystrayWindow(inherited_base_class):  # type: ignore
+class SystrayWindow(QQuickWindow):
     def __init__(self, parent: Optional[QWindow] = None) -> None:
         super().__init__(parent)
         self.activeChanged.connect(self._on_active_changed)
         self.setMinimumSize(QSize(365, 370))
         self.setMaximumSize(QSize(365, 370))
 
+    @Slot()
     def _on_active_changed(self) -> None:
         """Hide the window when it loses focus."""
         if not self.isActive():

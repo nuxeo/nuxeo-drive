@@ -1,9 +1,16 @@
 """
-Put here all PyQt imports used across the project.
+Central Qt-binding shim used across the project.
+
+Primary binding: **PySide6**. All top-level names re-exported by this module
+come from PySide6 and drive the entire application (systray, sync engines,
+workers, Direct Transfer, Direct Edit, task manager, and every other window).
+
+Native PySide6 signal, slot, and property names are exported directly.
+The ``PySide`` namespace at the bottom remains available to the settings host
+until its now-redundant adapter layer is removed separately.
 """
 
-from PyQt6.QtCore import (
-    QT_VERSION_STR,
+from PySide6.QtCore import (
     QAbstractListModel,
     QByteArray,
     QCoreApplication,
@@ -26,16 +33,15 @@ from PyQt6.QtCore import (
     QTimer,
     QTranslator,
     QUrl,
-    QVariant,
-    pyqtBoundSignal,
-    pyqtProperty,
-    pyqtSignal,
-    pyqtSlot,
+    Property,
+    Signal,
+    SignalInstance,
+    Slot,
+    qVersion,
 )
-from PyQt6.QtGui import (
+from PySide6.QtGui import (
     QCursor,
     QDesktopServices,
-    QFileSystemModel,
     QFont,
     QFontMetricsF,
     QIcon,
@@ -48,7 +54,7 @@ from PyQt6.QtGui import (
     QValidator,
     QWindow,
 )
-from PyQt6.QtNetwork import (
+from PySide6.QtNetwork import (
     QAbstractSocket,
     QHostAddress,
     QHostInfo,
@@ -58,9 +64,9 @@ from PyQt6.QtNetwork import (
     QTcpServer,
     QTcpSocket,
 )
-from PyQt6.QtQml import QQmlApplicationEngine, QQmlContext, qmlRegisterType
-from PyQt6.QtQuick import QQuickView, QQuickWindow
-from PyQt6.QtWidgets import (
+from PySide6.QtQml import QQmlApplicationEngine, QQmlContext, qmlRegisterType
+from PySide6.QtQuick import QQuickView, QQuickWindow
+from PySide6.QtWidgets import (
     QApplication,
     QCalendarWidget,
     QCheckBox,
@@ -68,6 +74,7 @@ from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QFileSystemModel,
     QFrame,
     QGroupBox,
     QHBoxLayout,
@@ -89,7 +96,65 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+# ---------------------------------------------------------------------------
+# PySide6 namespace — retained for the existing settings-host adapters.
+#
+# Access via ``from nxdrive.drive.qt.imports import PySide as ps`` and use
+# ``ps.QDialog``, ``ps.Signal``, ``ps.QQmlApplicationEngine`` etc.
+# ---------------------------------------------------------------------------
+from PySide6 import QtCore as _ps_QtCore
+from PySide6 import QtGui as _ps_QtGui
+from PySide6 import QtQml as _ps_QtQml
+from PySide6 import QtQuick as _ps_QtQuick
+from PySide6 import QtWidgets as _ps_QtWidgets
+
+QT_VERSION_STR = qVersion()
+
+
+class PySide:
+    """Curated PySide6 symbols for the POC windows (Share Debug Info,
+    Settings, Add Account tab).
+
+    Only the names actually needed by those windows are exposed. Add more as
+    additional windows opt in.
+    """
+
+    # QtCore
+    QObject = _ps_QtCore.QObject
+    Qt = _ps_QtCore.Qt
+    QUrl = _ps_QtCore.QUrl
+    QTimer = _ps_QtCore.QTimer
+    QAbstractListModel = _ps_QtCore.QAbstractListModel
+    QModelIndex = _ps_QtCore.QModelIndex
+    QByteArray = _ps_QtCore.QByteArray
+    QSize = _ps_QtCore.QSize
+    Signal = _ps_QtCore.Signal
+    Slot = _ps_QtCore.Slot
+    Property = _ps_QtCore.Property
+    SignalInstance = _ps_QtCore.SignalInstance
+
+    # QtGui
+    QIcon = _ps_QtGui.QIcon
+    QPixmap = _ps_QtGui.QPixmap
+
+    # QtWidgets — Share Debug Info dialog
+    QApplication = _ps_QtWidgets.QApplication
+    QDialog = _ps_QtWidgets.QDialog
+    QVBoxLayout = _ps_QtWidgets.QVBoxLayout
+    QLabel = _ps_QtWidgets.QLabel
+    QCheckBox = _ps_QtWidgets.QCheckBox
+    QDialogButtonBox = _ps_QtWidgets.QDialogButtonBox
+
+    # QtQml + QtQuick — Settings window (hosts Add Account tab)
+    QQmlApplicationEngine = _ps_QtQml.QQmlApplicationEngine
+    QQmlContext = _ps_QtQml.QQmlContext
+    qmlRegisterType = _ps_QtQml.qmlRegisterType
+    QQuickWindow = _ps_QtQuick.QQuickWindow
+    QQuickView = _ps_QtQuick.QQuickView
+
+
 __all__ = (
+    "PySide",
     "QAbstractListModel",
     "QAbstractSocket",
     "QApplication",
@@ -162,13 +227,12 @@ __all__ = (
     "QUrl",
     "QValidator",
     "QVBoxLayout",
-    "QVariant",
     "QWidget",
     "QWindow",
     "Qt",
-    "pyqtBoundSignal",
-    "pyqtProperty",
-    "pyqtSignal",
-    "pyqtSlot",
+    "Property",
+    "Signal",
+    "SignalInstance",
+    "Slot",
     "qmlRegisterType",
 )

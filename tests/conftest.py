@@ -36,6 +36,14 @@ sqlite3.register_adapter(datetime, adapt_datetime_iso)
 if sys.platform == "win32":
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
+if sys.platform == "darwin":
+    os.environ.setdefault("ApplePersistenceIgnoreState", "YES")
+    os.environ.setdefault("NSQuitAlwaysKeepsWindows", "NO")
+
+# Functional tests do not need an X11-backed Qt platform plugin.
+if sys.platform.startswith("linux"):
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
@@ -53,14 +61,20 @@ def pytest_configure(config):
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session, exitstatus):
     """
-    Force immediate process exit after session ends.
+    Force immediate process exit after session ends on non-Windows platforms.
 
     Qt objects (QApplication, widgets) left alive at interpreter shutdown
     trigger a segfault (SIGSEGV / exit -11) during Python GC/cleanup.
     os._exit() skips interpreter teardown and avoids the crash while
     preserving the correct exit code. pytest-cov and other trylast hooks
     have already run by this point, so coverage reports are intact.
+
+    On Windows, os._exit() itself can trigger an access violation in the
+    PySide6 runtime, so let pytest return normally after fixture cleanup.
     """
+    if sys.platform == "win32":
+        return
+
     os._exit(int(exitstatus))
 
 
@@ -202,6 +216,36 @@ def cleanup_attrs(request):
         delattr(test_case, attr)
 
 
+@pytest.fixture(autouse=True)
+def cleanup_qt_workers(monkeypatch):
+    """Stop every native Qt worker created by the current test."""
+    from nxdrive.drive.engine.workers import Worker
+
+    workers = []
+    worker_init = Worker.__init__
+
+    def tracked_init(worker, *args, **kwargs):
+        worker_init(worker, *args, **kwargs)
+        workers.append(worker)
+
+    monkeypatch.setattr(Worker, "__init__", tracked_init)
+
+    yield
+
+    for worker in reversed(workers):
+        try:
+            thread = worker.thread
+            worker.stop()
+            if thread.isRunning():
+                thread.wait(5000)
+            if thread.isRunning():
+                thread.terminate()
+                thread.wait(5000)
+        except RuntimeError:
+            # The owning QObject may already have deleted the worker wrapper.
+            pass
+
+
 @pytest.fixture(scope="session")
 def version() -> str:
     import nxdrive
@@ -241,15 +285,15 @@ def server(nuxeo_url):
     return server
 
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=sys.platform.startswith("linux"))
 def app():
     """
     Fixture required to be able to process Qt events and quit smoothly the application.
     To use in "functional" and "unit" tests only.
     """
-    from nxdrive.drive.qt.imports import QCoreApplication, QTimer
+    from nxdrive.drive.qt.imports import QApplication, QTimer
 
-    app = QCoreApplication.instance() or QCoreApplication([])
+    app = QApplication.instance() or QApplication([])
 
     # Little trick here! See Application.__init__() for details.
     timer = QTimer()

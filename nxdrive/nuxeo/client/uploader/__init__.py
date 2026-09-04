@@ -240,6 +240,20 @@ class BaseUploader:
             # Ensure the blob has all required attributes
             self._complete_upload(transfer, blob)
 
+        if transfer.doc_pair and not transfer.is_direct_transfer:
+            pair = self.dao.get_state_from_id(transfer.doc_pair)
+            if pair and pair.pair_state == "conflicted":
+                log.info(f"Canceling upload for conflicted pair {pair!r}")
+                try:
+                    transfer.batch_obj.delete(0)
+                except Exception:
+                    log.warning(
+                        f"Cannot delete the batchId {transfer.batch_obj.uid!r}",
+                        exc_info=True,
+                    )
+                self.dao.remove_transfer("upload", doc_pair=transfer.doc_pair)
+                raise UploadCancelled(transfer.uid or -1)
+
         # Step 2: link the uploaded blob to the document
         doc: Dict[str, Any] = self._link_blob_to_doc(
             command, transfer, blob, chunked, **kwargs

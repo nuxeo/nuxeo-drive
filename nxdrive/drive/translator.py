@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple
 
-from .qt.imports import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
+from .qt.imports import QTranslator, Property, Signal, Slot
 
 __all__ = ("Translator",)
 
@@ -14,7 +14,7 @@ _CACHE: Dict[str, str] = {}
 
 
 class Translator(QTranslator):
-    languageChanged = pyqtSignal()
+    languageChanged = Signal()
     singleton = None
     current_language: str = ""
 
@@ -77,7 +77,7 @@ class Translator(QTranslator):
         """
         return self.get_translation(text)
 
-    @pyqtProperty(str, notify=languageChanged)
+    @Property(str, notify=languageChanged)
     def tr(self) -> str:
         return ""
 
@@ -130,7 +130,7 @@ class Translator(QTranslator):
             _CACHE[key] = value
         return value
 
-    @pyqtSlot(str)  # from GeneralTab.qml
+    @Slot(str)  # from GeneralTab.qml
     def set_language(self, lang: str, /) -> None:
         try:
             self._current = self._labels[lang]

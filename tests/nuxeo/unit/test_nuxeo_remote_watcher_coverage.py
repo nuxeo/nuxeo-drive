@@ -29,6 +29,16 @@ from nxdrive.nuxeo.engine.watcher.remote_watcher import (
 MODULE = "nxdrive.nuxeo.engine.watcher.remote_watcher"
 
 
+def test_first_pass_done_flips_when_the_first_pass_completes():
+    watcher = RemoteWatcher(MagicMock(), MagicMock())
+
+    assert watcher.first_pass_done is False
+    watcher._notify_pass_done(False)
+    assert watcher.first_pass_done is False
+    watcher._notify_pass_done(True)
+    assert watcher.first_pass_done is True
+
+
 def _signal() -> MagicMock:
     signal = MagicMock()
     signal.emit = Mock()
@@ -696,6 +706,32 @@ def test_readonly_partial_scan_and_offline_state_transitions(monkeypatch):
     watcher.engine.set_offline.assert_called_once_with(value=False)
     watcher.engine.remote.client.is_reachable.return_value = False
     assert watcher._check_offline() is True
+
+
+def test_first_pass_done_is_set_when_synchronization_is_disabled(monkeypatch):
+    watcher = _watcher()
+    watcher.first_pass_done = False
+    monkeypatch.setattr(Feature, "synchronization", False)
+
+    assert watcher._handle_changes(True) is True
+
+    assert watcher.first_pass_done is True
+    watcher.initiate.emit.assert_called_once_with()
+
+
+def test_scan_failure_leaves_the_first_pass_undone(monkeypatch):
+    watcher = _watcher()
+    watcher.first_pass_done = False
+    monkeypatch.setattr(Feature, "synchronization", True)
+    watcher._check_offline = Mock(return_value=False)
+    watcher._last_remote_full_scan = None
+    watcher.scan_remote = Mock(side_effect=OSError("network is down"))
+
+    with patch(f"{MODULE}.Action.finish_action"):
+        assert watcher._handle_changes(True) is False
+
+    assert watcher.first_pass_done is False
+    watcher.initiate.emit.assert_not_called()
 
 
 def test_handle_changes_disabled_offline_initial_and_queued_paths(monkeypatch):

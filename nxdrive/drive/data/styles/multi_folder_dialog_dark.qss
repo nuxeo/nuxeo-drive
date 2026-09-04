@@ -104,3 +104,8 @@ QTreeView#fileTree {
     margin: 2px;
     color: rgb(255, 255, 255);
 }
+QTreeView#fileTree[linuxDarkText="true"] {
+    padding: 2px;
+    margin: 2px;
+    color: rgb(0, 0, 0);
+}

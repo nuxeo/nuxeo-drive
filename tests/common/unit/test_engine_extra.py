@@ -1177,6 +1177,9 @@ def test_conflict_resolver_emits_meaningful_conflict(base_engine):
 
     base_engine.conflict_resolver(pair.id)
 
+    base_engine.queue_manager.interrupt_processors_on.assert_called_once_with(
+        pair.local_path, exact_match=True
+    )
     base_engine.newConflict.emit.assert_called_once_with(pair.id)
     base_engine.manager.osi.send_sync_status.assert_called_once_with(
         pair, base_engine.local.abspath.return_value
