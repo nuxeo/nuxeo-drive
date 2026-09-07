@@ -1006,6 +1006,39 @@ class EngineDAO(BaseDAO):
                 "UPDATE States SET remote_name = ? WHERE id = ?", (remote_name, row_id)
             )
 
+    def link_remote_ref(self, row_id: int, info: RemoteFileInfo, /) -> None:
+        """Bind a pair to a remote node without touching its sync state.
+
+        ``last_remote_updated`` is deliberately left alone: a conflicted pair
+        must not gain a fresh observation timestamp, else the engine's
+        freshness check would see an unchanged remote and auto-resolve it.
+        The permission flags are needed by ``DocPair.is_readonly()``, which
+        does bitwise arithmetic and raises on NULLs.
+        """
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE States"
+                "   SET remote_ref = ?,"
+                "       remote_parent_ref = ?,"
+                "       remote_name = ?,"
+                "       remote_can_rename = ?,"
+                "       remote_can_delete = ?,"
+                "       remote_can_update = ?,"
+                "       remote_can_create_child = ?"
+                " WHERE id = ?",
+                (
+                    info.uid,
+                    info.parent_uid,
+                    info.name,
+                    info.can_rename,
+                    info.can_delete,
+                    info.can_update,
+                    info.can_create_child,
+                    row_id,
+                ),
+            )
+
     def get_dedupe_pair(
         self, name: str, parent: str, row_id: int, /
     ) -> Optional[DocPair]:
@@ -1844,25 +1877,36 @@ class EngineDAO(BaseDAO):
                 log.debug(f"Increasing version to {row.version + 1} for pair {row!r}")
 
             query += " WHERE id = ?"
-            c.execute(
-                query,
-                (
-                    info.uid,
-                    info.parent_uid,
-                    remote_parent_path,
-                    info.name,
-                    info.last_modification_time,
-                    info.can_rename,
-                    info.can_delete,
-                    info.can_update,
-                    info.can_create_child,
-                    info.last_contributor,
-                    row.local_state,
-                    row.remote_state,
-                    row.pair_state,
-                    row.id,
-                ),
-            )
+            try:
+                c.execute(
+                    query,
+                    (
+                        info.uid,
+                        info.parent_uid,
+                        remote_parent_path,
+                        info.name,
+                        info.last_modification_time,
+                        info.can_rename,
+                        info.can_delete,
+                        info.can_update,
+                        info.can_create_child,
+                        info.last_contributor,
+                        row.local_state,
+                        row.remote_state,
+                        row.pair_state,
+                        row.id,
+                    ),
+                )
+            except IntegrityError:
+                clash = c.execute(
+                    "SELECT * FROM States WHERE remote_ref = ? AND local_path = ?",
+                    (info.uid, row.local_path),
+                ).fetchone()
+                log.error(
+                    f"Cannot link {info.uid!r} to {row!r}: the pair {clash!r} "
+                    "already owns that (remote_ref, local_path) couple"
+                )
+                raise
             if queue:
                 # Check if parent is not in creation
                 parent = c.execute(

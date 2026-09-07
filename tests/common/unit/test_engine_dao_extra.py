@@ -510,6 +510,28 @@ def test_mark_delete_and_remove_state_trees_persist_expected_scope(dao):
     assert dao.get_state_from_id(remote_recursive_child.id) is None
 
 
+def test_link_remote_ref_binds_without_refreshing_the_timestamp(dao, tmp_path):
+    """A conflicted pair needs an identity and permissions, but no new mtime.
+
+    ``last_remote_updated`` must stay NULL so the engine's freshness check
+    cannot report "remote unchanged" and auto-resolve the conflict, and the
+    permission flags must be set because ``is_readonly()`` raises on NULLs.
+    """
+    (tmp_path / "conflict.txt").write_bytes(b"local")
+    local_info = FileInfo(tmp_path, Path("conflict.txt"), False, FIXED_TIME)
+    row_id = dao.insert_local_state(local_info, None)
+
+    info = _remote_info("conflict.txt", "remote-twin", "parent-ref")
+    dao.link_remote_ref(row_id, info)
+
+    row = dao.get_state_from_id(row_id)
+    assert row.remote_ref == "remote-twin"
+    assert row.remote_parent_ref == "parent-ref"
+    assert row.remote_name == "conflict.txt"
+    assert row.last_remote_updated is None
+    assert row.is_readonly() is False
+
+
 def test_remote_state_insert_update_and_lookup_queries(dao):
     queue = Mock()
     dao.queue_manager = queue

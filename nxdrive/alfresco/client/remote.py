@@ -247,6 +247,47 @@ class AlfrescoRemote:
         """Return a streaming response for a node's content."""
         return self.client.nodes.get_content_stream(node_id)
 
+    def find_file_child(self, parent_id: str, name: str, /) -> Optional[Node]:
+        """Return the first *file* child of ``parent_id`` named ``name``."""
+        for child in self.client.nodes.iter_children(parent_id):
+            if child.name == name and child.is_file:
+                return child
+        return None
+
+    def get_content_range(self, node_id: str, start: int, length: int, /) -> bytes:
+        """Return ``length`` bytes of a node's content starting at ``start``.
+
+        The Alfresco SDK exposes no ``Range`` parameter, so the request is
+        issued directly on the client session.  Servers that ignore the
+        header answer ``200`` with the whole body; in that case the stream
+        is sliced and abandoned as soon as the window has been read.
+        """
+        if length <= 0:
+            return b""
+
+        url = f"{self.client.api_url}/nodes/{node_id}/content"
+        end = start + length - 1
+        resp = self.client.session.get(
+            url,
+            headers={"Range": f"bytes={start}-{end}"},
+            stream=True,
+            timeout=self.client.timeout,
+        )
+        try:
+            resp.raise_for_status()
+            if resp.status_code == 206:
+                return resp.content[:length]
+
+            buf = bytearray()
+            wanted = start + length
+            for chunk in resp.iter_content(ALFRESCO_UPLOAD_BLOCK_SIZE):
+                buf.extend(chunk)
+                if len(buf) >= wanted:
+                    break
+            return bytes(buf[start:wanted])
+        finally:
+            resp.close()
+
     def download_content(
         self,
         node_id: str,

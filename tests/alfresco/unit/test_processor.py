@@ -734,6 +734,238 @@ class TestSynchronizeLocallyCreated:
         proc.dao.remove_filter.assert_not_called()
         proc.dao.add_filter.assert_not_called()
 
+    def test_unlinked_pair_with_differing_twin_conflicts(self, proc) -> None:
+        """A first upload must not clobber an independently created node."""
+        pair, parent = self._file_pair_and_parent()
+        pair.remote_ref = ""
+        proc.dao.get_state_from_local.return_value = parent
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+
+        twin = Mock()
+        twin.id = "twin-id"
+        twin.name = "newfile.txt"
+        twin.parent_id = "parent-ref"
+
+        with patch.object(proc, "_conflicting_remote_twin", return_value=twin):
+            proc._synchronize_locally_created(pair)
+
+        proc.remote.stream_file.assert_not_called()
+        proc.dao._force_sync.assert_called_once_with(
+            pair, "modified", "modified", "conflicted"
+        )
+
+    def test_conflicted_pair_is_bound_to_the_twin(self, proc) -> None:
+        """Without a remote ref, "Use remote" has nothing to download."""
+        pair, parent = self._file_pair_and_parent()
+        pair.remote_ref = ""
+        proc.dao.get_state_from_local.return_value = parent
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+
+        twin = Mock()
+        twin_info = Mock()
+        twin_info.uid = "twin-id"
+        twin_info.name = "newfile.txt"
+        twin_info.parent_uid = "parent-ref"
+        twin_info.can_update = True
+        proc.remote._node_to_remote_file_info.return_value = twin_info
+
+        with patch.object(proc, "_conflicting_remote_twin", return_value=twin):
+            proc._synchronize_locally_created(pair)
+
+        proc.dao.link_remote_ref.assert_called_once_with(pair.id, twin_info)
+        # is_readonly() does bitwise arithmetic and raises on NULL flags.
+        assert pair.remote_can_update is True
+
+    def test_unlinked_pair_with_matching_twin_uploads(self, proc) -> None:
+        pair, parent = self._file_pair_and_parent()
+        pair.remote_ref = ""
+        proc.dao.get_state_from_local.return_value = parent
+        proc.dao.get_filters.return_value = []
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+        proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
+        proc.remote.stream_file.return_value.uid = "new-file-id"
+        proc.remote.stream_file.return_value.digest = "local-hash"
+
+        with patch.object(proc, "_conflicting_remote_twin", return_value=None):
+            proc._synchronize_locally_created(pair)
+
+        proc.remote.stream_file.assert_called_once()
+
+    def test_resolved_pair_is_never_re_conflicted(self, proc) -> None:
+        """ "Use local" must upload, not bounce back into conflict.
+
+        ``force_local`` leaves ``remote_ref`` empty, so a resolved pair
+        re-enters this handler and would otherwise loop forever.
+        """
+        pair, parent = self._file_pair_and_parent()
+        pair.remote_ref = ""
+        pair.local_state = "resolved"
+        proc.dao.get_state_from_local.return_value = parent
+        proc.dao.get_filters.return_value = []
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+        proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
+        proc.remote.stream_file.return_value.uid = "new-file-id"
+        proc.remote.stream_file.return_value.digest = "local-hash"
+
+        with patch.object(proc, "_conflicting_remote_twin") as check:
+            proc._synchronize_locally_created(pair)
+
+        check.assert_not_called()
+        proc.remote.stream_file.assert_called_once()
+
+    def test_duplicate_pair_is_dropped_instead_of_relinked(self, proc) -> None:
+        """A ghost row for an already-owned node must be removed, not updated.
+
+        Writing ``remote_ref`` on it would break
+        UNIQUE(remote_ref, local_path) and loop forever.
+        """
+        pair, parent = self._file_pair_and_parent()
+        proc.dao.get_state_from_local.return_value = parent
+        proc.dao.get_filters.return_value = []
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+        proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
+        proc.remote.stream_file.return_value.uid = "existing-file-id"
+        proc.remote.stream_file.return_value.digest = "local-hash"
+
+        owner = Mock()
+        owner.id = 7
+        owner.local_path = pair.local_path
+        proc.dao.get_normal_state_from_remote.return_value = owner
+
+        proc._synchronize_locally_created(pair)
+
+        proc.dao.remove_state.assert_called_once_with(pair)
+        proc.dao.update_remote_state.assert_not_called()
+        proc.dao.synchronize_state.assert_not_called()
+
+    def test_same_path_owned_by_self_still_updates(self, proc) -> None:
+        pair, parent = self._file_pair_and_parent()
+        proc.dao.get_state_from_local.return_value = parent
+        proc.dao.get_filters.return_value = []
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+        proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
+        proc.remote.stream_file.return_value.uid = "new-file-id"
+        proc.remote.stream_file.return_value.digest = "local-hash"
+
+        owner = Mock()
+        owner.id = pair.id
+        owner.local_path = pair.local_path
+        proc.dao.get_normal_state_from_remote.return_value = owner
+
+        proc._synchronize_locally_created(pair)
+
+        proc.dao.remove_state.assert_not_called()
+        proc.dao.update_remote_state.assert_called_once()
+        proc.dao.synchronize_state.assert_called_once_with(pair)
+
+
+class TestRemoteTwinDiffers:
+    """Name -> size -> head+tail hash comparison before a first upload."""
+
+    @staticmethod
+    def _twin(size, node_id="twin-id"):
+        twin = Mock()
+        twin.id = node_id
+        twin.name = "newfile.txt"
+        twin.parent_id = "parent-ref"
+        twin.content.size_in_bytes = size
+        return twin
+
+    def _local(self, proc, tmp_path, data: bytes) -> Mock:
+        path = tmp_path / "newfile.txt"
+        path.write_bytes(data)
+        proc.local.abspath.return_value = path
+        pair = Mock()
+        pair.local_path = Path("Shared/newfile.txt")
+        return pair
+
+    def test_no_twin_means_no_conflict(self, proc, tmp_path) -> None:
+        pair = self._local(proc, tmp_path, b"hello")
+        proc.remote.find_file_child.return_value = None
+        assert proc._conflicting_remote_twin(pair, "parent-ref") is None
+
+    def test_lookup_failure_falls_through_to_upload(self, proc, tmp_path) -> None:
+        pair = self._local(proc, tmp_path, b"hello")
+        proc.remote.find_file_child.side_effect = RuntimeError("network")
+        assert proc._conflicting_remote_twin(pair, "parent-ref") is None
+
+    def test_matching_xattr_means_the_node_is_ours(self, proc, tmp_path) -> None:
+        """An interrupted upload leaves the xattr set but ``remote_ref`` empty."""
+        pair = self._local(proc, tmp_path, b"hello")
+        proc.remote.find_file_child.return_value = self._twin(999)
+        proc.local.get_remote_id.return_value = "twin-id"
+
+        assert proc._conflicting_remote_twin(pair, "parent-ref") is None
+        proc.remote.get_content_range.assert_not_called()
+
+    def test_vanished_local_file_falls_through_to_upload(self, proc, tmp_path) -> None:
+        pair = self._local(proc, tmp_path, b"hello")
+        proc.local.abspath.return_value = tmp_path / "gone.txt"
+        proc.remote.find_file_child.return_value = self._twin(5)
+
+        assert proc._conflicting_remote_twin(pair, "parent-ref") is None
+
+    def test_size_mismatch_is_a_conflict(self, proc, tmp_path) -> None:
+        pair = self._local(proc, tmp_path, b"hello")
+        twin = self._twin(999)
+        proc.remote.find_file_child.return_value = twin
+        assert proc._conflicting_remote_twin(pair, "parent-ref") is twin
+        proc.remote.get_content_range.assert_not_called()
+
+    def test_same_size_same_content_is_not_a_conflict(self, proc, tmp_path) -> None:
+        data = b"hello world"
+        pair = self._local(proc, tmp_path, data)
+        proc.remote.find_file_child.return_value = self._twin(len(data))
+        proc.remote.get_content_range.return_value = data
+        assert proc._conflicting_remote_twin(pair, "parent-ref") is None
+
+    def test_same_size_different_content_is_a_conflict(self, proc, tmp_path) -> None:
+        data = b"hello world"
+        pair = self._local(proc, tmp_path, data)
+        twin = self._twin(len(data))
+        proc.remote.find_file_child.return_value = twin
+        proc.remote.get_content_range.return_value = b"HELLO WORLD"
+        assert proc._conflicting_remote_twin(pair, "parent-ref") is twin
+
+    def test_read_retries_then_falls_through_to_upload(self, proc, tmp_path) -> None:
+        data = b"hello world"
+        pair = self._local(proc, tmp_path, data)
+        proc.remote.find_file_child.return_value = self._twin(len(data))
+        proc.remote.get_content_range.side_effect = RuntimeError("boom")
+
+        with patch("nxdrive.alfresco.engine.processor.sleep"):
+            assert proc._conflicting_remote_twin(pair, "parent-ref") is None
+
+        assert proc.remote.get_content_range.call_count == 3
+
+    def test_read_succeeds_on_retry(self, proc, tmp_path) -> None:
+        data = b"hello world"
+        pair = self._local(proc, tmp_path, data)
+        proc.remote.find_file_child.return_value = self._twin(len(data))
+        proc.remote.get_content_range.side_effect = [RuntimeError("boom"), data]
+
+        with patch("nxdrive.alfresco.engine.processor.sleep"):
+            assert proc._conflicting_remote_twin(pair, "parent-ref") is None
+
+    def test_large_file_hashes_head_and_tail(self, proc, tmp_path) -> None:
+        from nxdrive.alfresco.engine.processor import PARTIAL_COMPARE_SIZE
+
+        size = 2 * PARTIAL_COMPARE_SIZE + 1024
+        path = tmp_path / "big.bin"
+        path.write_bytes(b"\x00" * size)
+        proc.local.abspath.return_value = path
+        pair = Mock()
+        pair.local_path = Path("Shared/big.bin")
+
+        proc.remote.find_file_child.return_value = self._twin(size)
+        proc.remote.get_content_range.return_value = b"\x00" * PARTIAL_COMPARE_SIZE
+
+        assert proc._conflicting_remote_twin(pair, "parent-ref") is None
+
+        # Head window then tail window, never the whole file.
+        offsets = [c[0][1] for c in proc.remote.get_content_range.call_args_list]
+        assert offsets == [0, size - PARTIAL_COMPARE_SIZE]
+
 
 class TestSynchronizeLocallyModified:
     def test_digests_differ_uploads(self, proc) -> None:

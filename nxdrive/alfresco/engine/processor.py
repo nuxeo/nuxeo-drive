@@ -6,6 +6,7 @@ items (remotely_created, locally_created, etc.) using the
 ``AlfrescoRemote`` adapter methods.
 """
 
+import hashlib
 import shutil
 import sqlite3
 from contextlib import suppress
@@ -46,6 +47,14 @@ if TYPE_CHECKING:
 __all__ = ("AlfrescoProcessor",)
 
 log = getLogger(__name__)
+
+#: Bytes hashed from the head *and* from the tail when comparing a local
+#: file against a same-named remote node.  Files up to twice this size are
+#: compared in full.
+PARTIAL_COMPARE_SIZE = 10 * 1024 * 1024
+
+#: Attempts allowed when reading remote content for that comparison.
+PARTIAL_COMPARE_ATTEMPTS = 3
 
 
 def _fmt_remote_ts(ts: Any) -> str:
@@ -165,6 +174,104 @@ class AlfrescoProcessor(_ProcessorBase):
             f"(remote={doc_pair.remote_ref!r})"
         )
         self.dao._force_sync(doc_pair, "modified", "modified", "conflicted")
+
+    @staticmethod
+    def _local_head_tail_digest(path: Path, size: int, /) -> str:
+        limit = PARTIAL_COMPARE_SIZE
+        h = hashlib.md5(usedforsecurity=False)
+        with path.open("rb") as f:
+            if size <= 2 * limit:
+                for chunk in iter(lambda: f.read(limit), b""):
+                    h.update(chunk)
+            else:
+                h.update(f.read(limit))
+                f.seek(size - limit)
+                h.update(f.read(limit))
+        return h.hexdigest()
+
+    def _remote_head_tail_digest(self, node_id: str, size: int, /) -> str:
+        limit = PARTIAL_COMPARE_SIZE
+        h = hashlib.md5(usedforsecurity=False)
+        if size <= 2 * limit:
+            h.update(self.remote.get_content_range(node_id, 0, size))
+        else:
+            h.update(self.remote.get_content_range(node_id, 0, limit))
+            h.update(self.remote.get_content_range(node_id, size - limit, limit))
+        return h.hexdigest()
+
+    def _conflicting_remote_twin(
+        self, doc_pair: DocPair, parent_ref: str, /
+    ) -> Optional[Any]:
+        """Return a same-named remote node holding different content, if any.
+
+        Called before uploading a never-linked local creation: Alfresco's
+        ``stream_file`` silently updates a same-named node instead of
+        creating one, which would clobber a document somebody else created
+        server-side.  Compare name, then size, then a head+tail hash.
+
+        Errors resolve to ``None`` (upload anyway) so a transient failure
+        cannot block synchronisation.
+        """
+        name = doc_pair.local_path.name
+        try:
+            twin = self.remote.find_file_child(parent_ref, name)
+        except Exception:
+            log.warning(
+                f"Could not check {name!r} against {parent_ref!r}, "
+                "proceeding with upload",
+                exc_info=True,
+            )
+            return None
+        if twin is None:
+            return None
+
+        # The xattr is written right after a successful upload, before the
+        # DB is updated: a match means this node is our own interrupted
+        # upload, not somebody else's document.
+        with suppress(Exception):
+            if self.local.get_remote_id(doc_pair.local_path) == twin.id:
+                return None
+
+        local_path = self.local.abspath(doc_pair.local_path)
+        try:
+            local_size = local_path.stat().st_size
+        except OSError:
+            log.warning(
+                f"Could not stat {local_path!r}, proceeding with upload",
+                exc_info=True,
+            )
+            return None
+        remote_size = twin.content.size_in_bytes if twin.content else -1
+        if remote_size != local_size:
+            log.info(
+                f"Remote {name!r} ({twin.id}) already exists with a different "
+                f"size (remote={remote_size}, local={local_size})"
+            )
+            return twin
+
+        for attempt in range(1, PARTIAL_COMPARE_ATTEMPTS + 1):
+            try:
+                remote_digest = self._remote_head_tail_digest(twin.id, remote_size)
+                break
+            except Exception:
+                if attempt == PARTIAL_COMPARE_ATTEMPTS:
+                    log.warning(
+                        f"Could not read remote content of {name!r} ({twin.id}) "
+                        f"after {attempt} attempts, proceeding with upload",
+                        exc_info=True,
+                    )
+                    return None
+                sleep(1)
+
+        local_digest = self._local_head_tail_digest(local_path, local_size)
+        if local_digest == remote_digest:
+            return None
+
+        log.info(
+            f"Remote {name!r} ({twin.id}) already exists with different content "
+            f"(remote={remote_digest}, local={local_digest})"
+        )
+        return twin
 
     def _refresh_remote(
         self, doc_pair: DocPair, remote_info: RemoteFileInfo = None, /
@@ -699,6 +806,30 @@ class AlfrescoProcessor(_ProcessorBase):
                 self._postpone_pair(doc_pair, "Unaccessible hash")
                 return
 
+        # A never-linked pair whose name is already taken server-side is a
+        # creation on both sides: conflict rather than clobber the remote.
+        # ``resolved`` means the user already arbitrated, so never re-ask.
+        if (
+            not doc_pair.folderish
+            and not doc_pair.remote_ref
+            and doc_pair.local_state != "resolved"
+        ):
+            twin = self._conflicting_remote_twin(doc_pair, parent_ref)
+            if twin:
+                # Bind the pair to the node it conflicts with, else "Use
+                # remote" has nothing to download from.
+                twin_info = self.remote._node_to_remote_file_info(twin)
+                self.dao.link_remote_ref(doc_pair.id, twin_info)
+                doc_pair.remote_ref = twin_info.uid
+                doc_pair.remote_name = twin_info.name
+                doc_pair.remote_parent_ref = twin_info.parent_uid
+                doc_pair.remote_can_rename = twin_info.can_rename
+                doc_pair.remote_can_delete = twin_info.can_delete
+                doc_pair.remote_can_update = twin_info.can_update
+                doc_pair.remote_can_create_child = twin_info.can_create_child
+                self._mark_conflicted(doc_pair)
+                return
+
         filter_path = ""
         filter_removed = False
         try:
@@ -737,6 +868,25 @@ class AlfrescoProcessor(_ProcessorBase):
 
         with suppress(NotFound):
             self.local.set_remote_id(doc_pair.local_path, remote_ref)
+
+        # The node may already have been claimed by another pair (e.g. a
+        # remote scan linked it while this upload was queued).  Writing
+        # ``remote_ref`` here would violate UNIQUE(remote_ref, local_path)
+        # and the pair would retry forever, re-uploading on each round.
+        owner = self.dao.get_normal_state_from_remote(remote_ref)
+        if (
+            owner
+            and owner.id != doc_pair.id
+            and owner.local_path == doc_pair.local_path
+        ):
+            log.info(
+                f"Dropping duplicate pair {doc_pair!r}: {remote_ref} is already "
+                f"owned by {owner!r}"
+            )
+            self.dao.remove_state(doc_pair)
+            self.remove_void_transfers(doc_pair)
+            return
+
         # After upload, store the digest computed by stream_file/make_folder
         # so that the next remote scan doesn't see a spurious mismatch.
         if fs_item_info.digest:
