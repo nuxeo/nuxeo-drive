@@ -13,7 +13,7 @@ from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns, sleep
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 
 from nxdrive.drive.client.local import FileInfo
 from nxdrive.drive.constants import (
@@ -176,11 +176,15 @@ class AlfrescoProcessor(_ProcessorBase):
         self.dao._force_sync(doc_pair, "modified", "modified", "conflicted")
 
     @staticmethod
-    def _local_head_tail_digest(path: Path, size: int, /) -> str:
+    def _local_head_tail_digest(
+        path: Path, size: int, /, *, head_only: bool = False
+    ) -> str:
         limit = PARTIAL_COMPARE_SIZE
         h = hashlib.md5(usedforsecurity=False)
         with path.open("rb") as f:
-            if size <= 2 * limit:
+            if head_only:
+                h.update(f.read(limit))
+            elif size <= 2 * limit:
                 for chunk in iter(lambda: f.read(limit), b""):
                     h.update(chunk)
             else:
@@ -189,15 +193,25 @@ class AlfrescoProcessor(_ProcessorBase):
                 h.update(f.read(limit))
         return h.hexdigest()
 
-    def _remote_head_tail_digest(self, node_id: str, size: int, /) -> str:
+    def _remote_head_tail_digest(self, node_id: str, size: int, /) -> Tuple[str, bool]:
+        """Return the digest and whether only the head window was hashed.
+
+        A server ignoring ``Range`` cannot serve the tail cheaply, so the
+        comparison degrades to head-only; the caller must then hash the
+        local side the same way or every large file would look different.
+        """
         limit = PARTIAL_COMPARE_SIZE
         h = hashlib.md5(usedforsecurity=False)
         if size <= 2 * limit:
-            h.update(self.remote.get_content_range(node_id, 0, size))
-        else:
-            h.update(self.remote.get_content_range(node_id, 0, limit))
-            h.update(self.remote.get_content_range(node_id, size - limit, limit))
-        return h.hexdigest()
+            h.update(self.remote.get_content_range(node_id, 0, size) or b"")
+            return h.hexdigest(), False
+
+        h.update(self.remote.get_content_range(node_id, 0, limit) or b"")
+        tail = self.remote.get_content_range(node_id, size - limit, limit)
+        if tail is None:
+            return h.hexdigest(), True
+        h.update(tail)
+        return h.hexdigest(), False
 
     def _conflicting_remote_twin(
         self, doc_pair: DocPair, parent_ref: str, /
@@ -249,9 +263,13 @@ class AlfrescoProcessor(_ProcessorBase):
             )
             return twin
 
+        remote_digest = ""
+        head_only = False
         for attempt in range(1, PARTIAL_COMPARE_ATTEMPTS + 1):
             try:
-                remote_digest = self._remote_head_tail_digest(twin.id, remote_size)
+                remote_digest, head_only = self._remote_head_tail_digest(
+                    twin.id, remote_size
+                )
                 break
             except Exception:
                 if attempt == PARTIAL_COMPARE_ATTEMPTS:
@@ -263,7 +281,15 @@ class AlfrescoProcessor(_ProcessorBase):
                     return None
                 sleep(1)
 
-        local_digest = self._local_head_tail_digest(local_path, local_size)
+        if head_only:
+            log.info(
+                f"Comparing only the first {PARTIAL_COMPARE_SIZE} bytes of "
+                f"{name!r} ({twin.id}): the server does not honour Range"
+            )
+
+        local_digest = self._local_head_tail_digest(
+            local_path, local_size, head_only=head_only
+        )
         if local_digest == remote_digest:
             return None
 

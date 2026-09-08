@@ -966,6 +966,51 @@ class TestRemoteTwinDiffers:
         offsets = [c[0][1] for c in proc.remote.get_content_range.call_args_list]
         assert offsets == [0, size - PARTIAL_COMPARE_SIZE]
 
+    def test_unavailable_tail_degrades_to_head_only(self, proc, tmp_path) -> None:
+        """A server ignoring Range cannot serve the tail cheaply.
+
+        Both sides must then hash the head alone, else every large file
+        would compare as different.
+        """
+        from nxdrive.alfresco.engine.processor import PARTIAL_COMPARE_SIZE
+
+        size = 2 * PARTIAL_COMPARE_SIZE + 1024
+        path = tmp_path / "big.bin"
+        path.write_bytes(
+            b"\x00" * PARTIAL_COMPARE_SIZE + b"\xff" * (size - PARTIAL_COMPARE_SIZE)
+        )
+        proc.local.abspath.return_value = path
+        pair = Mock()
+        pair.local_path = Path("Shared/big.bin")
+
+        proc.remote.find_file_child.return_value = self._twin(size)
+        # Head served, tail refused.
+        proc.remote.get_content_range.side_effect = [
+            b"\x00" * PARTIAL_COMPARE_SIZE,
+            None,
+        ]
+
+        assert proc._conflicting_remote_twin(pair, "parent-ref") is None
+
+    def test_head_only_still_detects_a_different_head(self, proc, tmp_path) -> None:
+        from nxdrive.alfresco.engine.processor import PARTIAL_COMPARE_SIZE
+
+        size = 2 * PARTIAL_COMPARE_SIZE + 1024
+        path = tmp_path / "big.bin"
+        path.write_bytes(b"\x00" * size)
+        proc.local.abspath.return_value = path
+        pair = Mock()
+        pair.local_path = Path("Shared/big.bin")
+
+        twin = self._twin(size)
+        proc.remote.find_file_child.return_value = twin
+        proc.remote.get_content_range.side_effect = [
+            b"\xff" * PARTIAL_COMPARE_SIZE,
+            None,
+        ]
+
+        assert proc._conflicting_remote_twin(pair, "parent-ref") is twin
+
 
 class TestSynchronizeLocallyModified:
     def test_digests_differ_uploads(self, proc) -> None:

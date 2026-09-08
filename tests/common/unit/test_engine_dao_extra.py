@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlite3 import OperationalError
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -530,6 +530,34 @@ def test_link_remote_ref_binds_without_refreshing_the_timestamp(dao, tmp_path):
     assert row.remote_name == "conflict.txt"
     assert row.last_remote_updated is None
     assert row.is_readonly() is False
+
+
+def test_update_remote_state_names_the_violated_unique_couple(dao, tmp_path):
+    """States has two unique couples on remote_ref.
+
+    The error must identify the one actually hit, else triage is misled.
+    """
+    from sqlite3 import IntegrityError
+
+    owner_info = _remote_info("taken.txt", "shared-ref", "parent-a")
+    dao.insert_remote_state(owner_info, "", Path("taken.txt"), ROOT)
+
+    (tmp_path / "other.txt").write_bytes(b"local")
+    other_id = dao.insert_local_state(
+        FileInfo(tmp_path, Path("other.txt"), False, FIXED_TIME), None
+    )
+    other = dao.get_state_from_id(other_id)
+
+    # Same remote_ref and parent as the row above, so (remote_ref,
+    # remote_parent_ref) collides while (remote_ref, local_path) does not.
+    with patch.object(engine_module, "log") as logger:
+        with pytest.raises(IntegrityError):
+            dao.update_remote_state(other, owner_info)
+
+    message = logger.error.call_args[0][0]
+    assert "States.remote_ref, States.remote_parent_ref" in message
+    assert "(remote_ref, remote_parent_ref) already held by" in message
+    assert "no conflicting row found" not in message
 
 
 def test_remote_state_insert_update_and_lookup_queries(dao):

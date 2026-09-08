@@ -46,6 +46,10 @@ ALFRESCO_UPLOAD_BLOCK_SIZE = 65536
 UPLOAD_PROGRESS_INTERVAL = 1.0
 UPLOAD_PROGRESS_PERCENT_STEP = 1.0
 
+#: Most bytes we are willing to stream to emulate a ranged read when the
+#: server ignores the ``Range`` header.
+RANGE_FALLBACK_MAX_BYTES = 20 * 1024 * 1024
+
 
 class AlfrescoRemote:
     """Remote client for Alfresco Content Services.
@@ -254,13 +258,17 @@ class AlfrescoRemote:
                 return child
         return None
 
-    def get_content_range(self, node_id: str, start: int, length: int, /) -> bytes:
+    def get_content_range(
+        self, node_id: str, start: int, length: int, /
+    ) -> Optional[bytes]:
         """Return ``length`` bytes of a node's content starting at ``start``.
 
         The Alfresco SDK exposes no ``Range`` parameter, so the request is
-        issued directly on the client session.  Servers that ignore the
-        header answer ``200`` with the whole body; in that case the stream
-        is sliced and abandoned as soon as the window has been read.
+        issued directly on the client session.  A server honouring the
+        header answers ``206``; one ignoring it answers ``200`` with the
+        whole body, and reaching ``start`` then costs everything before it.
+        Return ``None`` when emulating the window that way would exceed
+        ``RANGE_FALLBACK_MAX_BYTES``, so the caller can degrade instead.
         """
         if length <= 0:
             return b""
@@ -278,13 +286,27 @@ class AlfrescoRemote:
             if resp.status_code == 206:
                 return resp.content[:length]
 
-            buf = bytearray()
             wanted = start + length
+            if wanted > RANGE_FALLBACK_MAX_BYTES:
+                log.warning(
+                    f"Server ignored the Range header for {node_id!r}: refusing "
+                    f"to stream {wanted} bytes to reach offset {start}"
+                )
+                return None
+
+            # Discard everything before the window so peak memory stays at
+            # ``length`` instead of ``start + length``.
+            buf = bytearray()
+            consumed = 0
             for chunk in resp.iter_content(ALFRESCO_UPLOAD_BLOCK_SIZE):
-                buf.extend(chunk)
-                if len(buf) >= wanted:
+                chunk_start = consumed
+                consumed += len(chunk)
+                if consumed <= start:
+                    continue
+                buf.extend(chunk[max(0, start - chunk_start) :])
+                if len(buf) >= length:
                     break
-            return bytes(buf[start:wanted])
+            return bytes(buf[:length])
         finally:
             resp.close()
 

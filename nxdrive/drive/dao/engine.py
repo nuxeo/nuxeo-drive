@@ -1897,14 +1897,32 @@ class EngineDAO(BaseDAO):
                         row.id,
                     ),
                 )
-            except IntegrityError:
-                clash = c.execute(
-                    "SELECT * FROM States WHERE remote_ref = ? AND local_path = ?",
-                    (info.uid, row.local_path),
-                ).fetchone()
+            except IntegrityError as exc:
+                # States has two unique couples on remote_ref; report whichever
+                # is actually occupied instead of assuming one of them.
+                candidates = (
+                    (
+                        "(remote_ref, local_path)",
+                        "SELECT * FROM States"
+                        " WHERE remote_ref = ? AND local_path = ?",
+                        (info.uid, row.local_path),
+                    ),
+                    (
+                        "(remote_ref, remote_parent_ref)",
+                        "SELECT * FROM States"
+                        " WHERE remote_ref = ? AND remote_parent_ref = ?",
+                        (info.uid, info.parent_uid),
+                    ),
+                )
+                clashes = [
+                    f"{couple} already held by {clash!r}"
+                    for couple, query, args in candidates
+                    for clash in (c.execute(query, args).fetchone(),)
+                    if clash and clash.id != row.id
+                ]
                 log.error(
-                    f"Cannot link {info.uid!r} to {row!r}: the pair {clash!r} "
-                    "already owns that (remote_ref, local_path) couple"
+                    f"Cannot link {info.uid!r} to {row!r}: {exc} "
+                    f"({'; '.join(clashes) or 'no conflicting row found'})"
                 )
                 raise
             if queue:

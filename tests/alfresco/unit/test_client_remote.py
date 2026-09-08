@@ -1215,6 +1215,54 @@ class TestFetch:
 # --- NEW TESTS BELOW ---
 
 
+class TestGetContentRange:
+    """Ranged reads, and the fallback when the server ignores ``Range``."""
+
+    @staticmethod
+    def _response(status, body, chunk=8):
+        resp = MagicMock()
+        resp.status_code = status
+        resp.content = body
+        resp.iter_content.return_value = [
+            body[i : i + chunk] for i in range(0, len(body), chunk)
+        ]
+        return resp
+
+    def test_zero_length_short_circuits(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        assert remote.get_content_range("node-1", 0, 0) == b""
+        remote.client.session.get.assert_not_called()
+
+    def test_206_returns_the_served_window(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        remote.client.session.get.return_value = self._response(206, b"PARTIAL!")
+
+        assert remote.get_content_range("node-1", 4, 8) == b"PARTIAL!"
+        headers = remote.client.session.get.call_args.kwargs["headers"]
+        assert headers["Range"] == "bytes=4-11"
+
+    def test_200_fallback_slices_the_window(self, _client_patch) -> None:
+        """The server ignored Range, so the window is cut from the stream."""
+        remote = _build_remote(_client_patch)
+        remote.client.session.get.return_value = self._response(
+            200, b"0123456789abcdef"
+        )
+
+        assert remote.get_content_range("node-1", 10, 4) == b"abcd"
+
+    def test_200_fallback_refuses_beyond_the_budget(self, _client_patch) -> None:
+        """Reaching a far offset would mean streaming everything before it."""
+        from nxdrive.alfresco.client.remote import RANGE_FALLBACK_MAX_BYTES
+
+        remote = _build_remote(_client_patch)
+        resp = self._response(200, b"")
+        remote.client.session.get.return_value = resp
+
+        assert remote.get_content_range("node-1", RANGE_FALLBACK_MAX_BYTES, 16) is None
+        resp.iter_content.assert_not_called()
+        resp.close.assert_called_once()
+
+
 class TestStreamContentExtended:
     """Additional stream_content tests: progress callback and DownloadPaused."""
 
