@@ -927,6 +927,14 @@ class AlfrescoProcessor(_ProcessorBase):
         self.dao.synchronize_state(doc_pair)
 
     def _synchronize_locally_modified(self, doc_pair: DocPair, /) -> None:
+        if doc_pair.folderish:
+            # A folder has no content: hashing one yields UNACCESSIBLE_HASH,
+            # which would postpone the pair every 60s forever.  Only its
+            # metadata can differ, and children sync as their own pairs.
+            self._refresh_remote(doc_pair)
+            self.dao.synchronize_state(doc_pair)
+            return
+
         if doc_pair.local_digest == UNACCESSIBLE_HASH:
             info = self.local.get_info(doc_pair.local_path)
             doc_pair.local_digest = info.get_digest()
@@ -975,7 +983,9 @@ class AlfrescoProcessor(_ProcessorBase):
         first because the local file may have been re-edited between
         the conflict being surfaced and the user resolving it.
         """
-        if self.local.exists(doc_pair.local_path):
+        # Directories are unhashable, and a folder conflict is about the
+        # folder existing on both sides, which linking already settled.
+        if not doc_pair.folderish and self.local.exists(doc_pair.local_path):
             info = self.local.get_info(doc_pair.local_path)
             doc_pair.local_digest = info.get_digest()
             self.dao.update_local_state(doc_pair, info, versioned=False, queue=False)

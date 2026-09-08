@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from nxdrive.alfresco.engine.processor import AlfrescoProcessor
-from nxdrive.drive.constants import TransferStatus
+from nxdrive.drive.constants import UNACCESSIBLE_HASH, TransferStatus
 from nxdrive.drive.exceptions import PairInterrupt
 
 
@@ -1017,6 +1017,7 @@ class TestSynchronizeLocallyModified:
         pair = Mock()
         pair.local_path = Path("/local/file.txt")
         pair.local_name = "file.txt"
+        pair.folderish = False
         pair.local_digest = "local_hash"
         pair.remote_digest = "remote_hash"
         pair.remote_ref = "node-1"
@@ -1038,6 +1039,7 @@ class TestSynchronizeLocallyModified:
         pair = Mock()
         pair.local_path = Path("/local/file.txt")
         pair.local_name = "file.txt"
+        pair.folderish = False
         pair.local_digest = "local_hash"
         pair.remote_digest = "remote_hash"
         pair.remote_ref = "node-1"
@@ -1052,6 +1054,7 @@ class TestSynchronizeLocallyModified:
     def test_same_digest_just_syncs(self, proc) -> None:
         pair = Mock()
         pair.local_path = Path("/local/file.txt")
+        pair.folderish = False
         pair.local_digest = "same"
         pair.remote_digest = "same"
         pair.remote_ref = "node-1"
@@ -1065,12 +1068,31 @@ class TestSynchronizeLocallyModified:
         proc.remote.stream_update.assert_not_called()
         proc.dao.synchronize_state.assert_called_once_with(pair)
 
+    def test_a_folder_settles_without_hashing_it(self, proc) -> None:
+        """Directories are unhashable: never take the content path."""
+        pair = Mock()
+        pair.local_path = Path("/local/folder2")
+        pair.folderish = True
+        pair.local_digest = UNACCESSIBLE_HASH
+        pair.remote_ref = "node-1"
+        pair.id = 1
+
+        proc.remote.get_fs_info.return_value = Mock()
+
+        proc._synchronize_locally_modified(pair)
+
+        proc.local.get_info.assert_not_called()
+        proc.remote.stream_update.assert_not_called()
+        proc.engine.queue_manager.push_error.assert_not_called()
+        proc.dao.synchronize_state.assert_called_once_with(pair)
+
 
 class TestSynchronizeLocallyResolved:
     def test_with_remote_ref_delegates_to_modify(self, proc) -> None:
         pair = Mock()
         pair.local_path = Path("/local/file.txt")
         pair.remote_ref = "node-1"
+        pair.folderish = False
         pair.local_digest = "hash"
         pair.remote_digest = "hash"
         pair.id = 1
@@ -1085,6 +1107,23 @@ class TestSynchronizeLocallyResolved:
 
         proc._synchronize_locally_resolved(pair)
         proc.dao.synchronize_state.assert_called()
+
+    def test_a_resolved_folder_is_not_hashed(self, proc) -> None:
+        """Hashing the directory would stamp it with UNACCESSIBLE_HASH."""
+        pair = Mock()
+        pair.local_path = Path("/local/folder2")
+        pair.remote_ref = "node-1"
+        pair.folderish = True
+        pair.id = 1
+
+        proc.local.exists.return_value = True
+        proc.remote.get_fs_info.return_value = Mock()
+
+        proc._synchronize_locally_resolved(pair)
+
+        proc.local.get_info.assert_not_called()
+        proc.engine.queue_manager.push_error.assert_not_called()
+        proc.dao.synchronize_state.assert_called_once_with(pair)
 
     def test_without_remote_ref_delegates_to_create(self, proc) -> None:
         pair = Mock()
