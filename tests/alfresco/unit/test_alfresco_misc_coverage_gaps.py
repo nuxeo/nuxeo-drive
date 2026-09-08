@@ -21,6 +21,7 @@ def _engine():
     engine.remote = MagicMock()
     engine.local = MagicMock()
     engine.manager = MagicMock()
+    engine.queue_manager = MagicMock()
     engine.uid = "alfresco-coverage-engine"
     engine.server_url = "https://alfresco.example.com/alfresco"
     engine.remote_user = "admin"
