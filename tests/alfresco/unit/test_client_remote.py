@@ -1215,6 +1215,63 @@ class TestFetch:
 # --- NEW TESTS BELOW ---
 
 
+class TestFindFileChild:
+    """Name lookup used to spot a remote twin before an initial upload."""
+
+    @staticmethod
+    def _child(name, *, is_file=True):
+        child = MagicMock()
+        # ``name`` is consumed by the Mock constructor, so assign it after.
+        child.name = name
+        child.is_file = is_file
+        return child
+
+    def test_returns_the_matching_file(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        wanted = self._child("report.pdf")
+        remote.client.nodes.iter_children.return_value = iter(
+            [self._child("other.pdf"), wanted]
+        )
+
+        assert remote.find_file_child("parent-1", "report.pdf") is wanted
+        remote.client.nodes.iter_children.assert_called_once_with("parent-1")
+
+    def test_ignores_a_folder_of_the_same_name(self, _client_patch) -> None:
+        """A folder never shadows the file we are looking for."""
+        remote = _build_remote(_client_patch)
+        the_file = self._child("archive")
+        remote.client.nodes.iter_children.return_value = iter(
+            [self._child("archive", is_file=False), the_file]
+        )
+
+        assert remote.find_file_child("parent-1", "archive") is the_file
+
+    def test_returns_none_when_the_name_is_free(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        remote.client.nodes.iter_children.return_value = iter(
+            [self._child("a.txt"), self._child("b.txt", is_file=False)]
+        )
+
+        assert remote.find_file_child("parent-1", "c.txt") is None
+
+    def test_returns_none_on_an_empty_folder(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        remote.client.nodes.iter_children.return_value = iter([])
+
+        assert remote.find_file_child("parent-1", "a.txt") is None
+
+    def test_stops_at_the_first_match(self, _client_patch) -> None:
+        """Large folders must not be walked past the hit."""
+        remote = _build_remote(_client_patch)
+        tail = self._child("tail.txt")
+        children = iter([self._child("hit.txt"), tail])
+        remote.client.nodes.iter_children.return_value = children
+
+        remote.find_file_child("parent-1", "hit.txt")
+
+        assert next(children) is tail
+
+
 class TestGetContentRange:
     """Ranged reads, and the fallback when the server ignores ``Range``."""
 
