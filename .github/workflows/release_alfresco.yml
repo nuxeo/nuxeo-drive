@@ -292,7 +292,7 @@ jobs:
       - name: Fetch versions.yml
         run: |
           bucket="$S3_BUCKET"
-          key="alfresco/drive-updates/versions.yml"
+          key="${S3_PREFIX}versions.yml"
           aws_err_file="$(mktemp)"
 
           if aws s3api get-object --bucket "$bucket" --key "$key" versions.yml 2>"$aws_err_file"; then
@@ -321,11 +321,16 @@ jobs:
 
       - name: Upload artifacts to software channel
         run: |
-          release=${{ github.event.inputs.releaseType }}
-          if [ "$release" = "alpha" ]; then
-            aws s3 cp dist/ "s3://$S3_BUCKET/alfresco/drive-updates/alpha/" --recursive
+          release="${{ github.event.inputs.releaseType }}"
+          sign_exe="${{ github.event.inputs.signExe }}"
+          if [ "$release" = "alpha" ] || [ -z "$release" ]; then
+            if [ "$sign_exe" = "true" ]; then
+              aws s3 cp dist/ "s3://$S3_BUCKET/${S3_PREFIX}alpha/" --recursive
+            else
+              aws s3 cp dist/ "s3://$S3_BUCKET/${S3_PREFIX}staging/" --recursive
+            fi
           elif [ "$release" = "release" ]; then
-            aws s3 cp dist/ "s3://$S3_BUCKET/alfresco/drive-updates/beta/" --recursive
+            aws s3 cp dist/ "s3://$S3_BUCKET/${S3_PREFIX}beta/" --recursive
           else
             echo ">>> Invalid release type: $release"
             exit 1
@@ -335,20 +340,25 @@ jobs:
         run: |
           export SERVER="alfresco"
           drive_version="$(grep __alfresco_version__ nxdrive/__init__.py | cut -d'"' -f2)"
-          type="${{ github.event.inputs.releaseType }}"
+          release="${{ github.event.inputs.releaseType }}"
+          sign_exe="${{ github.event.inputs.signExe }}"
           echo ">>> drive_version=$drive_version"
-          if [ "$type" = "alpha" ]; then
-            type="alpha"
-          elif [ "$type" = "release" ]; then
+          if [ "$release" = "alpha" ] || [ -z "$release" ]; then
+            if [ "$sign_exe" = "true" ]; then
+              type="alpha"
+            else
+              type="staging"
+            fi
+          elif [ "$release" = "release" ]; then
             type="beta"
           else
-            echo ">>> Invalid release type: $type"
+            echo ">>> Invalid release type: $release"
             exit 1
           fi
           echo ">>> type=$type"
           python tools/versions.py --add "$drive_version" --type "$type" || exit 1
           python tools/versions.py --merge || exit 1
-          aws s3 cp versions.yml "s3://$S3_BUCKET/alfresco/drive-updates/" --cache-control "no-cache, max-age=0, must-revalidate"
+          aws s3 cp versions.yml "s3://$S3_BUCKET/$S3_PREFIX" --cache-control "no-cache, max-age=0, must-revalidate"
           python tools/versions.py --delete "$drive_version" || exit 1
           rm versions.yml
 
@@ -363,8 +373,15 @@ jobs:
           # beta/. The root index is always refreshed so its "generated on"
           # timestamp stays current.
           release="${{ github.event.inputs.releaseType }}"
+          sign_exe="${{ github.event.inputs.signExe }}"
           case "$release" in
-            alpha) update_folder="alpha" ;;
+            ""|alpha)
+              if [ "$sign_exe" = "true" ]; then
+                update_folder="alpha"
+              else
+                update_folder="staging"
+              fi
+              ;;
             release) update_folder="beta" ;;
             *)
               echo ">>> Unknown releaseType '$release', skipping index update"
@@ -377,7 +394,7 @@ jobs:
             --prefix "$S3_PREFIX" \
             --root-url "$ROOT_URL" \
             --product-name "Hyland Drive for Alfresco" \
-            --folders alpha beta release \
+            --folders alpha beta release staging \
             --update-folders "$update_folder" \
             --extra-files versions.yml \
             --output-dir index_pages

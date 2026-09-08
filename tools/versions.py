@@ -167,7 +167,7 @@ def main():
     parser.add_argument("--promote", help="change a given version to the next category")
     parser.add_argument(
         "--type",
-        choices=("alpha", "beta", "release"),
+        choices=("alpha", "beta", "release", "staging"),
         help="version type (mandatory for --create and --promote)",
     )
     args = parser.parse_args()

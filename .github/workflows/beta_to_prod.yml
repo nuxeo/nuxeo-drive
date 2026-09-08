@@ -168,8 +168,9 @@ jobs:
             --prefix "$S3_PREFIX" \
             --root-url "$ROOT_URL" \
             --product-name "Nuxeo Drive" \
-            --folders alpha beta release \
+            --folders alpha beta release staging \
             --update-folders beta release \
+            --latest-release-version "${{ github.event.inputs.betaVersion }}" \
             --extra-files versions.yml \
             --output-dir index_pages
 
