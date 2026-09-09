@@ -15,6 +15,7 @@ import argparse
 import html
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -118,6 +119,7 @@ def _page(title, body):
         "    body { font-family: -apple-system, Segoe UI, Roboto, sans-serif;"
         " margin: 2rem; color: #222; }\n"
         "    h1 { border-bottom: 1px solid #ddd; padding-bottom: .5rem; }\n"
+        "    h2 { margin-top: 1.5rem; font-size: 1.2rem; color: #333; }\n"
         "    table { border-collapse: collapse; width: 100%; }\n"
         "    th, td { text-align: left; padding: .4rem .8rem;"
         " border-bottom: 1px solid #eee; }\n"
@@ -139,24 +141,109 @@ def _page(title, body):
     )
 
 
-def _render_root(root_url, prefix, folders, extra_files, product_name=None):
-    items = []
+def _version_key(v):
+    """Sort key for versions (e.g. 5.3.0, 1.0.0-rc1)."""
+
+    parts = []
+    for token in re.split(r"[-.]", v):
+        if token.isdigit():
+            parts.append((0, int(token)))
+        else:
+            parts.append((1, token))
+    return parts
+
+
+_RELEASE_FILE_PATTERN = re.compile(
+    r"^(?P<prefix>(?:nuxeo|alfresco)-drive-)"
+    r"(?P<ver>\d[a-zA-Z0-9.\-_]*?)"
+    r"(?P<suffix>-admin\.exe|-x86_64\.AppImage|\.dmg|\.exe)$"
+)
+
+
+def _find_latest_release_files(release_files, latest_version=None):
+    """Identify files in release/ corresponding to the latest release version.
+
+    Returns a list of tuples: (unversioned_name, filename).
+    """
+
+    if not release_files:
+        return []
+
+    parsed = []
+    addons = []
+    for f in release_files:
+        name = f["name"]
+        m = _RELEASE_FILE_PATTERN.match(name)
+        if m:
+            ver = m.group("ver")
+            suffix = m.group("suffix")
+            prefix = m.group("prefix")
+            if suffix.startswith("-"):
+                unversioned = prefix + suffix[1:]
+            else:
+                unversioned = prefix[:-1] + suffix
+            parsed.append((ver, unversioned, name))
+        elif "addons" in name.lower():
+            addons.append((name, name))
+
+    if not parsed:
+        return [(unv, orig) for unv, orig in addons]
+
+    if not latest_version:
+        versions = {ver for ver, _, _ in parsed}
+        latest_version = max(versions, key=_version_key)
+
+    links = [(unv, name) for ver, unv, name in parsed if ver == latest_version]
+    links.extend(addons)
+    links.sort(key=lambda x: x[0].lower())
+    return links
+
+
+def _render_root(
+    root_url, prefix, folders, extra_files, latest_links=None, product_name=None
+):
+    sections = []
+
+    folder_items = []
     for folder in folders:
         # Link straight to the folder's index.html so the page works even
         # when the bucket has no default index document configured.
         href = f"{root_url}/{prefix}{folder}/index.html"
-        items.append(
+        folder_items.append(
             f'    <li>&#128193; <a href="{html.escape(href)}">'
             f"{html.escape(folder)}/</a></li>"
         )
+    if folder_items:
+        sections.append(
+            "  <h2>Channels</h2>\n  <ul>\n" + "\n".join(folder_items) + "\n  </ul>"
+        )
+
+    if latest_links:
+        link_items = []
+        for unversioned_name, filename in latest_links:
+            target_url = f"{root_url}/{prefix}release/{filename}"
+            link_items.append(
+                f'    <li>&#128230; <a href="{html.escape(target_url)}"'
+                f' title="{html.escape(filename)}">'
+                f"{html.escape(unversioned_name)}</a></li>"
+            )
+        sections.append(
+            "  <h2>Latest Release</h2>\n  <ul>\n" + "\n".join(link_items) + "\n  </ul>"
+        )
+
+    file_items = []
     for name in extra_files:
         href = f"{root_url}/{prefix}{name}"
-        items.append(
+        file_items.append(
             f'    <li>&#128196; <a href="{html.escape(href)}">'
             f"{html.escape(name)}</a></li>"
         )
+    if file_items:
+        sections.append(
+            "  <h2>Files</h2>\n  <ul>\n" + "\n".join(file_items) + "\n  </ul>"
+        )
 
-    body = "  <ul>\n" + "\n".join(items) + "\n  </ul>"
+    body = "\n".join(sections)
     title = product_name or "Hyland Drive for Alfresco"
     return _page(f"{title} – Software Channel", body)
 
@@ -210,7 +297,7 @@ def main():
     parser.add_argument(
         "--folders",
         nargs="+",
-        default=["alpha", "beta", "release"],
+        default=["alpha", "beta", "release", "staging"],
         help="Folders to link from the root index.html.",
     )
     parser.add_argument(
@@ -221,6 +308,10 @@ def main():
             "Subset of --folders whose per-folder index.html should be"
             " (re)generated. Defaults to all of --folders."
         ),
+    )
+    parser.add_argument(
+        "--latest-release-version",
+        help="Explicit version to use for latest release links in the root index.",
     )
     parser.add_argument(
         "--extra-files",
@@ -241,10 +332,27 @@ def main():
 
     root_url = args.root_url.rstrip("/")
 
+    folder_cache = {}
+
+    def get_folder_files(fld):
+        if fld not in folder_cache:
+            folder_cache[fld] = _list_folder(args.bucket, f"{prefix}{fld}")
+        return folder_cache[fld]
+
+    release_files = get_folder_files("release")
+    latest_links = _find_latest_release_files(
+        release_files, args.latest_release_version
+    )
+
     _write(
         os.path.join(args.output_dir, "index.html"),
         _render_root(
-            root_url, prefix, args.folders, args.extra_files, args.product_name
+            root_url,
+            prefix,
+            args.folders,
+            args.extra_files,
+            latest_links=latest_links,
+            product_name=args.product_name,
         ),
     )
 
@@ -261,7 +369,7 @@ def main():
         sys.exit(2)
 
     for folder in update_folders:
-        files = _list_folder(args.bucket, f"{prefix}{folder}")
+        files = get_folder_files(folder)
         _write(
             os.path.join(args.output_dir, folder, "index.html"),
             _render_folder(folder, root_url, prefix, files, args.product_name),

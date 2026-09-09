@@ -45,7 +45,7 @@ jobs:
       - name: Fetch versions.yml
         run: |
           bucket="$S3_BUCKET"
-          key="alfresco/drive-updates/versions.yml"
+          key="${S3_PREFIX}versions.yml"
           aws_err_file="$(mktemp)"
 
           if aws s3api get-object --bucket "$bucket" --key "$key" versions.yml 2>"$aws_err_file"; then
@@ -86,8 +86,8 @@ jobs:
 
           failed=0
           for file in "${files[@]}"; do
-            src="s3://$S3_BUCKET/alfresco/drive-updates/beta/$file"
-            dst="s3://$S3_BUCKET/alfresco/drive-updates/release/$file"
+            src="s3://$S3_BUCKET/${S3_PREFIX}beta/$file"
+            dst="s3://$S3_BUCKET/${S3_PREFIX}release/$file"
 
             echo ">>> Moving $file from beta to release"
             output=$(aws s3 mv "$src" "$dst" 2>&1)
@@ -121,7 +121,7 @@ jobs:
           echo ">>> Promoting beta version $beta_version to release in versions.yml"
           python tools/versions.py --promote "$beta_version" --type "release"
           echo ">>> Copying updated versions.yml to S3"
-          aws s3 cp versions.yml "s3://$S3_BUCKET/alfresco/drive-updates/" --cache-control "no-cache, max-age=0, must-revalidate"
+          aws s3 cp versions.yml "s3://$S3_BUCKET/$S3_PREFIX" --cache-control "no-cache, max-age=0, must-revalidate"
           echo ">>> Removing versions.yml from local workspace"
           rm -f versions.yml
 
@@ -139,8 +139,9 @@ jobs:
             --prefix "$S3_PREFIX" \
             --root-url "$ROOT_URL" \
             --product-name "Hyland Drive for Alfresco" \
-            --folders alpha beta release \
+            --folders alpha beta release staging \
             --update-folders beta release \
+            --latest-release-version "${{ github.event.inputs.betaVersion }}" \
             --extra-files versions.yml \
             --output-dir index_pages
 
