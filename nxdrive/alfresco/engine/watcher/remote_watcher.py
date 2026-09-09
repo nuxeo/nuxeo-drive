@@ -171,13 +171,24 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # Fetch remote children via the Alfresco Nodes API
         try:
             nodes = list(
-                remote.client.nodes.iter_children(remote_info.uid, include=["path"])
+                remote.client.nodes.iter_children(
+                    remote_info.uid, include=["path", "aspectNames"]
+                )
             )
         except Exception:
             log.warning(
                 f"Error listing children of {remote_info.name!r}", exc_info=True
             )
             return
+
+        log.debug(
+            f"Alfresco returned {len(nodes)} children for {remote_info.name!r} "
+            f"({remote_info.uid!r})"
+        )
+        for node in nodes:
+            log.debug(
+                f"Raw node payload for {node.name!r}: {getattr(node, '_raw', {})}"
+            )
 
         to_scan: List[tuple] = []
 

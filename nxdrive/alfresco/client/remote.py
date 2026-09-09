@@ -448,7 +448,14 @@ class AlfrescoRemote:
         would still pull the rest and sync them unconditionally
         (root cause of NXDRIVE-3186 "selected 2 files but all synced").
         """
-        nodes = list(self.client.nodes.iter_children(fs_item_id, include=["path"]))
+        nodes = list(
+            self.client.nodes.iter_children(fs_item_id, include=["path", "aspectNames"])
+        )
+        log.debug(f"Alfresco returned {len(nodes)} children for {fs_item_id!r}")
+        for node in nodes:
+            log.debug(
+                f"Raw node payload for {node.name!r}: {getattr(node, '_raw', {})}"
+            )
         infos = [self._node_to_remote_file_info(n) for n in nodes]
 
         # Always hide Alfresco system folders from the folder-picker
