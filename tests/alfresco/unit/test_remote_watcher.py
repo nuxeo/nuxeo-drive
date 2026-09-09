@@ -24,6 +24,8 @@ def _make_watcher():
     engine = MagicMock()
     dao = MagicMock()
     dao.get_config.return_value = None
+    dao.get_state_from_local.return_value = None
+    dao.get_normal_state_from_remote.return_value = None
 
     with patch.object(AlfrescoRemoteWatcher, "__init__", lambda self, *a, **kw: None):
         w = AlfrescoRemoteWatcher(engine, dao)
@@ -45,6 +47,7 @@ def _make_doc_pair(**kwargs):
     pair.remote_parent_path = kwargs.get("remote_parent_path", "")
     pair.local_path = kwargs.get("local_path", ROOT)
     pair.local_name = kwargs.get("local_name", "folder")
+    pair.local_state = kwargs.get("local_state", "synchronized")
     pair.pair_state = kwargs.get("pair_state", "synchronized")
     pair.last_remote_updated = kwargs.get("last_remote_updated", "2024-01-01 00:00:00")
     pair.local_digest = kwargs.get("local_digest", None)
@@ -186,6 +189,228 @@ class TestScanRemoteRecursive:
         )
 
         watcher.dao.insert_remote_state.assert_called_once()
+
+    def test_unlinked_local_pair_is_adopted_not_duplicated(self):
+        """A locally created, not-yet-uploaded pair must be linked, not cloned.
+
+        Inserting a second row for the same ``local_path`` makes both rows
+        race on UNIQUE(remote_ref, local_path) and loop forever.
+        """
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        remote.client.nodes.iter_children.return_value = [MagicMock()]
+        child_info = _make_remote_info(uid="child-1", name="Doc.txt", folderish=False)
+        remote._node_to_remote_file_info.return_value = child_info
+
+        watcher.dao.get_remote_children.return_value = []
+        watcher.dao.is_filter.return_value = False
+        unlinked = _make_doc_pair(
+            remote_ref="",
+            local_state="created",
+            pair_state="locally_created",
+            local_path=ROOT / "Doc.txt",
+        )
+        watcher.dao.get_state_from_local.return_value = unlinked
+
+        parent_pair = _make_doc_pair(
+            remote_ref="parent-node", remote_parent_path="", local_path=ROOT
+        )
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        watcher.dao.insert_remote_state.assert_not_called()
+        watcher.dao.update_remote_state.assert_called_once()
+        assert watcher.dao.update_remote_state.call_args[0][0] is unlinked
+
+    def test_unlinked_local_creation_is_marked_conflicted(self):
+        """Same name created on both sides must surface as a conflict.
+
+        The version must be bumped so an in-flight processor cannot undo
+        it through ``synchronize_state``'s optimistic lock.
+        """
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        remote.client.nodes.iter_children.return_value = [MagicMock()]
+        child_info = _make_remote_info(uid="child-1", name="Doc.txt", folderish=False)
+        remote._node_to_remote_file_info.return_value = child_info
+
+        watcher.dao.get_remote_children.return_value = []
+        watcher.dao.is_filter.return_value = False
+        unlinked = _make_doc_pair(
+            remote_ref="",
+            local_state="created",
+            pair_state="locally_created",
+            local_path=ROOT / "Doc.txt",
+        )
+        watcher.dao.get_state_from_local.return_value = unlinked
+
+        parent_pair = _make_doc_pair(
+            remote_ref="parent-node", remote_parent_path="", local_path=ROOT
+        )
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        assert unlinked.remote_state == "created"
+        assert watcher.dao.update_remote_state.call_args[1]["versioned"] is True
+        # Claiming the node would make the processor treat it as its own
+        # interrupted upload and overwrite the remote.
+        watcher.engine.local.set_remote_id.assert_not_called()
+
+    def test_already_synced_pair_is_linked_without_conflict(self):
+        """An unlinked pair that is not a local creation just gets linked."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        remote.client.nodes.iter_children.return_value = [MagicMock()]
+        child_info = _make_remote_info(uid="child-1", name="Doc.txt", folderish=False)
+        remote._node_to_remote_file_info.return_value = child_info
+
+        watcher.dao.get_remote_children.return_value = []
+        watcher.dao.is_filter.return_value = False
+        existing = _make_doc_pair(
+            remote_ref="",
+            local_state="synchronized",
+            local_path=ROOT / "Doc.txt",
+        )
+        watcher.dao.get_state_from_local.return_value = existing
+
+        parent_pair = _make_doc_pair(
+            remote_ref="parent-node", remote_parent_path="", local_path=ROOT
+        )
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        assert existing.remote_state != "created"
+        assert watcher.dao.update_remote_state.call_args[1]["versioned"] is False
+        watcher.engine.local.set_remote_id.assert_called_once_with(
+            ROOT / "Doc.txt", "child-1"
+        )
+
+    def test_already_conflicted_pair_is_left_untouched(self):
+        """A pair awaiting user arbitration must not be re-linked.
+
+        Refreshing ``last_remote_updated`` would make the engine's
+        freshness check see an unchanged remote and auto-resolve it.
+        """
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        remote.client.nodes.iter_children.return_value = [MagicMock()]
+        child_info = _make_remote_info(uid="child-1", name="Doc.txt", folderish=False)
+        remote._node_to_remote_file_info.return_value = child_info
+
+        watcher.dao.get_remote_children.return_value = []
+        watcher.dao.is_filter.return_value = False
+        # ``_mark_conflicted`` leaves the pair modified/modified, not created.
+        conflicted = _make_doc_pair(
+            remote_ref="",
+            local_state="modified",
+            pair_state="conflicted",
+            local_path=ROOT / "Doc.txt",
+        )
+        watcher.dao.get_state_from_local.return_value = conflicted
+
+        parent_pair = _make_doc_pair(
+            remote_ref="parent-node", remote_parent_path="", local_path=ROOT
+        )
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        watcher.dao.update_remote_state.assert_not_called()
+        watcher.dao.insert_remote_state.assert_not_called()
+        watcher.engine.local.set_remote_id.assert_not_called()
+
+    def test_known_conflicted_child_is_not_refreshed(self):
+        """Same guard for a child already linked in the DB."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        remote.client.nodes.iter_children.return_value = [MagicMock()]
+        child_info = _make_remote_info(
+            uid="child-1",
+            name="Doc.txt",
+            folderish=False,
+            last_modification_time=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        remote._node_to_remote_file_info.return_value = child_info
+
+        conflicted = _make_doc_pair(
+            remote_ref="child-1",
+            pair_state="conflicted",
+            last_remote_updated="2024-01-01 00:00:00",
+        )
+        watcher.dao.get_remote_children.return_value = [conflicted]
+        watcher.dao.is_filter.return_value = False
+
+        parent_pair = _make_doc_pair(remote_ref="parent-node", remote_parent_path="")
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        watcher.dao.update_remote_state.assert_not_called()
+
+    def test_remote_ref_already_known_is_skipped(self):
+        """Illegal state: the same remote ref cannot be created twice."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        remote.client.nodes.iter_children.return_value = [MagicMock()]
+        child_info = _make_remote_info(uid="child-1", name="Doc.txt", folderish=False)
+        remote._node_to_remote_file_info.return_value = child_info
+
+        watcher.dao.get_remote_children.return_value = []
+        watcher.dao.is_filter.return_value = False
+        watcher.dao.get_normal_state_from_remote.return_value = _make_doc_pair(
+            remote_ref="child-1"
+        )
+
+        parent_pair = _make_doc_pair(
+            remote_ref="parent-node", remote_parent_path="", local_path=ROOT
+        )
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        watcher.dao.insert_remote_state.assert_not_called()
+        watcher.dao.update_remote_state.assert_not_called()
+
+    def test_local_pair_with_other_remote_ref_is_left_alone(self):
+        """A same-path pair already bound to another node must not be relinked."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+
+        remote.client.nodes.iter_children.return_value = [MagicMock()]
+        child_info = _make_remote_info(uid="child-1", name="Doc.txt", folderish=False)
+        remote._node_to_remote_file_info.return_value = child_info
+
+        watcher.dao.get_remote_children.return_value = []
+        watcher.dao.is_filter.return_value = False
+        watcher.dao.get_state_from_local.return_value = _make_doc_pair(
+            remote_ref="some-other-node", local_path=ROOT / "Doc.txt"
+        )
+
+        parent_pair = _make_doc_pair(
+            remote_ref="parent-node", remote_parent_path="", local_path=ROOT
+        )
+        watcher._scan_remote_recursive(
+            parent_pair, _make_remote_info(uid="parent-node")
+        )
+
+        watcher.dao.insert_remote_state.assert_not_called()
+        watcher.dao.update_remote_state.assert_not_called()
 
     def test_existing_item_unchanged_updates_state(self):
         watcher = _make_watcher()

@@ -1215,6 +1215,111 @@ class TestFetch:
 # --- NEW TESTS BELOW ---
 
 
+class TestFindFileChild:
+    """Name lookup used to spot a remote twin before an initial upload."""
+
+    @staticmethod
+    def _child(name, *, is_file=True):
+        child = MagicMock()
+        # ``name`` is consumed by the Mock constructor, so assign it after.
+        child.name = name
+        child.is_file = is_file
+        return child
+
+    def test_returns_the_matching_file(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        wanted = self._child("report.pdf")
+        remote.client.nodes.iter_children.return_value = iter(
+            [self._child("other.pdf"), wanted]
+        )
+
+        assert remote.find_file_child("parent-1", "report.pdf") is wanted
+        remote.client.nodes.iter_children.assert_called_once_with("parent-1")
+
+    def test_ignores_a_folder_of_the_same_name(self, _client_patch) -> None:
+        """A folder never shadows the file we are looking for."""
+        remote = _build_remote(_client_patch)
+        the_file = self._child("archive")
+        remote.client.nodes.iter_children.return_value = iter(
+            [self._child("archive", is_file=False), the_file]
+        )
+
+        assert remote.find_file_child("parent-1", "archive") is the_file
+
+    def test_returns_none_when_the_name_is_free(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        remote.client.nodes.iter_children.return_value = iter(
+            [self._child("a.txt"), self._child("b.txt", is_file=False)]
+        )
+
+        assert remote.find_file_child("parent-1", "c.txt") is None
+
+    def test_returns_none_on_an_empty_folder(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        remote.client.nodes.iter_children.return_value = iter([])
+
+        assert remote.find_file_child("parent-1", "a.txt") is None
+
+    def test_stops_at_the_first_match(self, _client_patch) -> None:
+        """Large folders must not be walked past the hit."""
+        remote = _build_remote(_client_patch)
+        tail = self._child("tail.txt")
+        children = iter([self._child("hit.txt"), tail])
+        remote.client.nodes.iter_children.return_value = children
+
+        remote.find_file_child("parent-1", "hit.txt")
+
+        assert next(children) is tail
+
+
+class TestGetContentRange:
+    """Ranged reads, and the fallback when the server ignores ``Range``."""
+
+    @staticmethod
+    def _response(status, body, chunk=8):
+        resp = MagicMock()
+        resp.status_code = status
+        resp.content = body
+        resp.iter_content.return_value = [
+            body[i : i + chunk] for i in range(0, len(body), chunk)
+        ]
+        return resp
+
+    def test_zero_length_short_circuits(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        assert remote.get_content_range("node-1", 0, 0) == b""
+        remote.client.session.get.assert_not_called()
+
+    def test_206_returns_the_served_window(self, _client_patch) -> None:
+        remote = _build_remote(_client_patch)
+        remote.client.session.get.return_value = self._response(206, b"PARTIAL!")
+
+        assert remote.get_content_range("node-1", 4, 8) == b"PARTIAL!"
+        headers = remote.client.session.get.call_args.kwargs["headers"]
+        assert headers["Range"] == "bytes=4-11"
+
+    def test_200_fallback_slices_the_window(self, _client_patch) -> None:
+        """The server ignored Range, so the window is cut from the stream."""
+        remote = _build_remote(_client_patch)
+        remote.client.session.get.return_value = self._response(
+            200, b"0123456789abcdef"
+        )
+
+        assert remote.get_content_range("node-1", 10, 4) == b"abcd"
+
+    def test_200_fallback_refuses_beyond_the_budget(self, _client_patch) -> None:
+        """Reaching a far offset would mean streaming everything before it."""
+        from nxdrive.alfresco.client.remote import RANGE_FALLBACK_MAX_BYTES
+
+        remote = _build_remote(_client_patch)
+        resp = self._response(200, b"")
+        remote.client.session.get.return_value = resp
+
+        assert remote.get_content_range("node-1", RANGE_FALLBACK_MAX_BYTES, 16) is None
+        resp.iter_content.assert_not_called()
+        resp.close.assert_called_once()
+
+
 class TestStreamContentExtended:
     """Additional stream_content tests: progress callback and DownloadPaused."""
 

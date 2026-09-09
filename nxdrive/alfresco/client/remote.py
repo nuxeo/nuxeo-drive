@@ -46,6 +46,10 @@ ALFRESCO_UPLOAD_BLOCK_SIZE = 65536
 UPLOAD_PROGRESS_INTERVAL = 1.0
 UPLOAD_PROGRESS_PERCENT_STEP = 1.0
 
+#: Most bytes we are willing to stream to emulate a ranged read when the
+#: server ignores the ``Range`` header.
+RANGE_FALLBACK_MAX_BYTES = 20 * 1024 * 1024
+
 
 class AlfrescoRemote:
     """Remote client for Alfresco Content Services.
@@ -246,6 +250,65 @@ class AlfrescoRemote:
     def get_content_stream(self, node_id: str) -> Any:
         """Return a streaming response for a node's content."""
         return self.client.nodes.get_content_stream(node_id)
+
+    def find_file_child(self, parent_id: str, name: str, /) -> Optional[Node]:
+        """Return the first *file* child of ``parent_id`` named ``name``."""
+        for child in self.client.nodes.iter_children(parent_id):
+            if child.name == name and child.is_file:
+                return child
+        return None
+
+    def get_content_range(
+        self, node_id: str, start: int, length: int, /
+    ) -> Optional[bytes]:
+        """Return ``length`` bytes of a node's content starting at ``start``.
+
+        The Alfresco SDK exposes no ``Range`` parameter, so the request is
+        issued directly on the client session.  A server honouring the
+        header answers ``206``; one ignoring it answers ``200`` with the
+        whole body, and reaching ``start`` then costs everything before it.
+        Return ``None`` when emulating the window that way would exceed
+        ``RANGE_FALLBACK_MAX_BYTES``, so the caller can degrade instead.
+        """
+        if length <= 0:
+            return b""
+
+        url = f"{self.client.api_url}/nodes/{node_id}/content"
+        end = start + length - 1
+        resp = self.client.session.get(
+            url,
+            headers={"Range": f"bytes={start}-{end}"},
+            stream=True,
+            timeout=self.client.timeout,
+        )
+        try:
+            resp.raise_for_status()
+            if resp.status_code == 206:
+                return resp.content[:length]
+
+            wanted = start + length
+            if wanted > RANGE_FALLBACK_MAX_BYTES:
+                log.warning(
+                    f"Server ignored the Range header for {node_id!r}: refusing "
+                    f"to stream {wanted} bytes to reach offset {start}"
+                )
+                return None
+
+            # Discard everything before the window so peak memory stays at
+            # ``length`` instead of ``start + length``.
+            buf = bytearray()
+            consumed = 0
+            for chunk in resp.iter_content(ALFRESCO_UPLOAD_BLOCK_SIZE):
+                chunk_start = consumed
+                consumed += len(chunk)
+                if consumed <= start:
+                    continue
+                buf.extend(chunk[max(0, start - chunk_start) :])
+                if len(buf) >= length:
+                    break
+            return bytes(buf[:length])
+        finally:
+            resp.close()
 
     def download_content(
         self,

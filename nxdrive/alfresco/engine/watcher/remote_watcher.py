@@ -6,6 +6,7 @@ Alfresco has no direct equivalent of the ``GetChangeSummary`` /
 change-log endpoint, so this watcher does full remote tree diffing.
 """
 
+from contextlib import suppress
 from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
@@ -273,6 +274,11 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                         # None in (local_digest, None)), so we must
                         # override it with force_remote.
                         self.dao.force_remote(child_pair)
+                elif child_pair.pair_state == "conflicted":
+                    log.debug(
+                        f"Skipping update for {child_info.name!r}: "
+                        "pair is already conflicted (awaiting user)"
+                    )
                 else:
                     self.dao.update_remote_state(
                         child_pair,
@@ -282,18 +288,13 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 if child_info.folderish:
                     to_scan.append((child_pair, child_info))
             else:
-                # New item — insert into DAO
+                # New item — adopt an existing local pair or insert into DAO
                 local_path = doc_pair.local_path / child_info.name
-                row_id = self.dao.insert_remote_state(
-                    child_info,
-                    remote_parent_path,
-                    local_path,
-                    doc_pair.local_path,
+                child_pair = self._match_or_create_child(
+                    child_info, local_path, doc_pair.local_path, remote_parent_path
                 )
-                if child_info.folderish and row_id:
-                    child_pair = self.dao.get_state_from_id(row_id, from_write=True)
-                    if child_pair:
-                        to_scan.append((child_pair, child_info))
+                if child_info.folderish and child_pair:
+                    to_scan.append((child_pair, child_info))
 
         # Mark remaining DB children as deleted on server
         for deleted_pair in children.values():
@@ -308,6 +309,84 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # Recurse into sub-folders
         for pair, info in to_scan:
             self._scan_remote_recursive(pair, info)
+
+    def _match_or_create_child(
+        self,
+        child_info: RemoteFileInfo,
+        local_path: Path,
+        local_parent_path: Path,
+        remote_parent_path: str,
+        /,
+    ) -> Optional[DocPair]:
+        """Link ``child_info`` to an existing local pair, or insert a new one.
+
+        Mirrors ``RemoteWatcher._find_remote_child_match_or_create()``.
+        Without this step a document created locally (still unlinked,
+        ``remote_ref=''``) and picked up by a remote scan before its
+        upload completed would get a *second* row for the same
+        ``local_path``.  Both rows then race, and the loser hits
+        ``UNIQUE constraint failed: States.remote_ref, States.local_path``
+        on every retry, looping forever.
+        """
+        existing = self.dao.get_state_from_local(local_path)
+
+        # Checked before the remote-ref guard below: the processor binds a
+        # conflicted pair to the node it conflicts with, so that ref is
+        # legitimately already in the database.
+        if existing and existing.pair_state == "conflicted":
+            # Refreshing ``last_remote_updated`` here would make the engine's
+            # freshness check see an unchanged remote and auto-resolve a
+            # conflict the user has not arbitrated yet.
+            log.debug(
+                f"Not linking {child_info.name!r}: pair is already "
+                "conflicted (awaiting user)"
+            )
+            return None
+
+        if self.dao.get_normal_state_from_remote(child_info.uid):
+            log.warning(
+                "Illegal state: a remote creation cannot happen if there "
+                f"already is the same remote ref in the database: {child_info!r}"
+            )
+            return None
+
+        if existing:
+            if existing.remote_ref and existing.remote_ref != child_info.uid:
+                log.info(
+                    "Got an existing pair with a different remote ref: "
+                    f"{existing!r} | {child_info!r}"
+                )
+                return None
+
+            log.info(
+                f"Linking remote {child_info.name!r} ({child_info.uid}) to the "
+                f"existing local pair {existing!r}"
+            )
+            # A local creation that was never uploaded means the remote node
+            # was created independently: same name on both sides is a
+            # conflict, not a link.  ``versioned`` bumps the row version so
+            # an in-flight processor holding stale state cannot overwrite
+            # the conflict via ``synchronize_state``'s optimistic lock.
+            conflicting = not existing.remote_ref and existing.local_state == "created"
+            if conflicting:
+                existing.remote_state = "created"
+            self.dao.update_remote_state(
+                existing,
+                child_info,
+                remote_parent_path=remote_parent_path,
+                versioned=conflicting,
+            )
+            # Claiming the node in the xattr would make the processor treat
+            # it as its own interrupted upload and overwrite the remote.
+            if not conflicting:
+                with suppress(Exception):
+                    self.engine.local.set_remote_id(local_path, child_info.uid)
+            return self.dao.get_state_from_id(existing.id, from_write=True)
+
+        row_id = self.dao.insert_remote_state(
+            child_info, remote_parent_path, local_path, local_parent_path
+        )
+        return self.dao.get_state_from_id(row_id, from_write=True) if row_id else None
 
     # -- Incremental change polling ------------------------------------------
 

@@ -414,6 +414,8 @@ class AlfrescoEngine(Engine):
           we reset to ``locally_modified`` (the conflict was spurious —
           typically a stale watcher poll or a same-content re-upload).
           Otherwise we emit ``newConflict`` so the systray surfaces it.
+          The check is skipped for a document created on both sides,
+          which has no sync history to be fresh relative to.
         - **Folders:** auto-resolve when the local xattr ``remote_id``
           matches ``pair.remote_ref`` (same node, no real conflict).
 
@@ -425,8 +427,15 @@ class AlfrescoEngine(Engine):
             log.debug("Alfresco conflict resolver: empty pair, skipping")
             return
 
+        # Created on both sides: ``last_remote_updated`` was written from
+        # this very node when the pair was linked, so the freshness check
+        # below would always report "unchanged" and cancel a real conflict.
+        created_both_sides = (
+            pair.local_state == "created" and pair.remote_state == "created"
+        )
+
         # File path: timestamp-based freshness check.
-        if not pair.folderish and pair.remote_ref:
+        if not pair.folderish and pair.remote_ref and not created_both_sides:
             remote_info = None
             try:
                 remote_info = self.remote.get_fs_info(pair.remote_ref)
@@ -470,6 +479,11 @@ class AlfrescoEngine(Engine):
             log.warning(
                 f"Alfresco conflict resolver: surfacing conflict for "
                 f"{pair.local_name!r}"
+            )
+            # Stop any processor still working this path, else an in-flight
+            # upload completes and silently overwrites the remote.
+            self.queue_manager.interrupt_processors_on(
+                pair.local_path, exact_match=True
             )
             self.newConflict.emit(row_id)
             self.manager.osi.send_sync_status(pair, self.local.abspath(pair.local_path))
