@@ -499,6 +499,51 @@ class TestConflictResolver:
         engine.conflict_resolver(42)
         engine.newConflict.emit.assert_called_once_with(42)
 
+    def test_created_both_sides_ignores_freshness_check(self):
+        """A document created on both sides has no sync history.
+
+        ``last_remote_updated`` was written from this very node when the
+        pair was linked, so an equal timestamp proves nothing and must
+        not cancel the conflict.
+        """
+        engine = _make_engine()
+        pair = MagicMock()
+        pair.folderish = False
+        pair.remote_ref = "node-123"
+        pair.local_state = "created"
+        pair.remote_state = "created"
+        pair.last_remote_updated = "2024-01-01 00:00:00"
+        pair.local_name = "file.txt"
+        pair.local_path = "/test"
+        engine.dao.get_state_from_id.return_value = pair
+
+        remote_info = MagicMock()
+        remote_info.last_modification_time = MagicMock()
+        remote_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
+        engine.remote.get_fs_info.return_value = remote_info
+
+        engine.conflict_resolver(42)
+
+        engine.dao._force_sync.assert_not_called()
+        engine.newConflict.emit.assert_called_once_with(42)
+
+    def test_surfacing_a_conflict_interrupts_processors(self):
+        """An in-flight upload must be stopped before the conflict is shown."""
+        engine = _make_engine()
+        pair = MagicMock()
+        pair.folderish = True
+        pair.remote_ref = "folder-abc"
+        pair.local_path = "/test-folder"
+        pair.local_name = "TestFolder"
+        engine.dao.get_state_from_id.return_value = pair
+        engine.local.get_remote_id.return_value = "different-id"
+
+        engine.conflict_resolver(42)
+
+        engine.queue_manager.interrupt_processors_on.assert_called_once_with(
+            pair.local_path, exact_match=True
+        )
+
 
 # ------------------------------------------------------------------ get_metadata_url
 

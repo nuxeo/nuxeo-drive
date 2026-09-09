@@ -300,6 +300,7 @@ def test_local_modify_refreshes_an_inaccessible_digest(processor, digest):
     pair.id = 12
     pair.local_path = Path("sync/document.txt")
     pair.local_name = "document.txt"
+    pair.folderish = False
     pair.local_digest = UNACCESSIBLE_HASH
     pair.remote_digest = "readable-digest"
     pair.remote_ref = "document-id"
