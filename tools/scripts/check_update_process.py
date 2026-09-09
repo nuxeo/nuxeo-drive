@@ -209,6 +209,11 @@ def install_drive(installer, server_name: str = "nuxeo"):
         subprocess.check_call(cmd)
 
 
+def redact(cmd):
+    """Mask credentials passed on the command line before displaying it."""
+    return [re.sub(r"(--password=).*", r"\1******", arg) for arg in cmd]
+
+
 def launch_drive(executable, server_name: str = "nuxeo", args=None):
     """Launch Drive and wait for auto-update."""
 
@@ -244,7 +249,7 @@ def launch_drive(executable, server_name: str = "nuxeo", args=None):
                 *args,
             ]
 
-    print(">>> Command:", cmd, flush=True)
+    print(">>> Command:", redact(cmd), flush=True)
     subprocess.check_call(cmd)
 
 
