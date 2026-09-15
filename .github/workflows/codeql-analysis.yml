@@ -2,9 +2,9 @@ on:
   pull_request:
     branches: master
     paths:
-      - '.github/workflows'
-      - 'nxdrive/*'
-      - 'tools/*'
+      - '.github/workflows/*'
+      - 'nxdrive/**'
+      - 'tools/**'
   schedule:
     - cron: '0 0 * * *'
 
@@ -66,11 +66,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.13.1
       - name: Scan C# Code
         uses: github/codeql-action/init@v4
         with:
           languages: csharp
-          build-mode: autobuild
+          build-mode: manual
+      - name: Build C# DLLs
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
+          & "tools\windows\deploy_ci_agent.ps1" -install
+          & "tools\windows\deploy_ci_agent.ps1" -build_overlays "nuxeo"
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
   analyze-cpp:
