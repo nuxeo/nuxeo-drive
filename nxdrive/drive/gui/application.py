@@ -193,6 +193,12 @@ class Application(QApplication):
         # Timer used to refresh the files list in the systray menu, see .refresh_files()
         self._last_refresh_view = 0.0
 
+        # UID of the account currently displayed in the systray. Used to
+        # scope shared QML models (TransferModel, FileModel, sync/error
+        # status, systray icon) to the selected account so that ongoing
+        # activity from other accounts does not leak into the view.
+        self._current_engine_uid: str = ""
+
         if not self.manager.preferences_metrics_chosen:
             self.show_metrics_acceptance()
 
@@ -397,6 +403,7 @@ class Application(QApplication):
         if self.manager.engines:
             current_uid = self.engine_model.engines_uid[0]
             engine = self.manager.engines[current_uid]
+            self._current_engine_uid = current_uid
             self.get_last_files(current_uid)
             self.refresh_transfers(engine.dao)
             self.update_status(engine)
@@ -552,6 +559,13 @@ class Application(QApplication):
         self.engine_model.removeEngine(uid)
         # Clear the systray file list so stale entries don't linger
         self.file_model.add_files([])
+        # If the removed engine was the one being displayed in the
+        # systray, drop the cached uid so the shared models can be
+        # repopulated for whichever engine the QML selects next.
+        if uid == self._current_engine_uid:
+            self._current_engine_uid = ""
+            if self.transfer_model.transfers:
+                self.transfer_model.set_transfers([])
 
     def _fill_qml_context(self, context: QQmlContext, /) -> None:
         """Fill the context of a QML element with the necessary resources."""
@@ -1057,16 +1071,25 @@ class Application(QApplication):
             self.set_icon_state("update")
             return
 
-        syncing = conflict = False
         engines = self.manager.engines.copy()
-        invalid_credentials = paused = offline = True
+        if not engines:
+            self.set_icon_state("disabled")
+            Action.finish_action()
+            return
 
-        for engine in engines.values():
-            syncing |= engine.is_syncing()
-            invalid_credentials &= engine.has_invalid_credentials()
-            paused &= engine.is_paused()
-            offline &= engine.is_offline()
-            conflict |= bool(engine.get_conflicts())
+        # Reflect the state of the currently selected account only, so
+        # ongoing activity of other accounts does not affect the tray
+        # icon (per NXDRIVE-3246). Fall back to the first available
+        # engine if the selection is not (yet) known.
+        engine = engines.get(self._current_engine_uid)
+        if engine is None:
+            engine = next(iter(engines.values()))
+
+        invalid_credentials = engine.has_invalid_credentials()
+        paused = engine.is_paused()
+        offline = engine.is_offline()
+        syncing = engine.is_syncing()
+        conflict = bool(engine.get_conflicts())
 
         if offline:
             new_state = "error"
@@ -1074,9 +1097,6 @@ class Application(QApplication):
         elif invalid_credentials:
             new_state = "error"
             Action(Translator.get("AUTH_EXPIRED"))
-        elif not engines:
-            new_state = "disabled"
-            Action.finish_action()
         elif paused:
             new_state = "paused"
             Action.finish_action()
@@ -2188,6 +2208,12 @@ class Application(QApplication):
             log.error(f"Need an Engine, got {engine!r}")
             return
 
+        # Only reflect the status of the account currently selected in
+        # the systray. Status changes from other engines must not
+        # overwrite the shared indicator.
+        if self._current_engine_uid and engine.uid != self._current_engine_uid:
+            return
+
         update_state = self.manager.updater.status
 
         # Check synchronization state
@@ -2213,8 +2239,59 @@ class Application(QApplication):
             sync_state, error_state, update_state
         )
 
+    @Slot(str)
+    def set_current_account(self, uid: str, /) -> None:
+        """Switch the systray view to the given account.
+
+        Clears any lingering shared-model entries from the previous
+        account and repopulates the view (transfers, recent files,
+        sync/error indicator, tray icon) from the newly selected
+        engine so that no activity from other profiles leaks in.
+        """
+        if not uid or uid == self._current_engine_uid:
+            return
+        engine = self.manager.engines.get(uid)
+        if engine is None:
+            return
+
+        self._current_engine_uid = uid
+
+        # Drop any previously-cached rows so nothing from the previous
+        # account remains visible even for a split second.
+        if self.transfer_model.transfers:
+            self.transfer_model.set_transfers([])
+        if self.file_model.files:
+            self.file_model.add_files([])
+
+        # Repopulate the shared models from the newly selected engine.
+        self.refresh_transfers(engine.dao)
+        self.get_last_files(uid)
+
+        # Refresh the sync/error indicator and the OS tray icon so both
+        # reflect the newly selected account.
+        self.update_status(engine)
+        self.change_systray_icon()
+
+    def _engine_uid_from_dao(self, dao: EngineDAO, /) -> str:
+        """Reverse-lookup the engine uid from its DAO.
+
+        Returns an empty string when the DAO no longer belongs to any
+        registered engine (which can happen mid-teardown).
+        """
+        for eng in self.manager.engines.values():
+            if eng.dao is dao:
+                return eng.uid
+        return ""
+
     @Slot(object)
     def refresh_transfers(self, dao: EngineDAO, /) -> None:
+        # Only refresh the shared systray TransferModel when the update
+        # belongs to the currently selected account, otherwise activity
+        # from other engines would leak into the view.
+        if self._current_engine_uid:
+            uid = self._engine_uid_from_dao(dao)
+            if uid and uid != self._current_engine_uid:
+                return
         transfers = self.api.get_transfers(dao)
         if transfers != self.transfer_model.transfers:
             self.transfer_model.set_transfers(transfers)
@@ -2316,6 +2393,10 @@ class Application(QApplication):
             engine = self.sender()
             if not isinstance(engine, Engine):
                 log.error(f"Sender is not an Engine instance: {type(engine)}")
+                return
+            # Ignore file-list updates coming from an engine that is not
+            # the one currently displayed in the systray.
+            if self._current_engine_uid and engine.uid != self._current_engine_uid:
                 return
             self.get_last_files(engine.uid)
             self._last_refresh_view = monotonic()
