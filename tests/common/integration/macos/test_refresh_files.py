@@ -22,6 +22,10 @@ class TestRefreshFiles:
         app = MagicMock(spec=Application)
         app.manager = manager
         app._last_refresh_view = 0.0
+        # Empty string disables the per-account filter added for
+        # NXDRIVE-3246, so tests can exercise refresh_files regardless
+        # of which engine's uid is passed.
+        app._current_engine_uid = ""
 
         yield app, manager
 

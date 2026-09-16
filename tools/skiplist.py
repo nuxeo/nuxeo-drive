@@ -8,6 +8,7 @@ Application.close_direct_transfer_window  # Used in QML
 Application.confirm_cancel_transfer  # Used in QML
 Application._nxdrive_url_env  # Used in QML
 Application.action_progressing  # Used by FileAction.processing signal
+Application.set_current_account  # Used in QML (AccountsComboBox.qml)
 batch.upload_idx  # BaseUploader.upload_chunks()
 BlocklistQueue.repush  # Used in tests
 blob.batchId  # BaseUploader.upload_chunks()
