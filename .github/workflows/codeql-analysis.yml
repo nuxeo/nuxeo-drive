@@ -1,0 +1,110 @@
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/*'
+      - 'nxdrive/**'
+      - 'tools/**'
+  pull_request:
+    branches: [master]
+    paths:
+      - '.github/workflows/*'
+      - 'nxdrive/**'
+      - 'tools/**'
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  analyze-github-actions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Init CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: actions
+          build-mode: none
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+  analyze-python:
+    runs-on: macos-15-intel
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Init CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: python
+          build-mode: none
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+  analyze-swift:
+    runs-on: macos-15-intel
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Init CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: swift
+          build-mode: autobuild
+      - name: Build Swift Code
+        uses: github/codeql-action/autobuild@v4
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+  analyze-cpp:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.13.1
+      - name: Init CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: c-cpp
+          build-mode: manual
+      - name: Build DLLs
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
+          & "tools\windows\deploy_ci_agent.ps1" -install
+          & "tools\windows\deploy_ci_agent.ps1" -build_nuxeo_dlls
+          & "tools\windows\deploy_ci_agent.ps1" -build_alfresco_dlls
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+  analyze-js:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Init CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
