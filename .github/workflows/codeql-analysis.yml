@@ -1,12 +1,12 @@
 on:
   push:
-    branches: master
+    branches: [master]
     paths:
       - '.github/workflows/*'
       - 'nxdrive/**'
       - 'tools/**'
   pull_request:
-    branches: master
+    branches: [master]
     paths:
       - '.github/workflows/*'
       - 'nxdrive/**'
@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-      - name: Scan GitHub actions
+      - name: Init CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: actions
@@ -40,7 +40,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-      - name: Scan Python Code
+      - name: Init CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: python
@@ -56,14 +56,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-      - name: Scan Swift Code
+      - name: Init CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: swift
           build-mode: autobuild
+      - name: Build Swift Code
+        uses: github/codeql-action/autobuild@v4
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
-  analyze-csharp:
+  analyze-cpp:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -76,34 +78,18 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: 3.13.1
-      - name: Scan C# Code
+      - name: Init CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: csharp
+          languages: c-cpp
           build-mode: manual
-      - name: Build C# DLLs
+      - name: Build DLLs
         shell: pwsh
         run: |
           Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
           & "tools\windows\deploy_ci_agent.ps1" -install
           & "tools\windows\deploy_ci_agent.ps1" -build_nuxeo_dlls
           & "tools\windows\deploy_ci_agent.ps1" -build_alfresco_dlls
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
-  analyze-cpp:
-    runs-on: windows-latest
-    permissions:
-      contents: read
-      actions: read
-      security-events: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - name: Scan C/C++ Code
-        uses: github/codeql-action/init@v4
-        with:
-          languages: c-cpp
-          build-mode: none
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
   analyze-js:
@@ -115,7 +101,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-      - name: Scan JavaScript/TypeScript Code
+      - name: Init CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
