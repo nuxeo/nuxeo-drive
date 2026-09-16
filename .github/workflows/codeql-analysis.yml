@@ -1,3 +1,4 @@
+name: CodeQL Scanning
 on:
   push:
     branches: [master]

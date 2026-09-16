@@ -26,6 +26,9 @@ class TestUpdateStatus:
         app.errors_model.count = 0
         app.systray_window = Mock()
         app.refresh_conflicts = Mock()
+        # Match the ``uid`` used by every test's mock engine so the
+        # per-account guard in ``update_status`` lets the update through.
+        app._current_engine_uid = "test_engine"
 
         yield app, manager
 

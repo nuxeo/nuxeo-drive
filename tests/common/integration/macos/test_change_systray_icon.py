@@ -100,7 +100,7 @@ class TestChangeSystrayIcon:
             mock_action.assert_called_once_with("AUTH_EXPIRED")
 
     def test_change_systray_icon_no_engines(self, mock_application):
-        """Test icon changes to error when no engines (offline flag stays True)."""
+        """Test icon changes to disabled when there are no engines."""
         app, manager = mock_application
         manager.engines = {}
         manager.updater.status = UPDATE_STATUS_UP_TO_DATE
@@ -116,10 +116,9 @@ class TestChangeSystrayIcon:
 
             bound_method()
 
-            # With no engines, offline=True stays True, so state becomes "error"
-            app.set_icon_state.assert_called_once_with("error")
-            # Action is instantiated (not finish_action) when offline
-            mock_action.assert_called_once_with("Mocked text")
+            # With no engines, the tray icon reflects the empty state.
+            app.set_icon_state.assert_called_once_with("disabled")
+            mock_action.finish_action.assert_called_once()
 
     def test_change_systray_icon_paused(self, mock_application):
         """Test icon changes to paused state when all engines are paused."""

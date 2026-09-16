@@ -2,13 +2,14 @@
 
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 
 from nxdrive.drive.gui import application as application_module
 from nxdrive.drive.gui.custom_window import CustomWindow
 from nxdrive.drive.gui.application import Application
+from nxdrive.drive.engine.engine import Engine
 from nxdrive.drive.gui.systray import DriveSystrayIcon, SystrayWindow
 from nxdrive.drive.options import Options
 from nxdrive.drive.qt.imports import QObject, Qt, Signal
@@ -443,15 +444,20 @@ def test_confirm_deletion_cancel_and_file_replace_paths(tmp_path):
 def test_engine_removal_drop_state_clear_and_simple_slots():
     engine_model = Mock()
     file_model = Mock()
+    transfer_model = SimpleNamespace(transfers=[], set_transfers=Mock())
+    manager = Mock()
+    manager.engines = {}
     application = make_application(
         engine_model=engine_model,
         file_model=file_model,
+        transfer_model=transfer_model,
         refresh_conflicts=Mock(),
         change_systray_icon=Mock(),
         sender=Mock(return_value=object()),
         systray_window=Mock(),
         direct_transfer_window=Mock(),
-        manager=Mock(),
+        manager=manager,
+        _current_engine_uid="uid",
     )
 
     application.remove_engine("uid")
@@ -462,9 +468,13 @@ def test_engine_removal_drop_state_clear_and_simple_slots():
     application.close_direct_transfer_window()
 
     engine_model.removeEngine.assert_called_once_with("uid")
-    assert file_model.add_files.call_args_list == [call([]), call([]), call([])]
+    # ``remove_engine`` clears the file list because the removed engine
+    # was the currently-selected one; ``dropped_engine`` clears it
+    # again. ``_on_engine_state_cleared`` early-returns because the
+    # sender is not an :class:`Engine` instance.
+    assert file_model.add_files.call_args_list == [call([]), call([])]
     application.refresh_conflicts.assert_not_called()
-    assert application.change_systray_icon.call_count == 2
+    assert application.change_systray_icon.call_count == 1
     application.systray_window.hide.assert_called_once_with()
     application.manager.open_help.assert_called_once_with()
     application.direct_transfer_window.close.assert_called_once_with()
@@ -607,6 +617,8 @@ def test_restart_protocol_and_listener_error_paths(monkeypatch):
 
 def test_refresh_models_and_current_language():
     dao = object()
+    engine = MagicMock(spec=Engine)
+    engine.dao = dao
     api = Mock()
     application = make_application(
         api=api,
@@ -633,7 +645,7 @@ def test_refresh_models_and_current_language():
     api.get_completed_sessions_items.return_value = []
     api.get_last_files.return_value = ["file"]
 
-    application.refresh_transfers(dao)
+    application.refresh_transfers(engine)
     application.refresh_active_sessions_items(dao)
     application.active_session_model.sessions = ["old"]
     application.refresh_active_sessions_items(dao)

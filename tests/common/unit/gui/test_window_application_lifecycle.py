@@ -291,7 +291,7 @@ def test_init_gui_builds_models_windows_and_initial_engine(monkeypatch, tmp_path
     application._fill_qml_context.assert_called_once_with(app_engine.rootContext())
     app_engine.load.assert_called_once()
     application.get_last_files.assert_called_once_with("uid")
-    application.refresh_transfers.assert_called_once_with(engine.dao)
+    application.refresh_transfers.assert_called_once_with(engine)
     application.update_status.assert_called_once_with(engine)
     style_hints.colorSchemeChanged.connect.assert_called_once_with(
         application._on_color_scheme_changed
