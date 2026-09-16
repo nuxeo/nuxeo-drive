@@ -1081,10 +1081,7 @@ class Application(QApplication):
         # the profile the user is actually looking at (NXDRIVE-3246).
         if not isinstance(engine, Engine):
             return
-        if (
-            self._current_engine_uid
-            and engine.uid != self._current_engine_uid
-        ):
+        if self._current_engine_uid and engine.uid != self._current_engine_uid:
             return
         # Recently-Synchronised list
         self.file_model.add_files([])
@@ -2244,10 +2241,7 @@ class Application(QApplication):
         # the systray. Status changes from other engines -- or any
         # engine while no account is selected (startup, teardown) --
         # must not overwrite the shared indicator.
-        if (
-            not self._current_engine_uid
-            or engine.uid != self._current_engine_uid
-        ):
+        if not self._current_engine_uid or engine.uid != self._current_engine_uid:
             return
 
         update_state = self.manager.updater.status
@@ -2323,10 +2317,7 @@ class Application(QApplication):
         if not isinstance(engine, Engine):
             log.error(f"Need an Engine, got {engine!r}")
             return
-        if (
-            self._current_engine_uid
-            and engine.uid != self._current_engine_uid
-        ):
+        if self._current_engine_uid and engine.uid != self._current_engine_uid:
             return
         transfers = self.api.get_transfers(engine.dao)
         if transfers != self.transfer_model.transfers:
@@ -2432,10 +2423,7 @@ class Application(QApplication):
                 return
             # Ignore file-list updates coming from an engine that is not
             # the one currently displayed in the systray.
-            if (
-                self._current_engine_uid
-                and engine.uid != self._current_engine_uid
-            ):
+            if self._current_engine_uid and engine.uid != self._current_engine_uid:
                 return
             self.get_last_files(engine.uid)
             self._last_refresh_view = monotonic()
