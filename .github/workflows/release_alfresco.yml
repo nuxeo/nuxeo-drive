@@ -207,7 +207,7 @@ jobs:
       - name: "[macOS] Setup the environment"
         if: matrix.os == 'macos-15-intel'
         env:
-          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          MACOSX_DEPLOYMENT_TARGET: "15.0"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
@@ -215,7 +215,7 @@ jobs:
         if: matrix.os == 'macos-15-intel'
         timeout-minutes: 40
         env:
-          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          MACOSX_DEPLOYMENT_TARGET: "15.0"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
           KEYCHAIN_PASSWORD: ${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
           NOTARIZATION_USERNAME: ${{ vars.HYLAND_APPLE_ID_NOTARISATION }}
@@ -230,7 +230,7 @@ jobs:
         if: matrix.os == 'macos-15-intel'
         timeout-minutes: 40
         env:
-          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          MACOSX_DEPLOYMENT_TARGET: "15.0"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
           KEYCHAIN_PASSWORD: ${{ secrets.HYLAND_DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
           NOTARIZATION_USERNAME: ${{ vars.HYLAND_APPLE_ID_NOTARISATION }}
