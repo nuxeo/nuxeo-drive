@@ -405,6 +405,8 @@
     "RESTART_NEEDED_MSG": "You need to restart %1 to continue using it.",
     "RESUME": "Resume",
     "REVIEW_DOCUMENT": "Awaiting document review %1",
+    "REVIEW_SELECTION": "Review Selection",
+    "REMOVE_SELECTION": "Remove Selection",
     "ROOT": "Root",
     "ROOT_USED_WITH_OTHER_BINDING": "This folder has been used by %1, its content will be deleted. Do you want to continue? If no, click on Cancel and choose another folder.",
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "A folder already in use has been detected.",
