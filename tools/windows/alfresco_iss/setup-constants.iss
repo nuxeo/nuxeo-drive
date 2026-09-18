@@ -1,4 +1,9 @@
-﻿; Constants for all installers.
+﻿;
+; © 2012-2026 Hyland.
+; All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+;
+
+; Constants for all installers.
 
 #define MyAppName "Hyland Drive for Alfresco"
 #define MyAppPublisher "Hyland Software"

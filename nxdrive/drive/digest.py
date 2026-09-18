@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 Digest, version comparison, and MIME-type utilities.
 
@@ -8,10 +13,10 @@ the common *drive* layer does not depend on the ``nuxeo`` Python package.
 import hashlib
 import mimetypes
 import sys
+from _hashlib import HASH
 from functools import lru_cache
 from typing import Optional
 
-from _hashlib import HASH
 from packaging.version import Version
 
 __all__ = (

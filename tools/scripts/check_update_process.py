@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 NXDRIVE-961: We need to be strong against any update process regressions.
 

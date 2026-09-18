@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Base class for OAuth2-based authentication across server types."""
 
 from typing import TYPE_CHECKING, Any

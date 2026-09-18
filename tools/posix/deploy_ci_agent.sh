@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 # Shared functions for tools/$OSI/deploy_ci_agent.sh files.
 #
 # Usage: sh tools/$OSI/deploy_ci_agent.sh [ARG]

@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 import sqlite3
 from logging import getLogger
 from sqlite3.dbapi2 import Connection
