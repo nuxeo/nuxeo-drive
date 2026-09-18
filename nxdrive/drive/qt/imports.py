@@ -100,6 +100,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
 # ---------------------------------------------------------------------------
 # PySide6 namespace — retained for the existing settings-host adapters.
 #
