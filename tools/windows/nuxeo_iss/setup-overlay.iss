@@ -1,9 +1,8 @@
+[Files]
 ;
 ; © 2012-2026 Hyland.
 ; All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
 ;
-
-[Files]
 ; Copy LiferayNativityUtil_* DLL first because the other DLLs depend on it
 Source: "dll\x86\NuxeoDriveUtil_x86.dll"; DestDir: "{app}\dll"; Flags: replacesameversion 32bit; Check: "not IsWin64";
 Source: "dll\x64\NuxeoDriveUtil_x64.dll"; DestDir: "{app}\dll"; Flags: replacesameversion 64bit; Check: IsWin64
