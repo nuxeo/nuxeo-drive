@@ -1,5 +1,10 @@
 #!/bin/bash
 #
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
+#
 # Bump the current version using the number of commits since the previous release.
 #
 

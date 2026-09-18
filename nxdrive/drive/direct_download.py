@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Server-agnostic Direct Download base class.
 
 Provides the generic queue management, batch processing, zip archiving,

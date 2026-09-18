@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 # See tools/posix/deploy_ci_agent.sh for more information and arguments.
 
 set -e

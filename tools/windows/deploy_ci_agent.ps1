@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 # Usage: powershell ".\tools\windows\deploy_ci_agent.ps1" [ARG]
 #
 # Possible ARG:

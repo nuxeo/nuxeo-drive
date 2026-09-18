@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 Central Qt-binding shim used across the project.
 
@@ -11,6 +16,7 @@ until its now-redundant adapter layer is removed separately.
 """
 
 from PySide6.QtCore import (
+    Property,
     QAbstractListModel,
     QByteArray,
     QCoreApplication,
@@ -33,7 +39,6 @@ from PySide6.QtCore import (
     QTimer,
     QTranslator,
     QUrl,
-    Property,
     Signal,
     SignalInstance,
     Slot,
