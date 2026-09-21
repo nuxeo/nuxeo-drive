@@ -40,6 +40,7 @@ from ..utils import find_icon, get_tree_list, sizeof_fmt
 from .constants import get_known_types_translations
 from .folders_treeview import DocumentTreeView, FolderTreeView
 from .multi_folder_dialog import MultiFolderDialog
+from .review_window import ReviewSelectionDialog
 from .schedule_dialog import ScheduleDialog
 
 if TYPE_CHECKING:
@@ -438,6 +439,13 @@ class FoldersDialog(DialogMixin):
         upload_button.clicked.connect(self._select_files_and_folders)
         hlayout.addWidget(upload_button)
 
+        # Placed on the right side of the "Add Items" button. Only enabled
+        # once at least one file or folder has been selected.
+        self.review_selection_button = QPushButton(Translator.get("REVIEW_SELECTION"))
+        self.review_selection_button.setEnabled(False)
+        self.review_selection_button.clicked.connect(self._review_selection_action)
+        hlayout.addWidget(self.review_selection_button)
+
         vlayout.addLayout(hlayout)
         vlayout.addWidget(self.local_path_msg_lbl)
 
@@ -694,6 +702,8 @@ class FoldersDialog(DialogMixin):
             self.upload_later_button.setEnabled(
                 bool(self.paths) and not (self.scheduled_time)
             )
+        if hasattr(self, "review_selection_button"):
+            self.review_selection_button.setEnabled(bool(self.paths))
         self.new_folder_button.setEnabled(
             bool(self.remote_folder_ref) and bool(self.tree_view.current)
         )
@@ -933,6 +943,55 @@ class FoldersDialog(DialogMixin):
         if mfd.exec():
             path = mfd.selected_paths()
             self._process_additionnal_local_paths(path)
+
+    def _review_selection_action(self) -> None:
+        """Show a dialog listing the files and folders about to be transferred."""
+        dialog = ReviewSelectionDialog(self)
+        dialog.exec()
+
+    def remove_local_paths(self, paths: List[Path], /) -> None:
+        """Remove *paths* from the upload queue and refresh the whole dialog."""
+
+        removed = 0
+        for path in paths:
+            # Unchecking a folder also removes everything it contains
+            targets = [path]
+            if path.is_dir():
+                targets.extend(
+                    known
+                    for known in list(self.paths)
+                    if known != path and known.is_relative_to(path)
+                )
+
+            for target in targets:
+                size = self.paths.pop(target, None)
+                if size is None:
+                    # Already gone, nothing to do
+                    continue
+                removed += 1
+                log.debug(
+                    f"Deselected {'folder' if target.is_dir() else 'file'} "
+                    f"{target.name!r} ({sizeof_fmt(size)}) from {str(target)!r}"
+                )
+
+        log.info(f"Deselected {removed:,} item(s) from the Direct Transfer selection")
+
+        if not removed:
+            return
+
+        # The displayed path may have just been removed, fallback on a remaining one
+        if self.path not in self.paths:
+            self.path = next(iter(self.paths), None)
+
+        # Refresh the local paths summary
+        self.local_path_msg_lbl.setText("")
+        if self.paths:
+            self.local_path.setText(self._files_display())
+        else:
+            self.local_path.clear()
+        self.local_paths_size_lbl.setText(sizeof_fmt(self.overall_size))
+
+        self.button_ok_state()
 
     def _schedule_later_action(self) -> None:
         """Open a dialog to schedule a transfer later."""
