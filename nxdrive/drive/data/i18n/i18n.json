@@ -407,6 +407,8 @@
     "REVIEW_DOCUMENT": "Awaiting document review %1",
     "REVIEW_SELECTION": "Review Selection",
     "REMOVE_SELECTION": "Remove Selection",
+    "REVIEW_SELECT_ALL": "Select All",
+    "REVIEW_DESELECT_ALL": "Deselect All",
     "ROOT": "Root",
     "ROOT_USED_WITH_OTHER_BINDING": "This folder has been used by %1, its content will be deleted. Do you want to continue? If no, click on Cancel and choose another folder.",
     "ROOT_USED_WITH_OTHER_BINDING_HEADER": "A folder already in use has been detected.",
