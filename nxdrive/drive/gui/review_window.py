@@ -12,6 +12,7 @@ from ..qt import constants as qt
 from ..qt.imports import (
     QDialog,
     QHBoxLayout,
+    QLineEdit,
     QPushButton,
     QStandardItem,
     QStandardItemModel,
@@ -271,6 +272,14 @@ class ReviewSelectionDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
+        # The search box, filtering the tree on the fly
+        self.search = QLineEdit(self)
+        self.search.setPlaceholderText(Translator.get("REVIEW_SEARCH"))
+        self.search.setClearButtonEnabled(True)
+        self.search.setTextMargins(5, 0, 5, 0)
+        self.search.textChanged.connect(self._filter)
+        layout.addWidget(self.search)
+
         # The selection tree
         self.model = ReviewFileModel(folder_dialog.paths, self)
 
@@ -319,6 +328,53 @@ class ReviewSelectionDialog(QDialog):
         # Connected last so that the buttons already exist when the signal fires
         self.model.selectionChanged.connect(self._buttons_state)
         self._buttons_state()
+
+    #
+    # Search
+    #
+
+    def _filter(self, text: str, /) -> None:
+        """Show only the rows matching *text*, and the folders holding them."""
+        self._filter_rows(self.model.invisibleRootItem(), text.strip().lower(), False)
+
+    def _filter_rows(
+        self, parent: QStandardItem, pattern: str, forced: bool, /
+    ) -> bool:
+        """Hide the rows below *parent* that do not match *pattern*.
+
+        *forced* is True when a folder above already matched: everything it
+        holds is then kept visible. A folder is kept when any of its contents
+        matches, and is expanded so that the matches can be seen. Returns True
+        when at least 1 row below *parent* is shown.
+        """
+        index = parent.index()
+        shown = False
+
+        for row in range(parent.rowCount()):
+            item = parent.child(row, ReviewFileModel.NAME)
+            if item is None:
+                continue
+
+            # The bare name, lowercased, is kept in UserRole: the displayed
+            # text of a folder also holds its contents count.
+            name = item.data(qt.UserRole) or ""
+            matched = forced or not pattern or pattern in name
+
+            below = self._filter_rows(item, pattern, matched)
+            visible = matched or below
+
+            self.tree_view.setRowHidden(row, index, not visible)
+
+            if item.hasChildren():
+                if not pattern:
+                    # Back to the default: everything collapsed
+                    self.tree_view.collapse(item.index())
+                elif visible:
+                    self.tree_view.expand(item.index())
+
+            shown = shown or visible
+
+        return shown
 
     #
     # Buttons
