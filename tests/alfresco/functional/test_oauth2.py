@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Functional tests for the Alfresco OAuth2 authentication flow.
 
 These tests require the OAuth-capable Alfresco server.  The handler

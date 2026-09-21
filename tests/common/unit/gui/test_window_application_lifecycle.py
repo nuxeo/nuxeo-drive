@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Focused lifecycle coverage for native GUI windows and Application methods."""
 
 from types import SimpleNamespace

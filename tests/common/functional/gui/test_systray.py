@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Functional tests for nxdrive.drive.gui.systray module – SystrayWindow._on_active_changed."""
 
 from unittest.mock import patch

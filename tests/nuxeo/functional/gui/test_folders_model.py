@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Functional tests for nxdrive.nuxeo.gui.folders_model module."""
 
 from unittest.mock import MagicMock, patch

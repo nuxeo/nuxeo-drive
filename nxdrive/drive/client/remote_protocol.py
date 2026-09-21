@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Protocol (structural type) for remote sync clients.
 
 Each server-type package provides an implementation of this interface

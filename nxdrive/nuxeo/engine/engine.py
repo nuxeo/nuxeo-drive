@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Nuxeo-specific engine — extends the generic Engine with Nuxeo
 automation operations, Direct Transfer, Direct Edit integration,
 and Nuxeo-specific credential handling.

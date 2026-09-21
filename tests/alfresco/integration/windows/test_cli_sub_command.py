@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Windows-only integration test: Alfresco CLI sub-commands.
 
 Mirrors :mod:`tests.nuxeo.integration.windows.test_cli_sub_command`

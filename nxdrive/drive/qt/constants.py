@@ -1,11 +1,16 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Qt constants shared across the project.
 
 The top-level constants and the retained ``PySide`` namespace are sourced
 from PySide6 through ``.imports``.
 """
 
+from .imports import PySide as _PySide
 from .imports import (
-    PySide as _PySide,
     QAbstractSocket,
     QDialogButtonBox,
     QEvent,

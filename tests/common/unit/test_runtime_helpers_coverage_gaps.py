@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Coverage for shared workers, translation, registry, and value helpers."""
 
 from datetime import datetime

@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 Convert a CSV "log" file to a real log file.
 Such files are ones attached to NCO tickets.
