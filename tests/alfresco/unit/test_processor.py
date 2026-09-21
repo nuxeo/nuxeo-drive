@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Unit tests for :mod:`nxdrive.alfresco.engine.processor`.
 
 The Alfresco processor subclasses the Drive processor and overrides

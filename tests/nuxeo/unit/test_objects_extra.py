@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Unit tests for nxdrive.nuxeo.objects — additional coverage for from_dict and get_blob."""
 
 import pytest

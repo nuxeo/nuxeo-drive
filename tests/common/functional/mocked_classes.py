@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 from datetime import datetime
 from pathlib import Path
 from sqlite3 import Connection, Cursor
