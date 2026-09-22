@@ -363,7 +363,7 @@ class AlfrescoRemote:
     ) -> Any:
         """Start an async sync; returns a ``SyncStatus`` carrying ``sync_id``."""
         return self.client.sync_service.start_sync(
-            subscriber_id, subscription_id, sync_request
+            subscriber_id, subscription_id, sync_request=sync_request
         )
 
     def get_sync(
