@@ -1,0 +1,41 @@
+{
+  "status": "ready",
+  "changes": [
+    {
+      "conflict": false,
+      "skip": false,
+      "id": "b55a040a-2278-4aa9-b985-4bed1553c488",
+      "username": null,
+      "type": "DELETE_REPOS",
+      "name": "sub-5521f",
+      "toName": null,
+      "parentNodeIds": [
+        "d5932f83-b099-40a9-932f-83b09900a9a4",
+        "758be9c4-4774-4a92-8be9-c447740a929f",
+        "f483d5d4-ddef-4704-83d5-d4ddef970453"
+      ],
+      "toParentNodeIds": [],
+      "path": "/Company Home/dsync-cap-c2b572/sub-5521f",
+      "toPath": null,
+      "nodeId": "2193036e-4d83-40e8-9303-6e4d8380e867",
+      "eventTimestamp": 1790066666560,
+      "checksum": "dummyChecksum",
+      "size": -1,
+      "nodeType": "cm:folder",
+      "nodeTimestamp": null,
+      "error": false,
+      "aspects": [
+        "cm:auditable"
+      ],
+      "seqNo": 118,
+      "parentGroup": null,
+      "permission": null,
+      "async": false,
+      "authority": null,
+      "numberOfSecondaryAssocs": 0,
+      "folderChange": true,
+      "cascade": false,
+      "recordFromCollabSite": false
+    }
+  ]
+}

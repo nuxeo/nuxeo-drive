@@ -270,6 +270,20 @@ class MetaOptions(type):
     options: Dict[str, Tuple[Any, str]] = {
         "alfresco_excluded_top_folders": ("", "default"),
         "alfresco_force_sync_top_folders": ("", "default"),
+        # Enterprise-only Sync Service (dsync) change feed. When enabled and the
+        # server is Alfresco Enterprise with a reachable Sync Service, the remote
+        # watcher pulls an O(changes) delta feed instead of doing an O(total-tree)
+        # full recursive scan every poll. Off by default; falls back to full scan
+        # on Community, provisioning failure, or any sync error.
+        "alfresco_use_sync_service": (False, "default"),
+        # Base URL of the standalone Sync Service (e.g. http://host:9090/alfresco).
+        # When empty it is auto-discovered from the Device Sync config
+        # (``GET /alfresco/s/devicesync/config`` → ``uri``) at bind time.
+        "alfresco_sync_service_url": ("", "default"),
+        # Safety net: force a full reconciliation scan every N delta cycles to
+        # heal any drift the change feed may have missed. 0 disables periodic
+        # reconciliation.
+        "alfresco_sync_reconcile_every": (240, "default"),
         "big_file": (300, "default"),
         "browser_startup_page": ("", "default"),
         "ca_bundle": (None, "default"),

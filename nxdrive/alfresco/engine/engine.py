@@ -176,6 +176,11 @@ class AlfrescoEngine(Engine):
 
     def init_remote(self) -> AlfrescoRemote:
         """Create the Alfresco remote client."""
+        # Resolve the Sync Service URL for the Enterprise delta change feed.
+        # Prefer an explicit config value; otherwise discover it from the
+        # Device Sync bootstrap config (``uri``) after the client is built.
+        sync_service_url = Options.alfresco_sync_service_url or ""
+
         remote = self.remote_cls(
             self.server_url,
             self.remote_user,
@@ -189,7 +194,24 @@ class AlfrescoEngine(Engine):
             proxy=self.manager.proxy,
             upload_callback=self.suspend_client,
             on_token_refreshed=self._on_remote_token_refreshed,
+            sync_service_url=sync_service_url,
         )
+
+        if Options.alfresco_use_sync_service and not sync_service_url:
+            try:
+                cfg = remote.get_device_sync_config()
+                uri = getattr(cfg, "uri", "") or ""
+                if uri:
+                    remote.sync_service_url = uri
+                    remote.client.sync_service_url = uri.rstrip("/")
+                    log.info("Discovered Sync Service URL: %s", uri)
+                else:
+                    log.info("Sync Service URL not advertised by the server")
+            except Exception:
+                log.warning(
+                    "Sync Service URL discovery failed; using full remote scan",
+                    exc_info=True,
+                )
 
         return remote
 

@@ -9,7 +9,7 @@ change-log endpoint, so this watcher does full remote tree diffing.
 from contextlib import suppress
 from datetime import datetime, timezone
 from logging import getLogger
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
@@ -26,6 +26,7 @@ from nxdrive.drive.options import Options
 
 if TYPE_CHECKING:
     from nxdrive.alfresco.engine.engine import AlfrescoEngine
+    from nxdrive.alfresco.engine.watcher.sync_service import SyncServiceChangeProvider
     from nxdrive.drive.dao.engine import EngineDAO
 
 __all__ = ("AlfrescoRemoteWatcher",)
@@ -43,6 +44,11 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         self._last_remote_full_scan: Optional[datetime] = self.dao.get_config(
             "remote_last_full_scan"
         )
+
+        # Enterprise Sync Service (dsync) delta provider. Created lazily on the
+        # first poll when ``alfresco_use_sync_service`` is enabled and the
+        # server supports it; ``None`` means "use the full recursive scan".
+        self._sync_provider: Optional["SyncServiceChangeProvider"] = None
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
@@ -388,11 +394,129 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         )
         return self.dao.get_state_from_id(row_id, from_write=True) if row_id else None
 
+    # -- Delta application helpers (Sync Service) ----------------------------
+
+    def _get_root_pair(self) -> Optional[DocPair]:
+        """Return the synced-root ``DocPair`` (or ``None`` if not set up yet)."""
+        root_pair = self.dao.get_state_from_local(
+            self.engine.download_dir
+            if hasattr(self.engine, "download_dir")
+            else PurePosixPath("/")
+        )
+        if not root_pair:
+            root_pair = self.dao.get_state_from_local(ROOT)
+        if not root_pair or not root_pair.remote_ref:
+            return None
+        return root_pair
+
+    @staticmethod
+    def _remote_content_changed(pair: DocPair, info: RemoteFileInfo, /) -> bool:
+        """Whether ``info`` reflects a content change vs the stored ``pair``.
+
+        Alfresco exposes no content hash (Phase 0: ``checksum`` is a dummy), so
+        content changes are detected by comparing modification timestamps,
+        normalised to the DB's second-resolution format.
+        """
+        remote_ts = info.last_modification_time
+        if hasattr(remote_ts, "strftime"):
+            remote_ts_str = remote_ts.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            remote_ts_str = str(remote_ts)[:19]
+        db_ts_str = str(pair.last_remote_updated or "")[:19]
+        return bool(not info.folderish and remote_ts_str and remote_ts_str != db_ts_str)
+
+    def _apply_remote_update(
+        self, pair: DocPair, info: RemoteFileInfo, remote_parent_path: str, /
+    ) -> None:
+        """Reconcile one existing pair from fresh remote info (delta path).
+
+        Mirrors the per-child branch of :meth:`_do_scan_remote`: a content
+        change queues a remote-modified download via ``force_remote``; conflicts
+        and in-flight processor states are respected; everything else is a plain
+        metadata/rename/move update.
+        """
+        if pair.pair_state == "conflicted":
+            log.debug(f"Skipping delta update for {info.name!r}: pair is conflicted")
+            return
+
+        if self._remote_content_changed(pair, info):
+            if pair.pair_state in ("locally_created", "locally_modified"):
+                log.debug(
+                    f"Skipping force_remote for {info.name!r}: "
+                    f"pair is {pair.pair_state!r} (processor active)"
+                )
+                self.dao.update_remote_state(
+                    pair, info, remote_parent_path=remote_parent_path
+                )
+            else:
+                log.info(f"Delta content change for {info.name!r}")
+                self.dao.update_remote_state(
+                    pair,
+                    info,
+                    remote_parent_path=remote_parent_path,
+                    force_update=True,
+                    versioned=False,
+                )
+                self.dao.force_remote(pair)
+        else:
+            self.dao.update_remote_state(
+                pair, info, remote_parent_path=remote_parent_path
+            )
+
     # -- Incremental change polling ------------------------------------------
+
+    def _get_sync_provider(self) -> Optional["SyncServiceChangeProvider"]:
+        """Return the Sync Service delta provider if usable, else ``None``.
+
+        Gated on the ``alfresco_use_sync_service`` option and live capability
+        detection (Enterprise + reachable Sync Service + compatible version).
+        A ``None`` result means the caller should use the full recursive scan.
+        """
+        if not Options.alfresco_use_sync_service:
+            return None
+        if self._sync_provider is None:
+            from nxdrive.alfresco.engine.watcher.sync_service import (
+                SyncServiceChangeProvider,
+            )
+
+            self._sync_provider = SyncServiceChangeProvider(self)
+        return self._sync_provider if self._sync_provider.is_available() else None
+
+    def _run_delta_cycle(self, provider: "SyncServiceChangeProvider", /) -> bool:
+        """Pull and apply one delta batch. Return ``True`` if it fully handled
+        remote change detection this cycle (so no full scan is needed).
+
+        Returns ``False`` to fall back to a full scan on: not-yet-provisioned,
+        not-yet-seeded, a protocol error/reset, or any change that cannot be
+        applied incrementally (unknown type, missing parent, deep move).
+        """
+        root_pair = self._get_root_pair()
+        if not root_pair:
+            return False
+        if not provider.ensure_provisioned(root_pair.remote_ref):
+            return False
+        if not provider.is_seeded():
+            # First enable: a baseline full scan seeds the DB, then subsequent
+            # cycles run on deltas. Provisioning already started change capture.
+            return False
+
+        # Periodic reconciliation heals any drift the feed may have missed.
+        if provider.due_for_reconcile(Options.alfresco_sync_reconcile_every):
+            log.info("Periodic Sync Service reconciliation — full scan")
+            return False
+
+        # Drains and applies each batch, acknowledging only after it is written
+        # to the DAO. Returns False to fall back to a full scan (protocol error,
+        # reset, incomplete sync, or a change needing reconciliation).
+        return provider.pull_and_apply()
 
     @tooltip("Remote scanning (Alfresco)")
     def _handle_changes(self, first_pass: bool = False) -> bool:
-        """Poll for remote changes by performing a full remote scan."""
+        """Poll for remote changes.
+
+        Uses the Enterprise Sync Service delta feed when available (O(changes)),
+        otherwise falls back to a full recursive remote scan (O(total tree)).
+        """
         remote = self.engine.remote
         if not remote:
             return False
@@ -407,24 +531,51 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # Snapshot queue size before scan to detect changes
         qm_before = self.engine.queue_manager.get_overall_size()
 
-        try:
-            self.scan_remote()
-        except AlfrescoAuthError:
-            log.warning("Remote scan failed, credentials are invalid", exc_info=True)
-            self.engine.set_invalid_credentials(
-                reason="remote scan failed — re-login required"
-            )
-            self.updated.emit()
-            # Remote state is still unknown: keep polling as a first pass.
-            return False
-        except Exception:
-            # Anything that is NOT an auth error is a bug or transient
-            # infra issue — log it, but do NOT force the user through a
-            # re-authentication cycle (the "Authentication expired"
-            # banner is misleading and blocks recovery on the next poll).
-            log.exception("Remote scan failed unexpectedly")
-            self.updated.emit()
-            return False
+        # Try the Enterprise Sync Service delta feed first. When it fully
+        # handles this cycle we skip the full recursive scan entirely.
+        provider = self._get_sync_provider()
+        forced_rescan = need_rescan is not None
+        delta_handled = False
+        if provider is not None and not forced_rescan:
+            try:
+                delta_handled = self._run_delta_cycle(provider)
+            except Exception:
+                log.warning(
+                    "Sync Service delta cycle failed; falling back to full scan",
+                    exc_info=True,
+                )
+                delta_handled = False
+
+        if not delta_handled:
+            try:
+                self.scan_remote()
+            except AlfrescoAuthError:
+                log.warning(
+                    "Remote scan failed, credentials are invalid", exc_info=True
+                )
+                self.engine.set_invalid_credentials(
+                    reason="remote scan failed — re-login required"
+                )
+                self.updated.emit()
+                # Remote state is still unknown: keep polling as a first pass.
+                return False
+            except Exception:
+                # Anything that is NOT an auth error is a bug or transient
+                # infra issue — log it, but do NOT force the user through a
+                # re-authentication cycle (the "Authentication expired"
+                # banner is misleading and blocks recovery on the next poll).
+                log.exception("Remote scan failed unexpectedly")
+                self.updated.emit()
+                return False
+
+            # A successful full scan seeds/reconciles the DB; mark the Sync
+            # Service baseline as established and reset its reconcile counter so
+            # subsequent cycles can run on deltas.
+            if provider is not None:
+                try:
+                    provider.on_full_scan_done()
+                except Exception:
+                    log.debug("provider.on_full_scan_done failed", exc_info=True)
 
         # Detect local changes that the watchdog may have missed
         # (atomic saves, copies during busy event loop, etc.)
