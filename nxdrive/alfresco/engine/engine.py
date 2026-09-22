@@ -400,7 +400,15 @@ class AlfrescoEngine(Engine):
         Runs the subscriber deprovision while the remote/token is still valid
         (before the base unbind revokes it), so no orphaned Device Sync
         subscribers are left behind on the repository.
+
+        The engine is stopped first so the remote-watcher thread cannot race
+        the deprovision: were it still polling, its next cycle would call
+        ``ensure_provisioned`` right after ``reset_provisioning`` cleared the
+        ids and re-create the very subscriber we just deleted. ``stop`` only
+        quiesces the workers; it does not revoke the token (that is the final
+        step of the base unbind), so the server delete still authenticates.
         """
+        self.stop()
         watcher = getattr(self, "_remote_watcher", None)
         if watcher is not None:
             try:
