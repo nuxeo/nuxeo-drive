@@ -77,21 +77,11 @@ def discover_aims_config(server_url: str, /, *, verify: bool = True) -> Dict[str
     parsed = _urlparse(base)
     origin = f"{parsed.scheme}://{parsed.netloc}"
 
-    # The alfresco-python-client appends ``/alfresco/service/...`` (and
-    # ``/alfresco/api/...``) internally, so it expects the *host root*, not a
-    # URL already ending in ``/alfresco``. Strip a trailing ``/alfresco`` to
-    # avoid a doubled ``/alfresco/alfresco/...`` path (→ 404) on the Device
-    # Sync /config probe. Mirrors the same normalisation in
-    # ``AlfrescoRemote.__init__``.
-    client_base = base
-    if client_base.endswith("/alfresco"):
-        client_base = client_base[: -len("/alfresco")]
-
     # 0) Device Sync /config (v0.0.3+ Alfresco Python client)
     try:
         from alfresco import Alfresco
 
-        client = Alfresco(url=client_base, auth=_NoAuth())
+        client = Alfresco(url=base, auth=_NoAuth())
         try:
             if not verify:
                 try:

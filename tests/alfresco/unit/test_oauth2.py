@@ -47,25 +47,6 @@ def _mock_loopback_dependencies(app, *, start_result=None, start_error=None):
 class TestDiscoverAimsConfigDeviceSync:
     """Strategy 0: Device Sync /config endpoint."""
 
-    def test_client_base_strips_trailing_alfresco(self):
-        # The alfresco client appends ``/alfresco/service/...`` itself, so a
-        # URL already ending in ``/alfresco`` must be normalised to the host
-        # root before constructing the client — otherwise the Device Sync
-        # probe hits ``/alfresco/alfresco/service/devicesync/config`` (404).
-        isc = MagicMock()
-        isc.openid_configuration_url.return_value = "https://idp/.well-known/x"
-        isc.client_id = "drive"
-        isc.client_secret = ""
-        mock_client = MagicMock()
-        mock_client.device_sync.get_identity_service_config.return_value = isc
-
-        with patch("alfresco.Alfresco", return_value=mock_client) as fake_alfresco:
-            discover_aims_config("https://acs.example.com/alfresco")
-
-        # The client must be built with the host root, not the ``/alfresco`` URL.
-        _, kwargs = fake_alfresco.call_args
-        assert kwargs.get("url") == "https://acs.example.com"
-
     def test_success_returns_full_config(self):
         isc = MagicMock()
         isc.openid_configuration_url.return_value = (
