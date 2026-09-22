@@ -7,10 +7,9 @@ expected by the Drive Engine for account binding and synchronization.
 
 import time
 from contextlib import suppress
-from logging import DEBUG, getLogger
+from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
-from urllib.parse import urlsplit
 
 from alfresco import Alfresco
 from alfresco.auth import BasicAuth, OAuth2Auth, TicketAuth
@@ -163,12 +162,6 @@ class AlfrescoRemote:
             }
         )
 
-        # DEBUG aid: log the auth scheme + target origin of every request so a
-        # live Identity-Service (Keycloak) run can confirm the Bearer token
-        # reaches BOTH the repository and the Sync Service (:9090) origins. No
-        # token/credential material is logged — only the scheme keyword.
-        self._install_auth_debug_hook()
-
         # No-op metrics stub so callers that do ``remote.metrics.send(...)``
         # or ``remote.metrics.push_sync_event(...)`` don't crash.
         self.metrics = _NoOpMetrics()
@@ -180,54 +173,6 @@ class AlfrescoRemote:
             f"url={self.server_url!r}, "
             f"user_id={self.user_id!r}>"
         )
-
-    def _install_auth_debug_hook(self) -> None:
-        """Log the auth scheme + origin of each response, at DEBUG level.
-
-        Temporary diagnostic to validate auth on Identity-Service (Keycloak)
-        deployments: it makes it obvious, per request, whether the outgoing
-        ``Authorization`` header is ``Bearer`` / ``Basic`` (or an ``alf_ticket``
-        query) and which origin (repository vs Sync Service ``:9090``) it hit.
-        Only the scheme keyword is logged — never the token/ticket value.
-        """
-        session = getattr(self.client, "session", None)
-        if session is None:
-            return
-
-        sync_origin = self.sync_service_url or ""
-
-        def _hook(response: Any, *args: Any, **kwargs: Any) -> Any:
-            if not log.isEnabledFor(DEBUG):
-                return response
-            with suppress(Exception):
-                request = response.request
-                url = request.url or ""
-                parsed = urlsplit(url)
-                origin = f"{parsed.scheme}://{parsed.netloc}"
-                header = request.headers.get("Authorization", "")
-                scheme = header.split(" ", 1)[0] if header else "-"
-                has_ticket = "alf_ticket=" in url
-                target = (
-                    "sync-service"
-                    if sync_origin and url.startswith(sync_origin)
-                    else "repository"
-                )
-                log.debug(
-                    "auth-probe: %s %s [%s] scheme=%s alf_ticket=%s -> %s",
-                    request.method,
-                    origin,
-                    target,
-                    scheme,
-                    has_ticket,
-                    response.status_code,
-                )
-            return response
-
-        hooks = session.hooks.setdefault("response", [])
-        if isinstance(hooks, list):
-            hooks.append(_hook)
-        else:
-            session.hooks["response"] = [hooks, _hook]
 
     # -- Authentication / validation -----------------------------------------
 
