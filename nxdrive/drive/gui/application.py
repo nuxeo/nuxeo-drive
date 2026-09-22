@@ -1397,15 +1397,7 @@ class Application(QApplication):
         self, url: str, callback_params: Dict[str, str], /
     ) -> None:
         self.api.callback_params = callback_params
-        # LOCAL TEST SHIM (do not commit): open the real browser for a
-        # loopback OAuth2/OpenID authorize URL even when running from source
-        # (is_frozen False), so IdP accounts can be tested live without the
-        # admin/admin ticket debug dialog. The loopback callback server that
-        # connect_url() already started completes the flow.
-        is_loopback_oauth = "127.0.0.1" in url and (
-            "openid-connect" in url or "response_type=code" in url
-        )
-        if Options.is_frozen or is_loopback_oauth:
+        if Options.is_frozen:
             """
             Authenticate through the browser.
 
