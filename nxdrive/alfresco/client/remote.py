@@ -303,6 +303,24 @@ class AlfrescoRemote:
             subscriber_id, target_node_id, subscription_type
         )
 
+    def delete_subscriber(self, subscriber_id: str, /) -> None:
+        """Delete a Device Sync subscriber (and its subscriptions) server-side.
+
+        Called on account unbind so the repository does not accumulate orphaned
+        subscribers/subscriptions once the desktop client stops syncing. Prefers
+        a library method when available and otherwise falls back to the repo-side
+        private REST endpoint (``DELETE …/subscribers/{id}``).
+        """
+        if not subscriber_id:
+            return
+        device_sync = self.client.device_sync
+        deleter = getattr(device_sync, "delete_subscriber", None)
+        if callable(deleter):
+            deleter(subscriber_id)
+            return
+        url = device_sync._subscribers_url(subscriber_id)
+        device_sync._delete(url)
+
     def start_sync(
         self, subscriber_id: str, subscription_id: str, sync_request: Dict[str, Any], /
     ) -> Any:

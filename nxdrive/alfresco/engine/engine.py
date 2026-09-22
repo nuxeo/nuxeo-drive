@@ -394,6 +394,21 @@ class AlfrescoEngine(Engine):
         self._remote_watcher.updated.connect(self._check_last_sync)
         self._scanPair.connect(self._remote_watcher.scan_pair)
 
+    def unbind(self) -> None:
+        """Unbind the account, first cleaning up server-side Sync Service state.
+
+        Runs the subscriber deprovision while the remote/token is still valid
+        (before the base unbind revokes it), so no orphaned Device Sync
+        subscribers are left behind on the repository.
+        """
+        watcher = getattr(self, "_remote_watcher", None)
+        if watcher is not None:
+            try:
+                watcher.deprovision_sync_service()
+            except Exception:
+                log.warning("Sync Service deprovision on unbind failed", exc_info=True)
+        super().unbind()
+
     @Slot()
     def _check_last_sync(self) -> None:
         """Check whether sync has completed for this Alfresco engine."""

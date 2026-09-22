@@ -492,6 +492,22 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self._sync_provider = SyncServiceChangeProvider(self)
         return self._sync_provider if self._sync_provider.is_available() else None
 
+    def deprovision_sync_service(self) -> None:
+        """Delete any server-side Sync Service subscriber for this engine.
+
+        Best-effort cleanup invoked on account unbind. Works from the persisted
+        provisioning ids, so it runs regardless of the current feature flag or
+        live capability state.
+        """
+        provider = self._sync_provider
+        if provider is None:
+            from nxdrive.alfresco.engine.watcher.sync_service import (
+                SyncServiceChangeProvider,
+            )
+
+            provider = SyncServiceChangeProvider(self)
+        provider.deprovision()
+
     def _run_delta_cycle(self, provider: "SyncServiceChangeProvider", /) -> bool:
         """Pull and apply one delta batch. Return ``True`` if it fully handled
         remote change detection this cycle (so no full scan is needed).

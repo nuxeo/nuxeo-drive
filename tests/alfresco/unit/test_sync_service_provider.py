@@ -14,6 +14,7 @@ from nxdrive.alfresco.engine.watcher.sync_service import (
     KIND_MOVE,
     ChangeAction,
     SyncServiceChangeProvider,
+    SyncServiceMetrics,
 )
 
 
@@ -116,6 +117,7 @@ class FakeRemote:
         )
         self.created_subscribers = 0
         self.created_subscriptions = []
+        self.deleted_subscribers: list = []
         self._svc = FakeSyncSvc([])
         self.nodes: dict = {}
 
@@ -130,6 +132,9 @@ class FakeRemote:
     def create_subscription(self, subscriber_id, target_node_id, subtype="BOTH"):
         self.created_subscriptions.append((subscriber_id, target_node_id, subtype))
         return SimpleNamespace(id="subscription-1")
+
+    def delete_subscriber(self, subscriber_id):
+        self.deleted_subscribers.append(subscriber_id)
 
     # sync passthroughs
     def start_sync(self, *a):
@@ -563,6 +568,108 @@ class TestSeedingReconcile(unittest.TestCase):
     def test_reconcile_disabled(self) -> None:
         provider, remote, dao = make_provider()
         self.assertFalse(provider.due_for_reconcile(0))
+
+
+class TestDeprovision(unittest.TestCase):
+    def _provision(self, dao):
+        dao.update_config("alfresco_sync_subscriber_id", "subscriber-1")
+        dao.update_config("alfresco_sync_subscription_id", "subscription-1")
+        dao.update_config("alfresco_sync_target_node_id", "root-node")
+
+    def test_deletes_subscriber_and_clears_state(self) -> None:
+        provider, remote, dao = make_provider()
+        self._provision(dao)
+        provider.deprovision()
+        self.assertEqual(remote.deleted_subscribers, ["subscriber-1"])
+        self.assertIsNone(dao.get_config("alfresco_sync_subscriber_id"))
+        self.assertIsNone(dao.get_config("alfresco_sync_subscription_id"))
+        self.assertIsNone(dao.get_config("alfresco_sync_target_node_id"))
+
+    def test_no_subscriber_is_noop(self) -> None:
+        provider, remote, dao = make_provider()
+        provider.deprovision()
+        self.assertEqual(remote.deleted_subscribers, [])
+
+    def test_server_delete_failure_still_clears_state(self) -> None:
+        provider, remote, dao = make_provider()
+        self._provision(dao)
+
+        def _boom(_subscriber_id):
+            raise RuntimeError("server down")
+
+        remote.delete_subscriber = _boom
+        provider.deprovision()  # must not raise
+        self.assertIsNone(dao.get_config("alfresco_sync_subscriber_id"))
+
+
+class TestMetrics(unittest.TestCase):
+    def _provision(self, dao):
+        dao.update_config("alfresco_sync_subscriber_id", "subscriber-1")
+        dao.update_config("alfresco_sync_subscription_id", "subscription-1")
+
+    def test_counts_delta_cycle_and_changes(self) -> None:
+        provider, remote, dao = make_provider()
+        self._provision(dao)
+        remote._svc = FakeSyncSvc(
+            [
+                {
+                    "status": "ready",
+                    "moreChanges": False,
+                    "changes": [
+                        {"type": "DELETE_REPOS", "nodeId": "n1", "seqNo": 10},
+                        {"type": "DELETE_REPOS", "nodeId": "n2", "seqNo": 11},
+                    ],
+                }
+            ]
+        )
+        dao.by_remote["n1"] = FakePair("n1")
+        dao.by_remote["n2"] = FakePair("n2")
+        self.assertTrue(provider.pull_and_apply())
+        m = provider.metrics
+        self.assertEqual(m.delta_cycles, 1)
+        self.assertEqual(m.full_scan_fallbacks, 0)
+        self.assertEqual(m.poll_batches, 1)
+        self.assertEqual(m.changes_applied, 2)
+        self.assertEqual(m.poll_failures, 0)
+
+    def test_counts_poll_failure_as_fallback(self) -> None:
+        provider, remote, dao = make_provider()
+        self._provision(dao)
+
+        class Boom:
+            def start_sync(self, *a):
+                raise RuntimeError("network")
+
+        remote._svc = Boom()
+        self.assertFalse(provider.pull_and_apply())
+        m = provider.metrics
+        self.assertEqual(m.delta_cycles, 0)
+        self.assertEqual(m.full_scan_fallbacks, 1)
+        self.assertEqual(m.poll_failures, 1)
+
+    def test_counts_reset(self) -> None:
+        provider, remote, dao = make_provider()
+        self._provision(dao)
+        remote._svc = FakeSyncSvc([{"status": "ready", "resets": ["subscription-1"]}])
+        self.assertFalse(provider.pull_and_apply())
+        self.assertEqual(provider.metrics.resets, 1)
+        self.assertEqual(provider.metrics.full_scan_fallbacks, 1)
+
+    def test_summary_is_stable_string(self) -> None:
+        m = SyncServiceMetrics()
+        m.record_cycle(handled=True, seconds=0.1)
+        m.record_batch(3)
+        summary = m.summary()
+        self.assertIn("delta_cycles=1", summary)
+        self.assertIn("changes_applied=3", summary)
+        self.assertIn("avg_cycle_ms=", summary)
+
+    def test_periodic_log_resets_counter(self) -> None:
+        m = SyncServiceMetrics(log_every=2)
+        m.record_cycle(handled=True, seconds=0.0)
+        self.assertEqual(m._since_log, 1)
+        m.record_cycle(handled=False, seconds=0.0)
+        self.assertEqual(m._since_log, 0)  # emitted + reset
 
 
 if __name__ == "__main__":

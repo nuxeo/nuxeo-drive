@@ -33,7 +33,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from logging import getLogger
-from time import sleep
+from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 __all__ = (
     "ChangeAction",
     "SyncServiceChangeProvider",
+    "SyncServiceMetrics",
     "classify",
 )
 
@@ -122,6 +123,75 @@ class ChangeAction:
         return self.to_name or self.name
 
 
+@dataclass
+class SyncServiceMetrics:
+    """In-process counters for the Sync Service delta feed.
+
+    Lets operators confirm the feed is actually doing the work — delta cycles
+    succeeding and changes being applied — rather than silently falling back to
+    the O(total-tree) full remote scan. A compact summary is logged every
+    :attr:`log_every` completed delta cycles, and on demand via :meth:`summary`.
+
+    Pure bookkeeping (no I/O beyond the periodic log line) so it is trivially
+    unit-testable.
+    """
+
+    #: Completed delta cycles that fully handled remote change detection.
+    delta_cycles: int = 0
+    #: Cycles where the delta attempt bailed out to a full remote scan.
+    full_scan_fallbacks: int = 0
+    #: Sync batches drained (``start_sync`` → … → ``clear_sync`` round trips).
+    poll_batches: int = 0
+    #: ``start_sync``/``get_sync`` calls that raised (network/protocol errors).
+    poll_failures: int = 0
+    #: Individual change actions written to the DAO from the feed.
+    changes_applied: int = 0
+    #: Server-requested reset/re-subscribe events.
+    resets: int = 0
+    #: Cumulative wall-clock seconds spent draining delta batches.
+    total_poll_seconds: float = 0.0
+
+    #: Emit a summary line every N completed cycles (delta + fallback).
+    log_every: int = 20
+    _since_log: int = field(default=0, repr=False)
+
+    def record_batch(self, changes: int, /) -> None:
+        self.poll_batches += 1
+        self.changes_applied += max(changes, 0)
+
+    def record_failure(self) -> None:
+        self.poll_failures += 1
+
+    def record_reset(self) -> None:
+        self.resets += 1
+
+    def record_cycle(self, *, handled: bool, seconds: float) -> None:
+        """Record the outcome of one delta cycle and log periodically."""
+        if handled:
+            self.delta_cycles += 1
+        else:
+            self.full_scan_fallbacks += 1
+        self.total_poll_seconds += max(seconds, 0.0)
+        self._since_log += 1
+        if self._since_log >= self.log_every:
+            self._since_log = 0
+            log.info("Sync Service metrics — %s", self.summary())
+
+    def summary(self) -> str:
+        """One-line, log-friendly snapshot of the current counters."""
+        cycles = self.delta_cycles + self.full_scan_fallbacks
+        avg_ms = (self.total_poll_seconds / cycles * 1000.0) if cycles else 0.0
+        return (
+            f"delta_cycles={self.delta_cycles} "
+            f"full_scan_fallbacks={self.full_scan_fallbacks} "
+            f"poll_batches={self.poll_batches} "
+            f"poll_failures={self.poll_failures} "
+            f"changes_applied={self.changes_applied} "
+            f"resets={self.resets} "
+            f"avg_cycle_ms={avg_ms:.1f}"
+        )
+
+
 def _as_int(value: Any, default: int = -1) -> int:
     try:
         return int(value)
@@ -186,6 +256,8 @@ class SyncServiceChangeProvider:
         #: Set when a change we cannot safely apply incrementally is seen, so
         #: the watcher performs a full reconciliation scan this cycle instead.
         self.needs_full_scan: bool = False
+        #: Observability counters for the delta feed (delta vs full-scan, etc.).
+        self.metrics = SyncServiceMetrics()
 
     # -- capability detection -----------------------------------------------
 
@@ -304,6 +376,27 @@ class SyncServiceChangeProvider:
         for key in (CONF_SUBSCRIBER, CONF_SUBSCRIPTION, CONF_TARGET, CONF_LAST_SEQNO):
             self.dao.update_config(key, None)
 
+    def deprovision(self) -> None:
+        """Delete the server-side subscriber, then forget the persisted ids.
+
+        Invoked on account unbind so the repository does not accumulate orphaned
+        subscribers/subscriptions. Best-effort: a failed server delete still
+        clears local state so a rebind re-provisions cleanly.
+        """
+        self._load_ids()
+        subscriber_id = self._subscriber_id
+        if subscriber_id:
+            try:
+                self.remote.delete_subscriber(subscriber_id)
+                log.info("Deleted Sync Service subscriber %s on unbind", subscriber_id)
+            except Exception:
+                log.warning(
+                    "Failed to delete Sync Service subscriber %s on unbind",
+                    subscriber_id,
+                    exc_info=True,
+                )
+        self.reset_provisioning()
+
     # -- seeding / reconciliation bookkeeping --------------------------------
 
     def is_seeded(self) -> bool:
@@ -354,6 +447,13 @@ class SyncServiceChangeProvider:
             return False
 
         self.needs_full_scan = False
+        started_at = monotonic()
+        handled = self._drain()
+        self.metrics.record_cycle(handled=handled, seconds=monotonic() - started_at)
+        return handled
+
+    def _drain(self) -> bool:
+        """Drain all pending batches. See :meth:`pull_and_apply` for semantics."""
         remote = self.remote
         request = {"clientVersion": self._client_version, "changes": []}
 
@@ -373,6 +473,7 @@ class SyncServiceChangeProvider:
                     )
             except Exception:
                 log.warning("Sync Service poll failed", exc_info=True)
+                self.metrics.record_failure()
                 return False
 
             state = getattr(status, "status", "")
@@ -398,6 +499,7 @@ class SyncServiceChangeProvider:
             raw = getattr(status, "_raw", {}) or {}
             if raw.get("resets") or raw.get("missing"):
                 log.info("Sync Service requested reset/re-subscribe")
+                self.metrics.record_reset()
                 self._safe_clear(sync_id)
                 self.reset_provisioning()
                 return False
@@ -413,6 +515,8 @@ class SyncServiceChangeProvider:
                 max_seq = max((a.seq_no for a in actions if a.seq_no >= 0), default=-1)
                 if max_seq >= 0:
                     self.dao.update_config(CONF_LAST_SEQNO, str(max_seq))
+
+            self.metrics.record_batch(len(actions))
 
             # Ack only now that the batch is durably applied.
             self._safe_clear(sync_id)
