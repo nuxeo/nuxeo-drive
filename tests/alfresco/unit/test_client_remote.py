@@ -288,6 +288,43 @@ class TestUpdateToken:
         assert remote.auth is old_auth
 
 
+class TestOAuthReachesSyncServiceOrigin:
+    """Lock in that OAuth needs no host-aware handling for the Sync Service.
+
+    ``TicketAuth`` is host-aware: repository requests carry ``?alf_ticket=``
+    while Sync Service (``:9090``) requests must switch to
+    ``Authorization: Basic base64("<ticket>:")``. A Bearer token has no such
+    split — the Identity-Service (Keycloak) access token is accepted by both
+    the repository and the standalone Sync Service origin, so the same
+    ``Authorization: Bearer`` header applies everywhere. The Alfresco dsync
+    delta feed talks to ``:9090`` through the very same ``session.auth``, so
+    this invariant is what makes the change-feed work under OAuth. Guard it
+    with the real vendor auth handler so a future library change can't
+    silently break dsync-under-OAuth.
+    """
+
+    def _prepare(self, auth, url):
+        import requests
+
+        req = requests.Request("GET", url)
+        prepared = req.prepare()
+        return auth(prepared)
+
+    def test_bearer_applied_to_both_origins(self) -> None:
+        from alfresco.auth import OAuth2Auth
+
+        auth = OAuth2Auth.from_token(access_token="acc-tok-123")
+
+        repo = self._prepare(auth, "http://acs.example.com:8080/alfresco/api/x")
+        sync = self._prepare(auth, "http://acs.example.com:9090/alfresco/dsync/y")
+
+        assert repo.headers["Authorization"] == "Bearer acc-tok-123"
+        assert sync.headers["Authorization"] == "Bearer acc-tok-123"
+        # And, unlike the ticket path, no ``alf_ticket`` query is injected.
+        assert "alf_ticket" not in (repo.url or "")
+        assert "alf_ticket" not in (sync.url or "")
+
+
 class TestNodeOperations:
     def test_get_node_delegates(self, _client_patch) -> None:
         remote = _build_remote(_client_patch)
