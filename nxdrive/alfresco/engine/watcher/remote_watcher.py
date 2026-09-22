@@ -80,7 +80,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
     # -- Initial full tree scan ----------------------------------------------
 
     @tooltip("Remote full scan (Alfresco)")
-    def scan_remote(self) -> None:
+    def scan_remote(self) -> bool:
         """Perform a full recursive scan of the remote tree.
 
         Walks the Alfresco folder hierarchy via ``list_children`` and
@@ -88,13 +88,15 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         folder found on the server.  This mirrors the Nuxeo
         ``RemoteWatcher.scan_remote()`` flow.
 
-        Called once on the first pass, or when re-scan is needed.
+        Called once on the first pass, or when re-scan is needed. Returns
+        ``True`` only when the scan actually completed, so the caller can gate
+        the Sync Service ``seeded`` marker on a real baseline.
         """
         log.info("Starting Alfresco full remote scan")
         start = monotonic()
         remote = self.engine.remote
         if not remote:
-            return
+            return False
 
         root_pair = self.dao.get_state_from_local(
             self.engine.download_dir
@@ -108,7 +110,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             root_pair = self.dao.get_state_from_local(ROOT)
         if not root_pair or not root_pair.remote_ref:
             log.warning("No root pair found, cannot scan remote tree")
-            return
+            return False
 
         # Refresh root metadata.
         # IMPORTANT: we intentionally do NOT call update_remote_state()
@@ -127,44 +129,49 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self.engine.set_invalid_credentials(
                 reason="remote scan failed — re-login required"
             )
-            return
+            return False
         except (AlfrescoNetworkError, OSError):
             log.warning(
                 "Remote scan failed due to network error, will retry", exc_info=True
             )
-            return
+            return False
         except Exception:
             log.warning("Remote scan failed unexpectedly", exc_info=True)
-            return
+            return False
 
-        # Recursive walk
-        self._scan_remote_recursive(root_pair, root_info)
+        # Recursive walk. ``complete`` is False if any subtree could not be
+        # fully listed, so the caller must not treat the baseline as trustworthy.
+        complete = self._scan_remote_recursive(root_pair, root_info)
 
         self._last_remote_full_scan = datetime.now(tz=timezone.utc)
         self.dao.update_config("remote_last_full_scan", self._last_remote_full_scan)
 
         log.info(f"Alfresco full remote scan finished in {monotonic() - start:.2f}s")
         self.remoteScanFinished.emit()
+        return complete
 
     def _scan_remote_recursive(
         self,
         doc_pair: DocPair,
         remote_info: RemoteFileInfo,
-    ) -> None:
+    ) -> bool:
         """Recursively scan children of a folder and insert/update DAO state.
 
         Mirrors ``RemoteWatcher._scan_remote_recursive()``: fetch
         children, match or create ``DocPair`` entries, recurse into
         sub-folders, and mark missing children as deleted.
+
+        Returns ``True`` when this folder and every descendant listed cleanly,
+        ``False`` if any child listing failed (so the baseline is incomplete).
         """
         if not remote_info.folderish:
-            return
+            return True
 
         self._interact()
 
         remote = self.engine.remote
         if not remote:
-            return
+            return False
 
         remote_parent_path = doc_pair.remote_parent_path + "/" + remote_info.uid
 
@@ -183,7 +190,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             log.warning(
                 f"Error listing children of {remote_info.name!r}", exc_info=True
             )
-            return
+            return False
 
         to_scan: List[tuple] = []
 
@@ -323,8 +330,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self.dao.delete_remote_state(deleted_pair)
 
         # Recurse into sub-folders
+        complete = True
         for pair, info in to_scan:
-            self._scan_remote_recursive(pair, info)
+            complete = self._scan_remote_recursive(pair, info) and complete
+        return complete
 
     def _match_or_create_child(
         self,
@@ -574,7 +583,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         if not delta_handled:
             try:
-                self.scan_remote()
+                scan_completed = self.scan_remote()
             except AlfrescoAuthError:
                 log.warning(
                     "Remote scan failed, credentials are invalid", exc_info=True
@@ -594,10 +603,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 self.updated.emit()
                 return False
 
-            # A successful full scan seeds/reconciles the DB; mark the Sync
-            # Service baseline as established and reset its reconcile counter so
-            # subsequent cycles can run on deltas.
-            if provider is not None:
+            # Mark the Sync Service baseline as established only when the full
+            # scan actually completed. A partial/failed scan leaves the DAO
+            # incomplete; seeding it anyway would let later cycles consume and
+            # acknowledge deltas against a tree that never fully synced, losing
+            # anything the aborted scan missed.
+            if provider is not None and scan_completed:
                 try:
                     provider.on_full_scan_done()
                 except Exception:

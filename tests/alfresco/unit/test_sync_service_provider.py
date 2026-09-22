@@ -8,7 +8,10 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+from alfresco.exceptions import NetworkError, NotFoundError
+
 from nxdrive.alfresco.engine.watcher.sync_service import (
+    CONF_SEEDED,
     KIND_CREATE,
     KIND_DELETE,
     KIND_MOVE,
@@ -80,9 +83,10 @@ class FakeDao:
 class FakeSyncSvc:
     """Scripts start/get/clear to return a queue of raw SyncStatus dicts."""
 
-    def __init__(self, script, *, poll_status="running") -> None:
+    def __init__(self, script, *, poll_status="running", fail_clear=False) -> None:
         self._script = list(script)
         self._poll_status = poll_status
+        self._fail_clear = fail_clear
         self.cleared: list = []
 
     def start_sync(self, sub, subscription, req):
@@ -101,6 +105,8 @@ class FakeSyncSvc:
         )
 
     def clear_sync(self, sub, subscription, sync_id):
+        if self._fail_clear:
+            raise NetworkError("ack failed")
         self.cleared.append(sync_id)
 
 
@@ -149,8 +155,11 @@ class FakeRemote:
     # node fetch
     def get_node(self, node_id, include=None):
         if node_id not in self.nodes:
-            raise KeyError(node_id)
-        return self.nodes[node_id]
+            raise NotFoundError(f"node {node_id} not found")
+        node = self.nodes[node_id]
+        if isinstance(node, Exception):
+            raise node
+        return node
 
     def _node_to_remote_file_info(self, node):
         return node
@@ -310,6 +319,35 @@ class TestPullAndApply(unittest.TestCase):
         provider, remote, dao = make_provider()
         self.assertFalse(provider.pull_and_apply())
 
+    def test_drain_exhaustion_falls_back(self) -> None:
+        # The server keeps signalling moreChanges past the drain-round budget:
+        # unprocessed batches remain, so the cycle must report unhandled.
+        provider, remote, dao = make_provider()
+        self._provision(dao)
+        provider._DRAIN_ROUNDS = 2
+        remote._svc = FakeSyncSvc(
+            [
+                {"status": "ready", "moreChanges": True, "changes": []},
+                {"status": "ready", "moreChanges": True, "changes": []},
+            ]
+        )
+        handled = provider.pull_and_apply()
+        self.assertFalse(handled)
+        # Both drained batches were still acked (not redelivered).
+        self.assertEqual(len(remote._svc.cleared), 2)
+
+    def test_ack_failure_falls_back(self) -> None:
+        # A failed clear_sync means the server marker did not advance; reporting
+        # success would loop on the same batch forever, so fall back instead.
+        provider, remote, dao = make_provider()
+        self._provision(dao)
+        remote._svc = FakeSyncSvc(
+            [{"status": "ready", "moreChanges": False, "changes": []}],
+            fail_clear=True,
+        )
+        handled = provider.pull_and_apply()
+        self.assertFalse(handled)
+
 
 class TestApply(unittest.TestCase):
     def test_delete_calls_dao(self) -> None:
@@ -372,6 +410,13 @@ class TestApply(unittest.TestCase):
     def test_unknown_kind_requests_full_scan(self) -> None:
         provider, remote, dao = make_provider()
         provider.apply([ChangeAction(kind="unknown", node_id="n9", seq_no=1)])
+        self.assertTrue(provider.needs_full_scan)
+
+    def test_missing_node_id_requests_full_scan(self) -> None:
+        # A known change type with no node id is malformed; it must not be
+        # silently dropped (the batch gets acked), so force a full scan.
+        provider, remote, dao = make_provider()
+        provider.apply([ChangeAction(kind=KIND_DELETE, node_id="", seq_no=1)])
         self.assertTrue(provider.needs_full_scan)
 
     def test_move_relocates_existing_pair(self) -> None:
@@ -501,9 +546,69 @@ class TestApply(unittest.TestCase):
     def test_missing_node_treated_as_delete(self) -> None:
         provider, remote, dao = make_provider()
         dao.by_remote["n1"] = FakePair("n1")
-        # node not in remote.nodes -> get_node raises -> delete path
+        # node not in remote.nodes -> get_node raises NotFound -> delete path
         provider.apply([ChangeAction(kind="update", node_id="n1", seq_no=1)])
         self.assertEqual(dao.deleted, ["n1"])
+
+    def test_transient_fetch_error_requests_full_scan_not_delete(self) -> None:
+        # A transient (non-not-found) fetch error must NOT be treated as a
+        # deletion; it forces a reconciliation scan instead of losing the pair.
+        provider, remote, dao = make_provider()
+        dao.by_remote["n1"] = FakePair("n1")
+        remote.nodes["n1"] = NetworkError("timeout")
+        provider.apply([ChangeAction(kind="update", node_id="n1", seq_no=1)])
+        self.assertEqual(dao.deleted, [])
+        self.assertTrue(provider.needs_full_scan)
+
+    def test_move_transient_fetch_error_requests_full_scan(self) -> None:
+        provider, remote, dao = make_provider()
+        dao.by_remote["n1"] = FakePair("n1")
+        dao.by_remote["newp"] = FakePair(
+            "newp", remote_parent_path="/root", local_path="/root/newp"
+        )
+        remote.nodes["n1"] = NetworkError("timeout")
+        provider.apply(
+            [
+                ChangeAction(
+                    kind=KIND_MOVE,
+                    node_id="n1",
+                    seq_no=1,
+                    parent_node_ids=["old"],
+                    to_parent_node_ids=["newp"],
+                )
+            ]
+        )
+        self.assertEqual(dao.deleted, [])
+        self.assertTrue(provider.needs_full_scan)
+
+    def test_move_local_conflict_requests_full_scan(self) -> None:
+        # A remote move onto a locally-modified pair is skipped, but must flag a
+        # full scan so the move is not silently dropped once the batch is acked.
+        provider, remote, dao = make_provider()
+        dao.by_remote["n1"] = FakePair("n1", pair_state="locally_modified")
+        dao.by_remote["newp"] = FakePair(
+            "newp", remote_parent_path="/root", local_path="/root/newp"
+        )
+        remote.nodes["n1"] = SimpleNamespace(
+            uid="n1",
+            name="x",
+            path="/root/newp/x",
+            folderish=False,
+            node_type="cm:content",
+        )
+        provider.apply(
+            [
+                ChangeAction(
+                    kind=KIND_MOVE,
+                    node_id="n1",
+                    seq_no=1,
+                    parent_node_ids=["old"],
+                    to_parent_node_ids=["newp"],
+                )
+            ]
+        )
+        self.assertEqual(dao.moved, [])
+        self.assertTrue(provider.needs_full_scan)
 
     def test_create_skips_content_less_node(self) -> None:
         # Alfresco metadata records (e.g. dl:issue dataList items) report
@@ -568,6 +673,17 @@ class TestSeedingReconcile(unittest.TestCase):
     def test_reconcile_disabled(self) -> None:
         provider, remote, dao = make_provider()
         self.assertFalse(provider.due_for_reconcile(0))
+
+    def test_reset_clears_seeded_marker(self) -> None:
+        # Re-provisioning starts a fresh change stream; the old baseline no
+        # longer applies, so the seeded/cycle markers must be cleared too.
+        provider, remote, dao = make_provider()
+        provider.on_full_scan_done()
+        self.assertTrue(provider.is_seeded())
+        provider.reset_provisioning()
+        self.assertFalse(provider.is_seeded())
+        self.assertIsNone(dao.get_config(CONF_SEEDED))
+        self.assertIsNone(dao.get_config("alfresco_sync_cycle"))
 
 
 class TestDeprovision(unittest.TestCase):

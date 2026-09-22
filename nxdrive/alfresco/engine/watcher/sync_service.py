@@ -31,10 +31,13 @@ fixtures without a live server.
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from logging import getLogger
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+from alfresco.exceptions import NotFoundError
 
 if TYPE_CHECKING:
     from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
@@ -333,7 +336,11 @@ class SyncServiceChangeProvider:
             return True
 
         remote = self.remote
-        device_os = (getattr(remote, "device_id", "") and "desktop") or "desktop"
+        # The Sync Service subscriber records the client platform (``deviceOS``).
+        # Send the real running platform (``darwin`` | ``win32`` | ``linux``) —
+        # a server that validates the enum rejects a bogus constant, which would
+        # make every provisioning attempt fail and pin us to full scans forever.
+        device_os = sys.platform
         try:
             subscriber = remote.create_subscriber(device_os, self._client_version)
             subscriber_id = getattr(subscriber, "id", "") or ""
@@ -370,10 +377,24 @@ class SyncServiceChangeProvider:
         return True
 
     def reset_provisioning(self) -> None:
-        """Forget persisted ids so the next cycle re-provisions from scratch."""
+        """Forget persisted ids so the next cycle re-provisions from scratch.
+
+        Also clears the seeded/reconcile markers: a fresh subscription starts a
+        brand-new change stream, so the old baseline no longer applies. Leaving
+        ``CONF_SEEDED`` set would let the next cycle consume deltas against a
+        stale/incomplete DAO (e.g. if the fallback full scan then failed),
+        silently losing changes captured before the reset.
+        """
         self._subscriber_id = ""
         self._subscription_id = ""
-        for key in (CONF_SUBSCRIBER, CONF_SUBSCRIPTION, CONF_TARGET, CONF_LAST_SEQNO):
+        for key in (
+            CONF_SUBSCRIBER,
+            CONF_SUBSCRIPTION,
+            CONF_TARGET,
+            CONF_LAST_SEQNO,
+            CONF_SEEDED,
+            CONF_CYCLE,
+        ):
             self.dao.update_config(key, None)
 
     def deprovision(self) -> None:
@@ -457,6 +478,7 @@ class SyncServiceChangeProvider:
         remote = self.remote
         request = {"clientVersion": self._client_version, "changes": []}
 
+        drained_clean = False
         for _ in range(self._DRAIN_ROUNDS):
             try:
                 started = remote.start_sync(
@@ -518,21 +540,41 @@ class SyncServiceChangeProvider:
 
             self.metrics.record_batch(len(actions))
 
-            # Ack only now that the batch is durably applied.
-            self._safe_clear(sync_id)
+            # Ack only now that the batch is durably applied. If the ack fails,
+            # the server-side seqNo marker did not advance, so the same batch
+            # would be redelivered and reapplied on every cycle. Report the
+            # cycle as unhandled (fall back to a full scan) rather than looping
+            # on the same batch forever.
+            if not self._safe_clear(sync_id):
+                log.warning("Sync Service ack (clear_sync) failed; full scan")
+                return False
 
             if not getattr(status, "more_changes", False):
+                drained_clean = True
                 break
+
+        if not drained_clean:
+            # Exhausted the drain-round budget while the server still reported
+            # more changes: unprocessed batches remain. Treat as an incomplete
+            # cycle so the watcher reconciles with a full scan instead of
+            # wrongly reporting the feed fully handled this poll.
+            log.info(
+                "Sync Service drain exhausted with more changes pending; full scan"
+            )
+            return False
 
         return not self.needs_full_scan
 
-    def _safe_clear(self, sync_id: str) -> None:
+    def _safe_clear(self, sync_id: str) -> bool:
+        """Acknowledge a drained batch. Returns ``False`` if the ack failed."""
         if not sync_id:
-            return
+            return True
         try:
             self.remote.clear_sync(self._subscriber_id, self._subscription_id, sync_id)
+            return True
         except Exception:
             log.debug("clear_sync failed for %s", sync_id, exc_info=True)
+            return False
 
     # -- delta application ---------------------------------------------------
 
@@ -567,6 +609,15 @@ class SyncServiceChangeProvider:
             return
 
         if not action.node_id:
+            # A known change type with no node id is malformed: we cannot place
+            # it incrementally, and the batch is about to be acknowledged (its
+            # seqNo advanced) — so treat it like an unknown change and force a
+            # reconciliation scan rather than silently dropping a real change.
+            log.warning(
+                "Change %r has no node id; requesting full scan",
+                action.change_type,
+            )
+            self.needs_full_scan = True
             return
 
         if action.kind == KIND_DELETE:
@@ -625,9 +676,20 @@ class SyncServiceChangeProvider:
 
         try:
             node = self.remote.get_node(action.node_id, include=["path"])
-        except Exception:
-            log.debug("Moved node %s not found; treating as delete", action.node_id)
+        except NotFoundError:
+            log.debug("Moved node %s is gone; treating as delete", action.node_id)
             self._apply_delete(action)
+            return
+        except Exception:
+            # A transient fetch error (auth/timeout/network) is NOT proof the
+            # node was deleted — dropping the pair here would lose data. Force a
+            # reconciliation scan this cycle instead.
+            log.warning(
+                "Failed to fetch moved node %s; requesting full scan",
+                action.node_id,
+                exc_info=True,
+            )
+            self.needs_full_scan = True
             return
 
         if not self.remote.is_syncable_node(node):
@@ -649,11 +711,16 @@ class SyncServiceChangeProvider:
                 "locally_modified",
                 "conflicted",
             ):
+                # A local edit conflicts with the remote move. Skipping leaves
+                # the pair at its old remote parent and the batch is acked, so
+                # the feed will never replay the move. Force a reconciliation
+                # scan so the conflict is resolved rather than silently lost.
                 log.debug(
-                    "Skip remote move of %r: pair is %r",
+                    "Skip remote move of %r: pair is %r; requesting full scan",
                     pair.local_name,
                     pair.pair_state,
                 )
+                self.needs_full_scan = True
                 continue
             # Re-parent the remote side (``remote_parent_ref`` now points at the
             # new parent) then flag ``remotely_modified``. ``versioned=False``
@@ -674,10 +741,21 @@ class SyncServiceChangeProvider:
         remote = self.remote
         try:
             node = remote.get_node(action.node_id, include=["path"])
-        except Exception:
-            # The node is gone by the time we look — treat as a deletion.
+        except NotFoundError:
+            # The node is confirmed gone by the time we look — treat as a
+            # deletion.
             log.debug("Node %s not found on upsert; treating as delete", action.node_id)
             self._apply_delete(action)
+            return
+        except Exception:
+            # A transient fetch error is not a deletion; reconcile via full scan
+            # rather than dropping the change.
+            log.warning(
+                "Failed to fetch node %s on upsert; requesting full scan",
+                action.node_id,
+                exc_info=True,
+            )
+            self.needs_full_scan = True
             return
 
         info = remote._node_to_remote_file_info(node)
