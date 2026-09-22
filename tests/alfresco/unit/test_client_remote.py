@@ -143,6 +143,48 @@ class TestRepr:
         assert expected_host in rendered
 
 
+class TestIsSyncableNode:
+    """``is_syncable_node`` skips content-less metadata records (e.g. dl:issue)."""
+
+    @staticmethod
+    def _node(entry: dict):
+        from alfresco.models.node import Node
+
+        return Node.from_json(entry)
+
+    def test_folder_is_syncable(self) -> None:
+        from nxdrive.alfresco.client.remote import AlfrescoRemote
+
+        node = self._node({"id": "f1", "name": "docs", "isFolder": True})
+        assert AlfrescoRemote.is_syncable_node(node) is True
+
+    def test_file_with_content_is_syncable(self) -> None:
+        from nxdrive.alfresco.client.remote import AlfrescoRemote
+
+        node = self._node(
+            {
+                "id": "c1",
+                "name": "empty.txt",
+                "isFile": True,
+                "content": {"mimeType": "text/plain", "sizeInBytes": 0},
+            }
+        )
+        assert AlfrescoRemote.is_syncable_node(node) is True
+
+    def test_content_less_file_is_not_syncable(self) -> None:
+        from nxdrive.alfresco.client.remote import AlfrescoRemote
+
+        node = self._node(
+            {
+                "id": "m1",
+                "name": "record",
+                "nodeType": "dl:issue",
+                "isFile": True,
+            }
+        )
+        assert AlfrescoRemote.is_syncable_node(node) is False
+
+
 class TestNoOpMetricsAndTasks:
     """The nested no-op stubs exist so the engine can call metrics/tasks
     without knowing whether the flavor supports them.

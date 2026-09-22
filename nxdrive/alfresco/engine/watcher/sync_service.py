@@ -470,18 +470,7 @@ class SyncServiceChangeProvider:
             return
 
         if action.kind == KIND_MOVE:
-            # A move changes the node's parent. The full scan applies this as a
-            # deletion under the old parent plus a creation under the new one,
-            # which is what actually relocates the local file/folder. An
-            # in-place ``update_remote_state`` cannot express that (it only
-            # relocates on a folder *rename*), so reconcile via a full scan this
-            # cycle. The change is still acked (its parent is now recorded), so
-            # it is not redelivered indefinitely.
-            log.info(
-                "Move of %s requires reconciliation; requesting full scan",
-                action.node_id,
-            )
-            self.needs_full_scan = True
+            self._apply_move(action)
             return
 
         self._apply_upsert(action)
@@ -499,6 +488,83 @@ class SyncServiceChangeProvider:
             log.info("Marking %r as remotely deleted (delta)", pair.local_path)
             self.dao.delete_remote_state(pair)
 
+    def _apply_move(self, action: ChangeAction, /) -> None:
+        """Relocate a moved node incrementally (no full scan).
+
+        A ``MOVE_REPOS`` change carries the node's new parent. We re-parent the
+        existing ``DocPair`` (``update_remote_state`` with the *new* remote
+        parent path/ref) and flag it ``remotely_modified`` so the processor's
+        move branch relocates the local file/folder on disk — and, for folders,
+        heals every descendant's stored path via the cascading
+        ``update_{remote,local}_parent_path`` helpers. Only the *discovery* is
+        incremental; the relocation reuses the exact same processor path the
+        full scan would.
+
+        Falls back to a full scan only when the node's new parent is not yet
+        synced (its local placement is unknown this cycle).
+        """
+        existing = self.dao.get_states_from_remote(action.node_id)
+        if not existing:
+            # Node isn't tracked yet: place it under its new parent as a create.
+            self._apply_upsert(action)
+            return
+
+        parent_pair = self.dao.get_normal_state_from_remote(action.new_parent_id)
+        if not parent_pair:
+            log.info(
+                "Move of %s lands under unsynced parent %s; requesting full scan",
+                action.node_id,
+                action.new_parent_id,
+            )
+            self.needs_full_scan = True
+            return
+
+        try:
+            node = self.remote.get_node(action.node_id, include=["path"])
+        except Exception:
+            log.debug("Moved node %s not found; treating as delete", action.node_id)
+            self._apply_delete(action)
+            return
+
+        if not self.remote.is_syncable_node(node):
+            log.debug(
+                "Skipping content-less moved node %s (%s)",
+                action.node_id,
+                node.node_type,
+            )
+            return
+
+        info = self.remote._node_to_remote_file_info(node)
+        new_remote_parent_path = (
+            parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+        )
+
+        for pair in existing:
+            if pair.pair_state in (
+                "locally_created",
+                "locally_modified",
+                "conflicted",
+            ):
+                log.debug(
+                    "Skip remote move of %r: pair is %r",
+                    pair.local_name,
+                    pair.pair_state,
+                )
+                continue
+            # Re-parent the remote side (``remote_parent_ref`` now points at the
+            # new parent) then flag ``remotely_modified``. ``versioned=False``
+            # keeps the row version stable so ``force_remote``'s optimistic lock
+            # still matches. The processor's ``_is_remote_move`` then sees the
+            # local parent differ from the remote parent and relocates.
+            self.dao.update_remote_state(
+                pair,
+                info,
+                remote_parent_path=new_remote_parent_path,
+                versioned=False,
+            )
+            self.dao.force_remote(pair)
+            log.info("Applying remote move of %r (delta)", pair.local_path)
+
     def _apply_upsert(self, action: ChangeAction, /) -> None:
         """Create/update/rename/move: re-fetch the node and reconcile its pair."""
         remote = self.remote
@@ -511,6 +577,17 @@ class SyncServiceChangeProvider:
             return
 
         info = remote._node_to_remote_file_info(node)
+
+        # Skip Alfresco metadata records (e.g. dl:issue dataList items) that
+        # report isFile=True but have no content stream — downloading them
+        # yields HTTP 404. Mirrors the full scan. See ``is_syncable_node``.
+        if not remote.is_syncable_node(node):
+            log.debug(
+                "Skipping content-less node %s (%s)",
+                action.node_id,
+                node.node_type,
+            )
+            return
 
         from nxdrive.alfresco.sync_filters import is_top_folder_excluded
 

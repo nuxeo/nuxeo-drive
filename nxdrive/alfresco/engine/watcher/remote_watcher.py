@@ -190,6 +190,16 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         for node in nodes:
             child_info = remote._node_to_remote_file_info(node)
 
+            # Skip Alfresco metadata records (e.g. dl:issue dataList items)
+            # that report isFile=True but have no content stream — requesting
+            # their content yields HTTP 404. See ``is_syncable_node``.
+            if not remote.is_syncable_node(node):
+                log.debug(
+                    f"Skipping content-less node {child_info.path!r} "
+                    f"({node.node_type})"
+                )
+                continue
+
             # Skip Alfresco system folders (Data Dictionary, IMAP Home,
             # Guest Home, IMAP Attachments, Sites/rm) that must never
             # be synced by default.  Admins can override via the

@@ -581,6 +581,24 @@ class AlfrescoRemote:
             can_scroll_descendants=False,
         )
 
+    @staticmethod
+    def is_syncable_node(node: Node) -> bool:
+        """Whether a node should be synced as a folder or downloadable file.
+
+        Alfresco metadata records — e.g. ``dl:issue`` / ``dl:task`` dataList
+        items — report ``isFile=True`` but carry no content stream
+        (``content`` is ``None``), so requesting their content yields
+        ``HTTP 404 Unable to locate content``.  They are not real documents
+        and must be skipped by both the full scan and the delta feed.
+
+        Folders are always syncable.  A genuinely empty ``cm:content`` file
+        still exposes a ``content`` object (``sizeInBytes=0``), so 0-byte
+        documents are correctly kept.
+        """
+        if node.is_folder:
+            return True
+        return node.content is not None
+
     # -- Adapter methods (Processor compatibility) ---------------------------
     #
     # The shared ``Processor`` class calls ``self.remote.<method>()`` using

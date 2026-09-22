@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from nxdrive.alfresco.engine.watcher.sync_service import (
     KIND_CREATE,
     KIND_DELETE,
+    KIND_MOVE,
     ChangeAction,
     SyncServiceChangeProvider,
 )
@@ -39,6 +40,8 @@ class FakeDao:
         self._config: dict = {}
         self.by_remote: dict = {}
         self.deleted: list = []
+        self.moved: list = []
+        self.forced: list = []
 
     def get_config(self, key, default=None):
         return self._config.get(key, default)
@@ -55,6 +58,19 @@ class FakeDao:
 
     def delete_remote_state(self, pair):
         self.deleted.append(pair.remote_ref)
+
+    def update_remote_state(
+        self, pair, info, *, remote_parent_path=None, versioned=True, **kw
+    ):
+        self.moved.append((pair.remote_ref, remote_parent_path))
+        if remote_parent_path is not None:
+            pair.remote_parent_path = remote_parent_path
+        return True
+
+    def force_remote(self, pair):
+        pair.pair_state = "remotely_modified"
+        self.forced.append(pair.remote_ref)
+        return True
 
     def is_filter(self, path):
         return False
@@ -133,6 +149,15 @@ class FakeRemote:
 
     def _node_to_remote_file_info(self, node):
         return node
+
+    def is_syncable_node(self, node):
+        # Mirror ``AlfrescoRemote.is_syncable_node`` using the attributes the
+        # fake nodes expose: folders are always syncable; a non-folder node is
+        # syncable only when it carries a content stream. Fake nodes without an
+        # explicit ``content`` attribute default to syncable.
+        if getattr(node, "folderish", False):
+            return True
+        return getattr(node, "content", True) is not None
 
 
 class FakeWatcher:
@@ -344,13 +369,21 @@ class TestApply(unittest.TestCase):
         provider.apply([ChangeAction(kind="unknown", node_id="n9", seq_no=1)])
         self.assertTrue(provider.needs_full_scan)
 
-    def test_move_requests_full_scan(self) -> None:
-        # A move can't be applied in place (only folder *renames* relocate via
-        # update_remote_state); it must reconcile through a full scan.
+    def test_move_relocates_existing_pair(self) -> None:
+        # A move re-parents the existing pair (new remote parent path) and flags
+        # it remotely_modified so the processor relocates it — no full scan.
         provider, remote, dao = make_provider()
         dao.by_remote["n1"] = FakePair("n1")
-        from nxdrive.alfresco.engine.watcher.sync_service import KIND_MOVE
-
+        dao.by_remote["newp"] = FakePair(
+            "newp", remote_parent_path="/root", local_path="/root/newp"
+        )
+        remote.nodes["n1"] = SimpleNamespace(
+            uid="n1",
+            name="x",
+            path="/root/newp/x",
+            folderish=False,
+            node_type="cm:content",
+        )
         provider.apply(
             [
                 ChangeAction(
@@ -358,13 +391,107 @@ class TestApply(unittest.TestCase):
                     node_id="n1",
                     seq_no=1,
                     parent_node_ids=["old"],
-                    to_parent_node_ids=["new"],
+                    to_parent_node_ids=["newp"],
+                )
+            ]
+        )
+        self.assertFalse(provider.needs_full_scan)
+        self.assertEqual(dao.moved, [("n1", "/root/newp")])
+        self.assertEqual(dao.forced, ["n1"])
+
+    def test_move_unsynced_new_parent_requests_full_scan(self) -> None:
+        provider, remote, dao = make_provider()
+        dao.by_remote["n1"] = FakePair("n1")
+        remote.nodes["n1"] = SimpleNamespace(
+            uid="n1", name="x", path="/ghost/x", folderish=False
+        )
+        provider.apply(
+            [
+                ChangeAction(
+                    kind=KIND_MOVE,
+                    node_id="n1",
+                    seq_no=1,
+                    parent_node_ids=["old"],
+                    to_parent_node_ids=["ghost"],
                 )
             ]
         )
         self.assertTrue(provider.needs_full_scan)
-        # No in-place update happened.
-        self.assertEqual(provider.watcher.updates, [])
+        self.assertEqual(dao.forced, [])
+
+    def test_move_untracked_node_creates(self) -> None:
+        # Not tracked yet -> placed under its new parent as a create.
+        provider, remote, dao = make_provider()
+        dao.by_remote["newp"] = FakePair(
+            "newp", remote_parent_path="/root", local_path="/root/newp"
+        )
+        remote.nodes["n2"] = SimpleNamespace(
+            uid="n2", name="x", path="/root/newp/x", folderish=False
+        )
+        provider.apply(
+            [
+                ChangeAction(
+                    kind=KIND_MOVE,
+                    node_id="n2",
+                    seq_no=1,
+                    parent_node_ids=["old"],
+                    to_parent_node_ids=["newp"],
+                    name="x",
+                )
+            ]
+        )
+        self.assertEqual(len(provider.watcher.created), 1)
+        self.assertEqual(dao.forced, [])
+
+    def test_move_missing_node_treated_as_delete(self) -> None:
+        provider, remote, dao = make_provider()
+        dao.by_remote["n1"] = FakePair("n1")
+        dao.by_remote["newp"] = FakePair(
+            "newp", remote_parent_path="/root", local_path="/root/newp"
+        )
+        # node not in remote.nodes -> get_node raises -> delete path
+        provider.apply(
+            [
+                ChangeAction(
+                    kind=KIND_MOVE,
+                    node_id="n1",
+                    seq_no=1,
+                    parent_node_ids=["old"],
+                    to_parent_node_ids=["newp"],
+                )
+            ]
+        )
+        self.assertEqual(dao.deleted, ["n1"])
+        self.assertEqual(dao.forced, [])
+
+    def test_move_skips_content_less_node(self) -> None:
+        provider, remote, dao = make_provider()
+        dao.by_remote["meta"] = FakePair("meta")
+        dao.by_remote["newp"] = FakePair(
+            "newp", remote_parent_path="/root", local_path="/root/newp"
+        )
+        remote.nodes["meta"] = SimpleNamespace(
+            uid="meta",
+            name="rec",
+            path="/root/newp/rec",
+            folderish=False,
+            node_type="dl:issue",
+            content=None,
+        )
+        provider.apply(
+            [
+                ChangeAction(
+                    kind=KIND_MOVE,
+                    node_id="meta",
+                    seq_no=1,
+                    parent_node_ids=["old"],
+                    to_parent_node_ids=["newp"],
+                )
+            ]
+        )
+        self.assertEqual(dao.moved, [])
+        self.assertEqual(dao.forced, [])
+        self.assertFalse(provider.needs_full_scan)
 
     def test_missing_node_treated_as_delete(self) -> None:
         provider, remote, dao = make_provider()
@@ -372,6 +499,49 @@ class TestApply(unittest.TestCase):
         # node not in remote.nodes -> get_node raises -> delete path
         provider.apply([ChangeAction(kind="update", node_id="n1", seq_no=1)])
         self.assertEqual(dao.deleted, ["n1"])
+
+    def test_create_skips_content_less_node(self) -> None:
+        # Alfresco metadata records (e.g. dl:issue dataList items) report
+        # isFile=True but have no content stream; they must be skipped rather
+        # than scheduled for a (404-ing) content download.
+        provider, remote, dao = make_provider()
+        dao.by_remote["parent"] = FakePair("parent")
+        remote.nodes["meta"] = SimpleNamespace(
+            uid="meta",
+            name="rec",
+            path="/root/rec",
+            folderish=False,
+            node_type="dl:issue",
+            content=None,
+        )
+        provider.apply(
+            [
+                ChangeAction(
+                    kind=KIND_CREATE,
+                    node_id="meta",
+                    seq_no=1,
+                    parent_node_ids=["parent"],
+                    name="rec",
+                )
+            ]
+        )
+        self.assertEqual(provider.watcher.created, [])
+        self.assertFalse(provider.needs_full_scan)
+
+    def test_update_skips_content_less_node(self) -> None:
+        provider, remote, dao = make_provider()
+        dao.by_remote["meta"] = FakePair("meta")
+        remote.nodes["meta"] = SimpleNamespace(
+            uid="meta",
+            name="rec",
+            path="/root/rec",
+            folderish=False,
+            node_type="dl:issue",
+            content=None,
+        )
+        provider.apply([ChangeAction(kind="update", node_id="meta", seq_no=1)])
+        self.assertEqual(provider.watcher.updates, [])
+        self.assertFalse(provider.needs_full_scan)
 
 
 class TestSeedingReconcile(unittest.TestCase):

@@ -1962,6 +1962,13 @@ class TestSynchronizeRemotelyModified:
         proc.local.abspath.return_value = Path("/abs/file.txt")
         proc.local.get_remote_id.return_value = None
 
+        # Non-move content edit: parent resolves to the same node on both sides.
+        same_parent = Mock()
+        same_parent.id = 1
+        proc.dao.get_state_from_local.return_value = same_parent
+        proc.dao.get_normal_state_from_remote.return_value = same_parent
+        proc.remote.is_filtered.return_value = False
+
         # _update_remotely needs download + move + etc
         proc.engine.download_dir = Path("/tmp/downloads")
         proc.remote.stream_content.return_value = Path("/tmp/downloads/node-1/file.txt")
