@@ -122,7 +122,12 @@ def _mkfile(
 def main() -> None:
     FIXTURES.mkdir(exist_ok=True)
     s = _sess()
-    client = Alfresco(url=REPO, auth=(USER, PASS), sync_service_url=SYNC)
+    # The vendor ``alfresco`` client prepends ``/alfresco/api/…`` internally, so
+    # it must be given the bare origin. Passing ``REPO`` (which ends in
+    # ``/alfresco``) would make it target a doubled ``/alfresco/alfresco/…``
+    # path and fail to connect. Keep ``REPO`` for the raw PRIV/CORE URLs above.
+    client_url = REPO[: -len("/alfresco")] if REPO.endswith("/alfresco") else REPO
+    client = Alfresco(url=client_url, auth=(USER, PASS), sync_service_url=SYNC)
 
     tag = uuid.uuid4().hex[:6]
     root = _mkfolder(s, "-root-", f"dsync-cap-{tag}")
