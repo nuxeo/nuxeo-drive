@@ -1,0 +1,43 @@
+{
+  "status": "ready",
+  "changes": [
+    {
+      "conflict": false,
+      "skip": false,
+      "id": "89c3ad04-b8da-4e85-8370-3ec9960a8a94",
+      "username": "admin",
+      "type": "UPDATE_REPOS",
+      "name": "f-5521f.txt",
+      "toName": null,
+      "parentNodeIds": [
+        "d5932f83-b099-40a9-932f-83b09900a9a4",
+        "758be9c4-4774-4a92-8be9-c447740a929f",
+        "f483d5d4-ddef-4704-83d5-d4ddef970453"
+      ],
+      "toParentNodeIds": [],
+      "path": "/Company Home/dsync-cap-c2b572/f-5521f.txt",
+      "toPath": null,
+      "nodeId": "0dfdc447-eebe-42e0-bdc4-47eebe42e02b",
+      "eventTimestamp": 1790066653231,
+      "checksum": "dummyChecksum",
+      "size": 24,
+      "nodeType": "cm:content",
+      "nodeTimestamp": 1790066653224,
+      "error": false,
+      "aspects": [
+        "cm:author",
+        "cm:titled",
+        "cm:auditable"
+      ],
+      "seqNo": 104,
+      "parentGroup": null,
+      "permission": null,
+      "async": false,
+      "authority": null,
+      "numberOfSecondaryAssocs": 0,
+      "folderChange": false,
+      "cascade": false,
+      "recordFromCollabSite": false
+    }
+  ]
+}

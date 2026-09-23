@@ -633,17 +633,24 @@ class AlfrescoProcessor(_ProcessorBase):
 
     def _synchronize_remotely_modified(self, doc_pair: DocPair, /) -> None:
         is_renaming = safe_filename(doc_pair.remote_name) != doc_pair.local_name
+        # Detect a move first: Alfresco exposes no content hash, so
+        # ``remote_digest`` is always ``None`` and the digest-based content
+        # check below is unreliable (always "changed") for files.  If we let
+        # that branch run for a move it would re-download the file into its
+        # *old* parent instead of relocating it.  Resolving the move up-front
+        # lets the relocation branch handle it (and heal folder descendants).
+        is_move, new_parent_pair = self._is_remote_move(doc_pair)
+        content_changed = (
+            not doc_pair.folderish
+            and doc_pair.local_digest is not None
+            and not self.local.is_equal_digests(
+                doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
+            )
+        )
         try:
-            if (
-                not doc_pair.folderish
-                and doc_pair.local_digest is not None
-                and not self.local.is_equal_digests(
-                    doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
-                )
-            ):
+            if content_changed and not is_move:
                 self._update_remotely(doc_pair, is_renaming)
             else:
-                is_move, new_parent_pair = self._is_remote_move(doc_pair)
                 if self.remote.is_filtered(doc_pair.remote_parent_path):
                     self._synchronize_remotely_deleted(doc_pair)
                     return

@@ -143,6 +143,48 @@ class TestRepr:
         assert expected_host in rendered
 
 
+class TestIsSyncableNode:
+    """``is_syncable_node`` skips content-less metadata records (e.g. dl:issue)."""
+
+    @staticmethod
+    def _node(entry: dict):
+        from alfresco.models.node import Node
+
+        return Node.from_json(entry)
+
+    def test_folder_is_syncable(self) -> None:
+        from nxdrive.alfresco.client.remote import AlfrescoRemote
+
+        node = self._node({"id": "f1", "name": "docs", "isFolder": True})
+        assert AlfrescoRemote.is_syncable_node(node) is True
+
+    def test_file_with_content_is_syncable(self) -> None:
+        from nxdrive.alfresco.client.remote import AlfrescoRemote
+
+        node = self._node(
+            {
+                "id": "c1",
+                "name": "empty.txt",
+                "isFile": True,
+                "content": {"mimeType": "text/plain", "sizeInBytes": 0},
+            }
+        )
+        assert AlfrescoRemote.is_syncable_node(node) is True
+
+    def test_content_less_file_is_not_syncable(self) -> None:
+        from nxdrive.alfresco.client.remote import AlfrescoRemote
+
+        node = self._node(
+            {
+                "id": "m1",
+                "name": "record",
+                "nodeType": "dl:issue",
+                "isFile": True,
+            }
+        )
+        assert AlfrescoRemote.is_syncable_node(node) is False
+
+
 class TestNoOpMetricsAndTasks:
     """The nested no-op stubs exist so the engine can call metrics/tasks
     without knowing whether the flavor supports them.
@@ -244,6 +286,43 @@ class TestUpdateToken:
         old_auth = remote.auth
         remote.update_token("")
         assert remote.auth is old_auth
+
+
+class TestOAuthReachesSyncServiceOrigin:
+    """Lock in that OAuth needs no host-aware handling for the Sync Service.
+
+    ``TicketAuth`` is host-aware: repository requests carry ``?alf_ticket=``
+    while Sync Service (``:9090``) requests must switch to
+    ``Authorization: Basic base64("<ticket>:")``. A Bearer token has no such
+    split — the Identity-Service (Keycloak) access token is accepted by both
+    the repository and the standalone Sync Service origin, so the same
+    ``Authorization: Bearer`` header applies everywhere. The Alfresco dsync
+    delta feed talks to ``:9090`` through the very same ``session.auth``, so
+    this invariant is what makes the change-feed work under OAuth. Guard it
+    with the real vendor auth handler so a future library change can't
+    silently break dsync-under-OAuth.
+    """
+
+    def _prepare(self, auth, url):
+        import requests
+
+        req = requests.Request("GET", url)
+        prepared = req.prepare()
+        return auth(prepared)
+
+    def test_bearer_applied_to_both_origins(self) -> None:
+        from alfresco.auth import OAuth2Auth
+
+        auth = OAuth2Auth.from_token(access_token="acc-tok-123")
+
+        repo = self._prepare(auth, "http://acs.example.com:8080/alfresco/api/x")
+        sync = self._prepare(auth, "http://acs.example.com:9090/alfresco/dsync/y")
+
+        assert repo.headers["Authorization"] == "Bearer acc-tok-123"
+        assert sync.headers["Authorization"] == "Bearer acc-tok-123"
+        # And, unlike the ticket path, no ``alf_ticket`` query is injected.
+        assert "alf_ticket" not in (repo.url or "")
+        assert "alf_ticket" not in (sync.url or "")
 
 
 class TestNodeOperations:

@@ -176,6 +176,11 @@ class AlfrescoEngine(Engine):
 
     def init_remote(self) -> AlfrescoRemote:
         """Create the Alfresco remote client."""
+        # Resolve the Sync Service URL for the Enterprise delta change feed.
+        # Prefer an explicit config value; otherwise discover it from the
+        # Device Sync bootstrap config (``uri``) after the client is built.
+        sync_service_url = Options.alfresco_sync_service_url or ""
+
         remote = self.remote_cls(
             self.server_url,
             self.remote_user,
@@ -189,7 +194,24 @@ class AlfrescoEngine(Engine):
             proxy=self.manager.proxy,
             upload_callback=self.suspend_client,
             on_token_refreshed=self._on_remote_token_refreshed,
+            sync_service_url=sync_service_url,
         )
+
+        if Options.alfresco_use_sync_service and not sync_service_url:
+            try:
+                cfg = remote.get_device_sync_config()
+                uri = getattr(cfg, "uri", "") or ""
+                if uri:
+                    remote.sync_service_url = uri
+                    remote.client.sync_service_url = uri.rstrip("/")
+                    log.info("Discovered Sync Service URL: %s", uri)
+                else:
+                    log.info("Sync Service URL not advertised by the server")
+            except Exception:
+                log.warning(
+                    "Sync Service URL discovery failed; using full remote scan",
+                    exc_info=True,
+                )
 
         return remote
 
@@ -371,6 +393,29 @@ class AlfrescoEngine(Engine):
         )
         self._remote_watcher.updated.connect(self._check_last_sync)
         self._scanPair.connect(self._remote_watcher.scan_pair)
+
+    def unbind(self) -> None:
+        """Unbind the account, first cleaning up server-side Sync Service state.
+
+        Runs the subscriber deprovision while the remote/token is still valid
+        (before the base unbind revokes it), so no orphaned Device Sync
+        subscribers are left behind on the repository.
+
+        The engine is stopped first so the remote-watcher thread cannot race
+        the deprovision: were it still polling, its next cycle would call
+        ``ensure_provisioned`` right after ``reset_provisioning`` cleared the
+        ids and re-create the very subscriber we just deleted. ``stop`` only
+        quiesces the workers; it does not revoke the token (that is the final
+        step of the base unbind), so the server delete still authenticates.
+        """
+        self.stop()
+        watcher = getattr(self, "_remote_watcher", None)
+        if watcher is not None:
+            try:
+                watcher.deprovision_sync_service()
+            except Exception:
+                log.warning("Sync Service deprovision on unbind failed", exc_info=True)
+        super().unbind()
 
     @Slot()
     def _check_last_sync(self) -> None:

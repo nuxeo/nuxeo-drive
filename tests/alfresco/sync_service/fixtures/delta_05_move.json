@@ -1,0 +1,48 @@
+{
+  "status": "ready",
+  "changes": [
+    {
+      "conflict": false,
+      "skip": false,
+      "id": "7de18028-35c5-4854-a4e2-6b07d5bd7627",
+      "username": "admin",
+      "type": "MOVE_REPOS",
+      "name": "f-5521f-renamed.txt",
+      "toName": "f-5521f-renamed.txt",
+      "parentNodeIds": [
+        "d5932f83-b099-40a9-932f-83b09900a9a4",
+        "758be9c4-4774-4a92-8be9-c447740a929f",
+        "f483d5d4-ddef-4704-83d5-d4ddef970453"
+      ],
+      "toParentNodeIds": [
+        "2193036e-4d83-40e8-9303-6e4d8380e867",
+        "d5932f83-b099-40a9-932f-83b09900a9a4",
+        "758be9c4-4774-4a92-8be9-c447740a929f",
+        "f483d5d4-ddef-4704-83d5-d4ddef970453"
+      ],
+      "path": "/Company Home/dsync-cap-c2b572/f-5521f-renamed.txt",
+      "toPath": "/Company Home/dsync-cap-c2b572/sub-5521f/f-5521f-renamed.txt",
+      "nodeId": "0dfdc447-eebe-42e0-bdc4-47eebe42e02b",
+      "eventTimestamp": 1790066661228,
+      "checksum": "dummyChecksum",
+      "size": -1,
+      "nodeType": "cm:content",
+      "nodeTimestamp": 1790066661228,
+      "error": false,
+      "aspects": [
+        "cm:author",
+        "cm:titled",
+        "cm:auditable"
+      ],
+      "seqNo": 112,
+      "parentGroup": null,
+      "permission": null,
+      "async": false,
+      "authority": null,
+      "numberOfSecondaryAssocs": 0,
+      "folderChange": false,
+      "cascade": false,
+      "recordFromCollabSite": false
+    }
+  ]
+}

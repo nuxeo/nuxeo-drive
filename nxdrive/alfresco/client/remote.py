@@ -78,8 +78,10 @@ class AlfrescoRemote:
         verify: bool = True,
         cert: Tuple[str] = None,
         on_token_refreshed: Optional[Callable[[Dict[str, Any]], None]] = None,
+        sync_service_url: str = "",
     ) -> None:
         self.server_url = url
+        self.sync_service_url = sync_service_url or ""
         self.user_id = user_id
         self.device_id = device_id
         self.version = version
@@ -138,11 +140,18 @@ class AlfrescoRemote:
         if base_url.endswith("/alfresco"):
             base_url = base_url[: -len("/alfresco")]
 
-        # Build the Alfresco client
+        # Build the Alfresco client.
+        # ``sync_service_url`` (the standalone Desktop Sync Service base URL,
+        # e.g. ``http://host:9090/alfresco``) is required to use
+        # ``client.sync_service``; pass it through when known so the Sync
+        # Service change-feed becomes usable. It is discovered from the
+        # Device Sync config (``DeviceSyncConfig.uri``) at bind time. When
+        # empty, only the repo-side ``client.sync_amp`` (same host) is usable.
         self.client = Alfresco(
             url=base_url,
             auth=auth,
             timeout=self.timeout,
+            sync_service_url=self.sync_service_url or None,
         )
 
         # Set custom headers on the session
@@ -257,6 +266,74 @@ class AlfrescoRemote:
             if child.name == name and child.is_file:
                 return child
         return None
+
+    # -- Sync Service (Enterprise dsync change feed) -------------------------
+    #
+    # Thin passthroughs over the ``alfresco-rest-client`` Sync Service API.
+    # The higher-level provisioning/persistence/drain-loop logic lives in
+    # ``nxdrive.alfresco.engine.watcher.sync_service.SyncServiceChangeProvider``;
+    # these keep that class decoupled from the raw client surface.
+
+    def get_device_sync_config(self) -> Any:
+        """Return the parsed Device Sync bootstrap config.
+
+        ``GET /alfresco/s/devicesync/config`` — carries the Sync Service base
+        ``uri``, the repository ``edition``/version and ``dsyncClientVersionMin``.
+        Used for capability detection (Enterprise + reachable Sync Service).
+        """
+        return self.client.device_sync.get_device_sync_config()
+
+    def create_subscriber(self, device_os: str, client_version: str) -> Any:
+        """Register a Device Sync subscriber (repo-side AMP private API).
+
+        Returns the ``Subscriber`` whose ``id`` is the ``subscriberId`` used
+        for all subsequent sync pulls.
+        """
+        return self.client.sync_amp.create_subscriber(device_os, client_version)
+
+    def create_subscription(
+        self, subscriber_id: str, target_node_id: str, subscription_type: str = "BOTH"
+    ) -> Any:
+        """Subscribe ``subscriber_id`` to changes under ``target_node_id``.
+
+        ``subscription_type`` is ``CONTENT | METADATA | BOTH`` (default ``BOTH``
+        so both content and metadata changes are reported).
+        """
+        return self.client.sync_amp.create_subscription(
+            subscriber_id, target_node_id, subscription_type
+        )
+
+    def delete_subscriber(self, subscriber_id: str, /) -> None:
+        """Delete a Device Sync subscriber (and its subscriptions) server-side.
+
+        Called on account unbind so the repository does not accumulate orphaned
+        subscribers/subscriptions once the desktop client stops syncing.
+        """
+        if not subscriber_id:
+            return
+        self.client.sync_amp.delete_subscriber(subscriber_id)
+
+    def start_sync(
+        self, subscriber_id: str, subscription_id: str, sync_request: Dict[str, Any], /
+    ) -> Any:
+        """Start an async sync; returns a ``SyncStatus`` carrying ``sync_id``."""
+        return self.client.sync_service.start_sync(
+            subscriber_id, subscription_id, sync_request=sync_request
+        )
+
+    def get_sync(
+        self, subscriber_id: str, subscription_id: str, sync_id: str, /
+    ) -> Any:
+        """Poll a running sync; ``SyncStatus.status`` reaches ``ready``/``error``."""
+        return self.client.sync_service.get_sync(
+            subscriber_id, subscription_id, sync_id
+        )
+
+    def clear_sync(
+        self, subscriber_id: str, subscription_id: str, sync_id: str, /
+    ) -> None:
+        """Acknowledge a completed sync so its changes are not re-sent."""
+        self.client.sync_service.clear_sync(subscriber_id, subscription_id, sync_id)
 
     def get_content_range(
         self, node_id: str, start: int, length: int, /
@@ -513,6 +590,24 @@ class AlfrescoRemote:
             lock_created=None,
             can_scroll_descendants=False,
         )
+
+    @staticmethod
+    def is_syncable_node(node: Node) -> bool:
+        """Whether a node should be synced as a folder or downloadable file.
+
+        Alfresco metadata records — e.g. ``dl:issue`` / ``dl:task`` dataList
+        items — report ``isFile=True`` but carry no content stream
+        (``content`` is ``None``), so requesting their content yields
+        ``HTTP 404 Unable to locate content``.  They are not real documents
+        and must be skipped by both the full scan and the delta feed.
+
+        Folders are always syncable.  A genuinely empty ``cm:content`` file
+        still exposes a ``content`` object (``sizeInBytes=0``), so 0-byte
+        documents are correctly kept.
+        """
+        if node.is_folder:
+            return True
+        return node.content is not None
 
     # -- Adapter methods (Processor compatibility) ---------------------------
     #

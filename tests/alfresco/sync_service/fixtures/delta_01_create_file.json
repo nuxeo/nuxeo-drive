@@ -1,0 +1,41 @@
+{
+  "status": "ready",
+  "changes": [
+    {
+      "conflict": false,
+      "skip": false,
+      "id": "76fa6839-09f7-4870-96d5-d749fe92a4f4",
+      "username": "admin",
+      "type": "CREATE_REPOS",
+      "name": "f-5521f.txt",
+      "toName": null,
+      "parentNodeIds": [
+        "d5932f83-b099-40a9-932f-83b09900a9a4",
+        "758be9c4-4774-4a92-8be9-c447740a929f",
+        "f483d5d4-ddef-4704-83d5-d4ddef970453"
+      ],
+      "toParentNodeIds": [],
+      "path": "/Company Home/dsync-cap-c2b572/f-5521f.txt",
+      "toPath": null,
+      "nodeId": "0dfdc447-eebe-42e0-bdc4-47eebe42e02b",
+      "eventTimestamp": 1790066650480,
+      "checksum": "dummyChecksum",
+      "size": -1,
+      "nodeType": "cm:content",
+      "nodeTimestamp": 1790066650468,
+      "error": false,
+      "aspects": [
+        "cm:auditable"
+      ],
+      "seqNo": 99,
+      "parentGroup": null,
+      "permission": null,
+      "async": false,
+      "authority": null,
+      "numberOfSecondaryAssocs": 0,
+      "folderChange": false,
+      "cascade": false,
+      "recordFromCollabSite": false
+    }
+  ]
+}
