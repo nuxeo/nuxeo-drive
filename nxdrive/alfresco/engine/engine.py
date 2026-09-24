@@ -15,9 +15,16 @@ from urllib.parse import urlsplit
 
 from alfresco.exceptions import AuthenticationError
 
+from nxdrive.alfresco.client.device_sync import (
+    DEVICE_SYNC_CLIENT_VERSION,
+    DeviceSyncProvisioner,
+)
 from nxdrive.alfresco.client.remote import AlfrescoRemote
 from nxdrive.alfresco.engine.processor import AlfrescoProcessor
-from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
+from nxdrive.alfresco.engine.watcher.remote_watcher import (
+    DEVICE_OS,
+    AlfrescoRemoteWatcher,
+)
 from nxdrive.drive import server_type as _st
 from nxdrive.drive.client.local import LocalClient
 from nxdrive.drive.client.local.base import LocalClientMixin
@@ -156,6 +163,43 @@ class AlfrescoEngine(Engine):
             self.syncStateCleared.emit()
         except Exception:
             log.warning("Failed to emit syncStateCleared signal", exc_info=True)
+
+    # -- Account removal -----------------------------------------------------
+
+    def unbind(self) -> None:
+        """Release the Device Sync registration before the account is dropped.
+
+        Runs first because the base implementation disposes of the DAO, and
+        the subscriber/subscription ids we need live in its ``Config`` table.
+        """
+        self._teardown_device_sync()
+        super().unbind()
+
+    def _teardown_device_sync(self) -> None:
+        """Best-effort removal of this device's server-side sync state."""
+        watcher = getattr(self, "_remote_watcher", None)
+        provisioner = getattr(watcher, "_provisioner", None)
+
+        if provisioner is None:
+            if not self.remote:
+                return
+            # The watcher may never have polled (account removed straight
+            # after binding), so rebuild just enough to read the stored ids.
+            provisioner = DeviceSyncProvisioner(
+                self.remote,
+                self.dao,
+                device_os=DEVICE_OS,
+                client_version=DEVICE_SYNC_CLIENT_VERSION,
+            )
+
+        try:
+            provisioner.teardown()
+        except Exception:
+            log.warning(
+                "[DSYNC] Device Sync teardown failed; the subscriber may be "
+                "left behind on the server",
+                exc_info=True,
+            )
 
     # -- Sync state tracking -------------------------------------------------
 
