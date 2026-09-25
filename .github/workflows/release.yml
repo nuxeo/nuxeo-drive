@@ -131,7 +131,7 @@ jobs:
       - name: "[macOS] Setup the environment"
         if: matrix.os == 'macos-15-intel'
         env:
-          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          MACOSX_DEPLOYMENT_TARGET: "15.0"
           SYSTEM_VERSION_COMPAT: 0
         run: bash tools/osx/deploy_ci_agent.sh --install-release
 
@@ -142,7 +142,7 @@ jobs:
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2023.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2023_TEST_USERNAME }}
           NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2023_TEST_PASSWORD }}
-          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          MACOSX_DEPLOYMENT_TARGET: "15.0"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
@@ -160,7 +160,7 @@ jobs:
           NXDRIVE_TEST_NUXEO_URL: "https://drive-2025.beta.nuxeocloud.com/nuxeo"
           NXDRIVE_TEST_USERNAME: ${{ secrets.NXDRIVE_2025_TEST_USERNAME }}
           NXDRIVE_TEST_PASSWORD: ${{ secrets.NXDRIVE_2025_TEST_PASSWORD }}
-          MACOSX_DEPLOYMENT_TARGET: "11.3"
+          MACOSX_DEPLOYMENT_TARGET: "15.0"
           KEYCHAIN_PATH: "~/Library/Keychains/drive.keychain-db"
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}

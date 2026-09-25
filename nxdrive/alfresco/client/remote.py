@@ -15,6 +15,7 @@ from alfresco import Alfresco
 from alfresco.auth import BasicAuth, OAuth2Auth, TicketAuth
 from alfresco.exceptions import AlfrescoError, ConflictError, CorruptedFile
 from alfresco.models.node import Node
+from alfresco.models.subscription import Change, SyncStatus
 
 from nxdrive.alfresco.auth.refresh import RefreshingOAuth2Auth
 from nxdrive.alfresco.sync_filters import is_top_folder_excluded
@@ -399,8 +400,8 @@ class AlfrescoRemote:
         *,
         name: Optional[str] = None,
     ) -> RemoteFileInfo:
-        node = self.client.nodes.move(node_id, target_parent_id, name=name)
-        return self._node_to_remote_file_info(node)
+        self.client.nodes.move(node_id, target_parent_id, name=name)
+        return self._get_with_path(node_id)
 
     def copy(
         self,
@@ -411,7 +412,17 @@ class AlfrescoRemote:
         return self.client.nodes.copy(node_id, target_parent_id, name=name)
 
     def rename(self, node_id: str, new_name: str, /) -> RemoteFileInfo:
-        node = self.client.nodes.update(node_id, {"name": new_name})
+        self.client.nodes.update(node_id, {"name": new_name})
+        return self._get_with_path(node_id)
+
+    def _get_with_path(self, node_id: str, /) -> RemoteFileInfo:
+        """Re-fetch a node so the returned info carries its full path.
+
+        ``nodes.update()`` and ``nodes.move()`` do not accept ``include``,
+        so their responses have no ``path`` and would otherwise degrade to
+        the ``/<name>`` fallback in ``_node_to_remote_file_info()``.
+        """
+        node = self.client.nodes.get(node_id, include=["path"])
         return self._node_to_remote_file_info(node)
 
     # -- Root info (used during account binding) -----------------------------
@@ -509,6 +520,52 @@ class AlfrescoRemote:
             can_delete=True,
             can_update=node.is_file,
             can_create_child=node.is_folder,
+            lock_owner=None,
+            lock_created=None,
+            can_scroll_descendants=False,
+        )
+
+    @staticmethod
+    def _change_to_remote_file_info(
+        change: Change, /, *, target: bool = False
+    ) -> RemoteFileInfo:
+        """Convert a Device Sync ``Change`` to a ``RemoteFileInfo``.
+
+        Avoids a per-change ``nodes.get()``: the Sync Service already
+        reports name, absolute path, parent and folder-ness. ``creation_time``
+        and ``last_contributor`` are not carried by the feed and stay ``None``
+        — neither drives sync decisions (they only set the downloaded file's
+        ctime and the systray "modified by" label).
+
+        With *target*, the post-change location is used (``to_*`` fields),
+        which is what ``MOVE_REPOS`` / ``RENAME_REPOS`` must be applied as.
+        """
+        if target:
+            name = change.to_name or change.name
+            path = change.to_path or change.path
+            parent_uid = change.to_parent_id or change.parent_id
+        else:
+            name, path, parent_uid = change.name, change.path, change.parent_id
+
+        if not name and path:
+            name = path.rsplit("/", 1)[-1]
+
+        return RemoteFileInfo(
+            name=name,
+            uid=change.node_id,
+            parent_uid=parent_uid,
+            path=path,
+            folderish=change.is_folder,
+            last_modification_time=change.modified_at,
+            creation_time=None,
+            last_contributor=None,
+            digest=None,
+            digest_algorithm=None,
+            download_url=None,
+            can_rename=True,
+            can_delete=True,
+            can_update=not change.is_folder,
+            can_create_child=change.is_folder,
             lock_owner=None,
             lock_created=None,
             can_scroll_descendants=False,
@@ -1042,6 +1099,56 @@ class AlfrescoRemote:
         pass
 
     # -- End adapter methods -------------------------------------------------
+
+    # -- Device Sync ---------------------------------------------------------
+    #
+    # Thin passthroughs so the remote watcher never reaches into
+    # ``self.client`` directly. Provisioning (subscribers / subscriptions)
+    # lives in ``nxdrive.alfresco.client.device_sync``.
+
+    def set_sync_service_url(self, url: Optional[str], /) -> None:
+        """Bind the standalone Sync Service URL onto the vendor client.
+
+        Must be called during setup, before the client is shared across
+        threads: the vendor documents runtime reconfiguration as *not*
+        synchronised against in-flight requests.
+        """
+        log.debug(f"Binding Sync Service URL: {url!r}")
+        self.client.set_sync_service_url(url)
+
+    @property
+    def sync_service_url(self) -> Optional[str]:
+        return self.client.sync_service_url
+
+    def device_sync_available(self) -> bool:
+        """Whether the repository exposes the Device Sync AMP endpoints."""
+        return bool(self.client.sync_amp.is_available())
+
+    def sync_service_reachable(self) -> bool:
+        """Whether the standalone Sync Service answers its healthcheck."""
+        return bool(self.client.sync_service.is_available())
+
+    def start_sync(
+        self, subscriber_id: str, subscription_id: str, /, *, client_version: str
+    ) -> SyncStatus:
+        """Start a sync and return the status carrying its ``sync_id``."""
+        return self.client.sync_service.start_sync(
+            subscriber_id, subscription_id, client_version=client_version
+        )
+
+    def get_sync(
+        self, subscriber_id: str, subscription_id: str, sync_id: str, /
+    ) -> SyncStatus:
+        """Poll a running sync."""
+        return self.client.sync_service.get_sync(
+            subscriber_id, subscription_id, sync_id
+        )
+
+    def clear_sync(
+        self, subscriber_id: str, subscription_id: str, sync_id: str, /
+    ) -> None:
+        """Acknowledge a completed sync."""
+        self.client.sync_service.clear_sync(subscriber_id, subscription_id, sync_id)
 
     def close(self) -> None:
         """Close the underlying HTTP session."""

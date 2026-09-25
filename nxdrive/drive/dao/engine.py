@@ -1989,7 +1989,26 @@ class EngineDAO(BaseDAO):
         c = self._get_read_connection().cursor()
         return [entry.path for entry in c.execute("SELECT * FROM Filters").fetchall()]
 
-    def add_filter(self, path: str, /) -> None:
+    def get_filter_node_ids(self, path: str, /) -> List[str]:
+        """Return the node ids recorded for *path* and everything beneath it.
+
+        Mirrors the prefix semantics of :meth:`remove_filter`, so a caller can
+        collect the ids about to be dropped before the rows disappear. Rows
+        stored without an id (pre-migration, or added outside the folder
+        picker) are skipped.
+        """
+        path = self._clean_filter_path(path)
+        c = self._get_read_connection().cursor()
+        rows = c.execute(
+            "SELECT node_id"
+            "  FROM Filters"
+            " WHERE path LIKE ?"
+            "   AND node_id IS NOT NULL",
+            (f"{path}%",),
+        ).fetchall()
+        return [row[0] for row in rows if row[0]]
+
+    def add_filter(self, path: str, /, *, node_id: str = "") -> None:
         if self.is_filter(path):
             return
 
@@ -2005,7 +2024,10 @@ class EngineDAO(BaseDAO):
             c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (f"{path}%",))
 
             # Add it
-            c.execute("INSERT INTO Filters (path) VALUES (?)", (path,))
+            c.execute(
+                "INSERT INTO Filters (path, node_id) VALUES (?, ?)",
+                (path, node_id or None),
+            )
 
             # TODO: Add this path as remotely_deleted?
 
