@@ -92,11 +92,6 @@ class DeviceSyncProvisioner:
         Any failure is logged and returns ``False`` — the caller decides what
         to do, there is deliberately no silent fallback.
         """
-        log.debug(
-            f"[DSYNC] Provisioning Device Sync for root_node_id={root_node_id!r} "
-            f"(device_os={self.device_os!r}, client_version={self.client_version!r})"
-        )
-
         if not self._check_amp_available():
             return False
 
@@ -113,7 +108,11 @@ class DeviceSyncProvisioner:
 
         self.subscriber_id = subscriber_id
         self.subscription_id = subscription_id
-        log.debug(f"[DSYNC] Provisioning complete: {self!r}")
+        log.info(
+            f"Device Sync ready for root_node_id={root_node_id!r} "
+            f"(device_os={self.device_os!r}, client_version={self.client_version!r}, "
+            f"subscriber={subscriber_id!r}, subscription={subscription_id!r})"
+        )
         return True
 
     # -- Step 1: capability probe --------------------------------------------
@@ -124,19 +123,18 @@ class DeviceSyncProvisioner:
             available = self.remote.device_sync_available()
         except AlfrescoError:
             log.exception(
-                "[DSYNC] Could not determine whether the Device Sync AMP is "
+                "Could not determine whether the Device Sync AMP is "
                 "installed (transport failure)"
             )
             return False
 
         if not available:
             log.error(
-                "[DSYNC] The Device Sync AMP is not installed on "
+                "The Device Sync AMP is not installed on "
                 f"{self.remote.server_url!r} — the change feed is unavailable"
             )
             return False
 
-        log.debug("[DSYNC] Device Sync AMP is available")
         return True
 
     # -- Step 2: subscriber ---------------------------------------------------
@@ -145,20 +143,19 @@ class DeviceSyncProvisioner:
         """Return a usable subscriber id, creating one if needed."""
         stored = self.dao.get_config(CONF_SUBSCRIBER_ID)
         if stored:
-            log.debug(f"[DSYNC] Validating stored subscriber {stored!r}")
             try:
                 subscriber = self.remote.client.sync_amp.get_subscriber(stored)
             except NotFoundError:
                 log.warning(
-                    f"[DSYNC] Stored subscriber {stored!r} no longer exists on the "
+                    f"Stored subscriber {stored!r} no longer exists on the "
                     "server — registering a new one"
                 )
             except AlfrescoError:
-                log.exception(f"[DSYNC] Could not validate subscriber {stored!r}")
+                log.exception(f"Could not validate subscriber {stored!r}")
                 return ""
             else:
                 log.debug(
-                    f"[DSYNC] Reusing subscriber {subscriber.id!r} "
+                    f"Reusing subscriber {subscriber.id!r} "
                     f"(syncServiceId={subscriber.sync_service_id!r})"
                 )
                 self.dao.update_config(CONF_SERVICE_ID, subscriber.sync_service_id)
@@ -179,13 +176,11 @@ class DeviceSyncProvisioner:
                 self.device_os, self.client_version
             )
         except AlfrescoError:
-            log.exception("[DSYNC] Failed to register a Device Sync subscriber")
+            log.exception("Failed to register a Device Sync subscriber")
             return ""
 
         if not subscriber.id:
-            log.error(
-                f"[DSYNC] Server returned a subscriber with no id: {subscriber!r}"
-            )
+            log.error(f"Server returned a subscriber with no id: {subscriber!r}")
             return ""
 
         self.dao.update_config(CONF_SUBSCRIBER_ID, subscriber.id)
@@ -193,7 +188,7 @@ class DeviceSyncProvisioner:
         # A new subscriber invalidates any subscription of its predecessor.
         self.dao.update_config(CONF_SUBSCRIPTION_ID, None)
         log.debug(
-            f"[DSYNC] Registered subscriber {subscriber.id!r} "
+            f"Registered subscriber {subscriber.id!r} "
             f"(syncServiceId={subscriber.sync_service_id!r})"
         )
         return subscriber.id
@@ -204,23 +199,21 @@ class DeviceSyncProvisioner:
         """Resolve the syncer URI for *subscriber_id* and bind it."""
         syncer_id = self.dao.get_config(CONF_SERVICE_ID)
         if not syncer_id:
-            log.error(
-                f"[DSYNC] No syncServiceId recorded for subscriber {subscriber_id!r}"
-            )
+            log.error(f"No syncServiceId recorded for subscriber {subscriber_id!r}")
             return False
 
         try:
             syncer = self.remote.client.sync_amp.get_syncer(syncer_id)
         except AlfrescoError:
-            log.exception(f"[DSYNC] Failed to resolve syncer {syncer_id!r}")
+            log.exception(f"Failed to resolve syncer {syncer_id!r}")
             return False
 
         if not syncer.uri:
-            log.error(f"[DSYNC] Syncer {syncer_id!r} reports no URI: {syncer!r}")
+            log.error(f"Syncer {syncer_id!r} reports no URI: {syncer!r}")
             return False
 
         log.debug(
-            f"[DSYNC] Syncer {syncer_id!r} -> {syncer.uri!r} "
+            f"Syncer {syncer_id!r} -> {syncer.uri!r} "
             f"(repo={syncer.repo_info.version_label!r}, "
             f"min client={syncer.dsync_client_version_min!r})"
         )
@@ -236,17 +229,15 @@ class DeviceSyncProvisioner:
         try:
             reachable = self.remote.sync_service_reachable()
         except AlfrescoError:
-            log.exception("[DSYNC] Sync Service healthcheck raised")
+            log.exception("Sync Service healthcheck raised")
             return False
 
         if not reachable:
             log.error(
-                "[DSYNC] Sync Service at "
-                f"{self.remote.sync_service_url!r} is not reachable"
+                f"Sync Service at {self.remote.sync_service_url!r} is not reachable"
             )
             return False
 
-        log.debug("[DSYNC] Sync Service healthcheck OK")
         return True
 
     # -- Step 4: subscription -------------------------------------------------
@@ -255,29 +246,28 @@ class DeviceSyncProvisioner:
         """Return a usable subscription id for *root_node_id*."""
         stored = self.dao.get_config(CONF_SUBSCRIPTION_ID)
         if stored:
-            log.debug(f"[DSYNC] Validating stored subscription {stored!r}")
             try:
                 subscription = self.remote.client.sync_amp.get_subscription(
                     subscriber_id, stored
                 )
             except NotFoundError:
                 log.warning(
-                    f"[DSYNC] Stored subscription {stored!r} no longer exists — "
+                    f"Stored subscription {stored!r} no longer exists — "
                     "creating a new one"
                 )
             except AlfrescoError:
-                log.exception(f"[DSYNC] Could not validate subscription {stored!r}")
+                log.exception(f"Could not validate subscription {stored!r}")
                 return ""
             else:
                 if subscription.target_node_id == root_node_id:
                     log.debug(
-                        f"[DSYNC] Reusing subscription {subscription.id!r} "
+                        f"Reusing subscription {subscription.id!r} "
                         f"(target={subscription.target_node_id!r}, "
                         f"state={subscription.state!r})"
                     )
                     return subscription.id
                 log.warning(
-                    f"[DSYNC] Stored subscription {stored!r} targets "
+                    f"Stored subscription {stored!r} targets "
                     f"{subscription.target_node_id!r}, expected {root_node_id!r} — "
                     "recreating"
                 )
@@ -291,20 +281,16 @@ class DeviceSyncProvisioner:
                 subscriber_id, root_node_id, SUBSCRIPTION_TYPE
             )
         except AlfrescoError:
-            log.exception(
-                f"[DSYNC] Failed to subscribe {subscriber_id!r} to {root_node_id!r}"
-            )
+            log.exception(f"Failed to subscribe {subscriber_id!r} to {root_node_id!r}")
             return ""
 
         if not subscription.id:
-            log.error(
-                f"[DSYNC] Server returned a subscription with no id: {subscription!r}"
-            )
+            log.error(f"Server returned a subscription with no id: {subscription!r}")
             return ""
 
         self.dao.update_config(CONF_SUBSCRIPTION_ID, subscription.id)
         log.debug(
-            f"[DSYNC] Created subscription {subscription.id!r} on "
+            f"Created subscription {subscription.id!r} on "
             f"{subscription.target_path or root_node_id!r} "
             f"(state={subscription.state!r})"
         )
@@ -319,9 +305,7 @@ class DeviceSyncProvisioner:
         view is stale, and a fresh subscription is how Device Sync re-sends the
         full content as ``CREATE`` changes.
         """
-        log.warning(
-            f"[DSYNC] Re-subscribing to {root_node_id!r} after a server-side reset"
-        )
+        log.warning(f"Re-subscribing to {root_node_id!r} after a server-side reset")
         if self.subscriber_id and self.subscription_id:
             self._delete_subscription(self.subscriber_id, self.subscription_id)
 
@@ -340,12 +324,12 @@ class DeviceSyncProvisioner:
             self.remote.client.sync_amp.delete_subscription(
                 subscriber_id, subscription_id
             )
-            log.debug(f"[DSYNC] Deleted subscription {subscription_id!r}")
+            log.debug(f"Deleted subscription {subscription_id!r}")
         except AlfrescoError:
             # Deleting a subscription whose target node was permanently
             # removed fails server-side with HTTP 400; never fatal here.
             log.warning(
-                f"[DSYNC] Could not delete subscription {subscription_id!r}",
+                f"Could not delete subscription {subscription_id!r}",
                 exc_info=True,
             )
 
@@ -361,7 +345,7 @@ class DeviceSyncProvisioner:
             CONF_SUBSCRIPTION_ID
         )
         log.debug(
-            f"[DSYNC] Tearing down subscriber={subscriber_id!r} "
+            f"Tearing down subscriber={subscriber_id!r} "
             f"subscription={subscription_id!r}"
         )
 
@@ -371,10 +355,10 @@ class DeviceSyncProvisioner:
         if subscriber_id:
             try:
                 self.remote.client.sync_amp.delete_subscriber(subscriber_id)
-                log.debug(f"[DSYNC] Deleted subscriber {subscriber_id!r}")
+                log.debug(f"Deleted subscriber {subscriber_id!r}")
             except AlfrescoError:
                 log.warning(
-                    f"[DSYNC] Could not delete subscriber {subscriber_id!r}",
+                    f"Could not delete subscriber {subscriber_id!r}",
                     exc_info=True,
                 )
 
@@ -410,7 +394,7 @@ class DeviceSyncProvisioner:
         try:
             subscribers = list(self.remote.client.sync_amp.iter_subscribers())
         except AlfrescoError:
-            log.exception("[DSYNC] Could not list subscribers for orphan cleanup")
+            log.exception("Could not list subscribers for orphan cleanup")
             return 0
 
         for subscriber in subscribers:
@@ -420,12 +404,12 @@ class DeviceSyncProvisioner:
                 self.remote.client.sync_amp.delete_subscriber(subscriber.id)
             except AlfrescoError:
                 log.warning(
-                    f"[DSYNC] Could not delete orphan subscriber {subscriber.id!r}",
+                    f"Could not delete orphan subscriber {subscriber.id!r}",
                     exc_info=True,
                 )
             else:
                 removed += 1
-                log.debug(f"[DSYNC] Deleted orphan subscriber {subscriber.id!r}")
+                log.debug(f"Deleted orphan subscriber {subscriber.id!r}")
 
-        log.debug(f"[DSYNC] Orphan cleanup removed {removed} subscriber(s)")
+        log.debug(f"Orphan cleanup removed {removed} subscriber(s)")
         return removed

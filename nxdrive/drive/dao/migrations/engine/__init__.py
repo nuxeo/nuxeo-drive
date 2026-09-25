@@ -8,6 +8,7 @@ __migrations_list = [
     "0022_initial_migration",
     "0023_direct_downloads",
     "0024_add_scheduled_at",
+    "0025_add_filter_node_id",
 ]  # Keep sorted
 
 

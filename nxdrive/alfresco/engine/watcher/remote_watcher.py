@@ -50,6 +50,11 @@ MAX_SYNC_POLLS = 120
 #: Pause between polls while the service reports ``notReady``.
 NOT_READY_POLL_DELAY = 0.5
 
+#: Grace period after a filter change before acting on it. The folder picker
+#: applies its selection one path at a time, and each call pushes this
+#: deadline out again, so a whole burst collapses into a single pass.
+FILTER_RESCAN_DELAY = 2.0
+
 #: Platform label reported when registering the Device Sync subscriber.
 DEVICE_OS = "windows" if WINDOWS else "macos" if MAC else "linux"
 
@@ -68,6 +73,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         #: Device Sync provisioning state, built lazily on the first poll.
         self._provisioner: Optional[DeviceSyncProvisioner] = None
         self._root_node_id: str = ""
+
+        #: Nodes whose filter was just lifted, pending resolution.
+        self._unfiltered_nodes: Set[str] = set()
+        #: Set when a lifted filter carried no node id, so only a walk can
+        #: discover what we are now missing.
+        self._unfiltered_needs_scan = False
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
@@ -213,11 +224,6 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 continue
 
             child_pair = children.pop(child_info.uid, None)
-            log.debug(
-                f"[DSYNC][SCAN] {'update' if child_pair else 'new'} "
-                f"{'dir ' if child_info.folderish else 'file'} "
-                f"{child_info.path!r} (uid={child_info.uid!r})"
-            )
             reconciled = self._reconcile_child(
                 child_pair, child_info, remote_parent_path, doc_pair.local_path
             )
@@ -252,13 +258,11 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # and ``alfresco_excluded_top_folders`` options in ``config.ini``.
         # See ``nxdrive/alfresco/sync_filters.py`` for the exact rule.
         if is_top_folder_excluded(path):
-            log.debug(f"[DSYNC] Skipping Alfresco system folder {path!r}")
             return True
 
         # Filtered paths ("Choose folders to sync" in the GUI). Uses the
         # human-readable Alfresco path, matching what the dialog stores.
         if self.dao.is_filter(path):
-            log.debug(f"[DSYNC] Skipping filtered path {path!r}")
             return True
 
         return False
@@ -457,13 +461,27 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         scan**: if Device Sync cannot be provisioned or a poll fails, the
         failure is logged loudly and the cycle is skipped so the problem
         surfaces instead of being masked by an O(tree) walk.
+
+        The pass is always notified, even when the cycle aborts early:
+        ``initiate`` (emitted on the first pass) is what starts the queue
+        manager's processors, so skipping it would leave the engine with no
+        workers for the rest of the session.
         """
+        try:
+            return self._do_handle_changes(first_pass)
+        finally:
+            self._notify_pass_done(first_pass)
+            # Directly call _check_last_sync because the @tooltip decorator
+            # swallows return values, preventing the signal-based path from
+            # working reliably.
+            if not first_pass:
+                self.engine._check_last_sync()
+
+    def _do_handle_changes(self, first_pass: bool, /) -> bool:
         remote = self.engine.remote
         if not remote:
-            log.warning("[DSYNC] No remote client available, skipping poll")
+            log.warning("No remote client available, skipping poll")
             return False
-
-        log.debug(f"[DSYNC] ---- poll cycle start (first_pass={first_pass}) ----")
 
         # Snapshot queue size before the poll to detect new work
         qm_before = self.engine.queue_manager.get_overall_size()
@@ -472,23 +490,25 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self.updated.emit()
             return False
 
+        # An on-demand re-scan (e.g. the user just chose folders to sync)
+        # means our local view is incomplete, not that the subscription is
+        # stale — re-seed rather than throwing away the change feed.
+        if self.dao.get_config("remote_need_full_scan") is not None:
+            log.info("On-demand re-scan requested, forcing a re-seed")
+            self.dao.update_config("remote_need_full_scan", None)
+            self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
+
         # A new subscription starts empty: the feed only carries events from
         # its creation onward, so existing content must be seeded once.
         self._bootstrap_if_needed()
 
-        # An on-demand re-scan request means the local view is suspect;
-        # the Device Sync equivalent is a fresh subscription replay.
-        if self.dao.get_config("remote_need_full_scan") is not None:
-            log.info("[DSYNC] On-demand re-sync requested, re-subscribing")
-            self.dao.update_config("remote_need_full_scan", None)
-            self._resubscribe()
+        # Widening the selection exposes content the feed will never mention.
+        self._apply_unfiltered()
 
         try:
             self._poll_device_sync()
         except AlfrescoAuthError:
-            log.warning(
-                "[DSYNC] Change poll failed, credentials are invalid", exc_info=True
-            )
+            log.warning("Change poll failed, credentials are invalid", exc_info=True)
             self.engine.set_invalid_credentials(
                 reason="Device Sync poll failed — re-login required"
             )
@@ -498,7 +518,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             # Not an auth error, so do NOT push the user through a
             # re-authentication cycle: the banner is misleading and blocks
             # recovery on the next poll.
-            log.exception("[DSYNC] Change poll failed unexpectedly")
+            log.exception("Change poll failed unexpectedly")
             self.updated.emit()
             return False
 
@@ -516,24 +536,96 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         else:
             self.empty_polls += 1
 
-        log.debug(
-            f"[DSYNC] ---- poll cycle end (queue {qm_before} -> {qm_after}, "
-            f"empty_polls={self.empty_polls}) ----"
-        )
-
-        self._notify_pass_done(first_pass)
-
-        # Directly call _check_last_sync because the @tooltip decorator
-        # swallows return values, preventing the signal-based path from
-        # working reliably.
-        if not first_pass:
-            self.engine._check_last_sync()
-
         return True
 
     def scan_pair(self, remote_path: str, /) -> None:
-        """Schedule a remote path for re-scan on the next poll cycle."""
-        self._next_check = 0
+        """Nudge the poll timer after a filter change.
+
+        The work itself is queued by :meth:`queue_unfiltered`, which
+        ``AlfrescoEngine.remove_filter`` calls with the node ids.
+        """
+        self._next_check = monotonic() + FILTER_RESCAN_DELAY
+
+    def queue_unfiltered(self, remote_path: str, node_ids: List[str], /) -> None:
+        """Record nodes whose filter was just lifted.
+
+        Un-filtering exposes content that already exists on the server, so the
+        change feed has nothing to report — we have to go and fetch it. With a
+        node id that is one request per node; without one, only a full walk can
+        find it.
+        """
+        if node_ids:
+            self._unfiltered_nodes.update(node_ids)
+            log.debug(f"Unfiltered {remote_path!r}: queued {len(node_ids)} node(s)")
+        else:
+            log.debug(
+                f"Unfiltered {remote_path!r} has no recorded node id, "
+                "a full re-seed will be needed"
+            )
+            self._unfiltered_needs_scan = True
+
+        self._next_check = monotonic() + FILTER_RESCAN_DELAY
+
+    def _apply_unfiltered(self) -> None:
+        """Pull in whatever the widened selection now covers."""
+        if self._unfiltered_needs_scan:
+            log.debug("Unfiltered content needs a full re-seed")
+            self._unfiltered_needs_scan = False
+            self._unfiltered_nodes.clear()
+            self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
+            return
+
+        if not self._unfiltered_nodes:
+            return
+
+        node_ids = sorted(self._unfiltered_nodes)
+        self._unfiltered_nodes.clear()
+        log.debug(f"Resolving {len(node_ids)} unfiltered node(s)")
+        for node_id in node_ids:
+            self._interact()
+            self._resolve_unfiltered_node(node_id)
+
+    def _resolve_unfiltered_node(self, node_id: str, /) -> None:
+        remote = self.engine.remote
+        try:
+            node = remote.get_node(node_id, include=["path"])
+        except Exception:
+            log.warning(
+                f"Could not fetch unfiltered node {node_id!r}; it may have "
+                "been deleted since it was filtered",
+                exc_info=True,
+            )
+            return
+
+        info = remote._node_to_remote_file_info(node)
+        if self._is_filtered_path(info.path):
+            log.debug(f"Unfiltered {info.path!r} is still excluded by another rule")
+            return
+
+        parent_pair = self._resolve_parent(info)
+        if parent_pair is None:
+            # The parent is filtered too, so there is no row to hang this off.
+            log.debug(
+                f"Parent of unfiltered {info.path!r} is unknown, "
+                "falling back to a full re-seed"
+            )
+            self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
+            return
+
+        remote_parent_path = (
+            parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+        )
+        existing = self.dao.get_normal_state_from_remote(node_id)
+        pair = self._reconcile_child(
+            existing, info, remote_parent_path, parent_pair.local_path
+        )
+        log.debug(
+            f"Restored unfiltered {info.path!r} "
+            f"({'dir' if info.folderish else 'file'})"
+        )
+
+        if info.folderish and pair:
+            self._scan_remote_recursive(pair, info)
 
     # -- Device Sync provisioning --------------------------------------------
 
@@ -556,7 +648,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         root_pair = self.dao.get_state_from_local(ROOT)
         if not root_pair or not root_pair.remote_ref:
             log.warning(
-                "[DSYNC] No root pair yet, cannot provision Device Sync "
+                "No root pair yet, cannot provision Device Sync "
                 "(waiting for folder selection?)"
             )
             return False
@@ -572,7 +664,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         self._root_node_id = root_pair.remote_ref
         if not self._provisioner.provision(self._root_node_id):
             log.error(
-                "[DSYNC] Device Sync provisioning failed — no changes will be "
+                "Device Sync provisioning failed — no changes will be "
                 "detected this cycle"
             )
             return False
@@ -584,7 +676,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         if not self._provisioner or not self._root_node_id:
             return
         if not self._provisioner.resubscribe(self._root_node_id):
-            log.error("[DSYNC] Re-subscription failed, change feed is stale")
+            log.error("Re-subscription failed, change feed is stale")
 
     # -- Initial seeding -----------------------------------------------------
 
@@ -605,14 +697,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         done_for = self.dao.get_config(CONF_BOOTSTRAPPED_FOR)
         if done_for == provisioner.subscription_id:
-            log.debug(
-                "[DSYNC][BOOTSTRAP] Already seeded for subscription "
-                f"{provisioner.subscription_id!r}, skipping"
-            )
             return
 
-        log.debug(
-            "[DSYNC][BOOTSTRAP] Seeding initial content for subscription "
+        log.info(
+            "Seeding initial content for subscription "
             f"{provisioner.subscription_id!r} (previous seed: {done_for!r})"
         )
         start = monotonic()
@@ -620,17 +708,15 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         if not self._scan_remote_tree():
             log.error(
-                "[DSYNC][BOOTSTRAP] Initial scan did not complete; will retry "
-                "on the next poll cycle"
+                "Initial scan did not complete; will retry on the next poll cycle"
             )
             return
 
         self.dao.update_config(CONF_BOOTSTRAPPED_FOR, provisioner.subscription_id)
         queue_after = self.engine.queue_manager.get_overall_size()
-        log.debug(
-            f"[DSYNC][BOOTSTRAP] Seeding finished in {monotonic() - start:.2f}s, "
-            f"queued {queue_after - queue_before} item(s) "
-            f"(queue {queue_before} -> {queue_after})"
+        log.info(
+            f"Seeding finished in {monotonic() - start:.2f}s, "
+            f"queued {queue_after - queue_before} item(s)"
         )
 
     # -- Device Sync change feed ---------------------------------------------
@@ -648,21 +734,17 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         started = remote.start_sync(
             subscriber_id, subscription_id, client_version=provisioner.client_version
         )
-        log.debug(
-            f"[DSYNC] start_sync -> status={started.status!r} "
-            f"sync_id={started.sync_id!r} message={started.message!r}"
-        )
 
         if started.status == SyncState.ERROR:
             log.error(
-                f"[DSYNC] Server refused to start a sync: {started.message!r} "
+                f"Server refused to start a sync: {started.message!r} "
                 f"(subscriber={subscriber_id!r}, subscription={subscription_id!r})"
             )
             return
 
         sync_id = started.sync_id
         if not sync_id:
-            log.error(f"[DSYNC] start_sync returned no sync_id: {started!r}")
+            log.error(f"start_sync returned no sync_id: {started!r}")
             return
 
         total_changes = 0
@@ -674,9 +756,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             try:
                 remote.clear_sync(subscriber_id, subscription_id, sync_id)
             except Exception:
-                log.warning(f"[DSYNC] Could not clear sync {sync_id!r}", exc_info=True)
+                log.warning(f"Could not clear sync {sync_id!r}", exc_info=True)
 
-        log.debug(f"[DSYNC] Sync {sync_id!r} applied {total_changes} change(s)")
+        if total_changes:
+            log.debug(f"Sync {sync_id!r} applied {total_changes} change(s)")
 
     def _drain_sync(
         self, subscriber_id: str, subscription_id: str, sync_id: str, /
@@ -694,14 +777,15 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self._interact()
 
             status = remote.get_sync(subscriber_id, subscription_id, sync_id)
-            log.debug(
-                f"[DSYNC] get_sync #{attempt} -> status={status.status!r} "
-                f"changes={len(status.changes)} more={status.more_changes} "
-                f"resets={status.resets} missing={status.missing}"
-            )
+            if status.changes or status.resets or status.missing:
+                log.debug(
+                    f"get_sync #{attempt} -> status={status.status!r} "
+                    f"changes={len(status.changes)} more={status.more_changes} "
+                    f"resets={status.resets} missing={status.missing}"
+                )
 
             if status.status == SyncState.ERROR:
-                log.error(f"[DSYNC] Sync {sync_id!r} failed: {status.message!r}")
+                log.error(f"Sync {sync_id!r} failed: {status.message!r}")
                 return total
 
             if status.status == SyncState.NOT_READY:
@@ -712,7 +796,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             # here rather than paging through a feed we no longer trust.
             if status.missing:
                 log.error(
-                    f"[DSYNC] Server does not know subscriptions {status.missing} "
+                    f"Server does not know subscriptions {status.missing} "
                     "— re-provisioning on the next cycle"
                 )
                 self._invalidate_provisioning()
@@ -720,7 +804,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
             if status.resets:
                 log.warning(
-                    f"[DSYNC] Server requested a reset of {status.resets} — the "
+                    f"Server requested a reset of {status.resets} — the "
                     "local view is stale, re-subscribing for a full replay"
                 )
                 self._resubscribe()
@@ -732,7 +816,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 return total
 
         log.error(
-            f"[DSYNC] Sync {sync_id!r} did not complete within "
+            f"Sync {sync_id!r} did not complete within "
             f"{MAX_SYNC_POLLS} polls, abandoning this cycle"
         )
         return total
@@ -757,7 +841,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         latest: Dict[str, Change] = {}
         for change in changes:
             if not change.node_id:
-                log.warning(f"[DSYNC] Ignoring change with no node id: {change!r}")
+                log.warning(f"Ignoring change with no node id: {change!r}")
                 continue
             previous = latest.get(change.node_id)
             if previous is None or (change.seq_no or 0) >= (previous.seq_no or 0):
@@ -765,17 +849,16 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         ordered = sorted(latest.values(), key=lambda c: c.seq_no or 0)
         if len(ordered) != len(changes):
-            log.debug(f"[DSYNC] Collapsed {len(changes)} change(s) into {len(ordered)}")
+            log.debug(f"Collapsed {len(changes)} change(s) into {len(ordered)}")
         return ordered
 
     def _apply_change(self, change: Change, /) -> bool:
         """Apply a single change to the DAO. Returns whether it was applied."""
         remote = self.engine.remote
         log.debug(
-            f"[DSYNC] change seq={change.seq_no} type={change.change_type!r} "
-            f"node={change.node_id!r} name={change.name!r} path={change.path!r} "
-            f"to_path={change.to_path!r} folder={change.is_folder} "
-            f"parent={change.parent_id!r}"
+            f"Change seq={change.seq_no} type={change.change_type!r} "
+            f"node={change.node_id!r} path={change.path!r} "
+            f"to_path={change.to_path!r} folder={change.is_folder}"
         )
 
         if change.change_type == ChangeType.DELETE:
@@ -790,11 +873,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             # Moving a node into a filtered folder makes it leave our scope:
             # treat it as a deletion so the local copy is removed.
             if moved:
-                log.debug(
-                    f"[DSYNC] {info.name!r} moved into a filtered path, "
-                    "removing locally"
-                )
+                log.debug(f"{info.name!r} moved into a filtered path, removing locally")
                 return self._apply_delete(change)
+            log.debug(f"Ignoring change for filtered path {info.path!r}")
             return False
 
         existing = self.dao.get_normal_state_from_remote(change.node_id)
@@ -808,7 +889,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         parent_pair = self._resolve_parent(info)
         if parent_pair is None:
             log.warning(
-                f"[DSYNC] Parent {info.parent_uid!r} of {info.name!r} is unknown, "
+                f"Parent {info.parent_uid!r} of {info.name!r} is unknown, "
                 "skipping (it should have arrived earlier in seq_no order)"
             )
             return False
@@ -825,19 +906,17 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         """Mark every pair bound to the change's node as remotely deleted."""
         pairs = self.dao.get_states_from_remote(change.node_id)
         if not pairs:
-            log.debug(
-                f"[DSYNC] Delete for unknown node {change.node_id!r}, nothing to do"
-            )
+            log.debug(f"Delete for unknown node {change.node_id!r}, nothing to do")
             return False
 
         for pair in pairs:
             if pair.pair_state in ("locally_created", "locally_modified"):
                 log.debug(
-                    f"[DSYNC] Skipping remote deletion for {pair.local_name!r}: "
+                    f"Skipping remote deletion for {pair.local_name!r}: "
                     f"pair is {pair.pair_state!r} (processor active)"
                 )
                 continue
-            log.debug(f"[DSYNC] Marking {pair.local_path!r} as remotely deleted")
+            log.debug(f"Marking {pair.local_path!r} as remotely deleted")
             self.dao.delete_remote_state(pair)
         return True
 
@@ -849,7 +928,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         except Exception:
             # The node may already be gone again by the time we look.
             log.warning(
-                f"[DSYNC] Could not fetch node {change.node_id!r} "
+                f"Could not fetch node {change.node_id!r} "
                 f"({change.name!r}); using change payload only",
                 exc_info=True,
             )

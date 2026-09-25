@@ -400,8 +400,8 @@ class AlfrescoRemote:
         *,
         name: Optional[str] = None,
     ) -> RemoteFileInfo:
-        node = self.client.nodes.move(node_id, target_parent_id, name=name)
-        return self._node_to_remote_file_info(node)
+        self.client.nodes.move(node_id, target_parent_id, name=name)
+        return self._get_with_path(node_id)
 
     def copy(
         self,
@@ -412,7 +412,17 @@ class AlfrescoRemote:
         return self.client.nodes.copy(node_id, target_parent_id, name=name)
 
     def rename(self, node_id: str, new_name: str, /) -> RemoteFileInfo:
-        node = self.client.nodes.update(node_id, {"name": new_name})
+        self.client.nodes.update(node_id, {"name": new_name})
+        return self._get_with_path(node_id)
+
+    def _get_with_path(self, node_id: str, /) -> RemoteFileInfo:
+        """Re-fetch a node so the returned info carries its full path.
+
+        ``nodes.update()`` and ``nodes.move()`` do not accept ``include``,
+        so their responses have no ``path`` and would otherwise degrade to
+        the ``/<name>`` fallback in ``_node_to_remote_file_info()``.
+        """
+        node = self.client.nodes.get(node_id, include=["path"])
         return self._node_to_remote_file_info(node)
 
     # -- Root info (used during account binding) -----------------------------
@@ -1103,7 +1113,7 @@ class AlfrescoRemote:
         threads: the vendor documents runtime reconfiguration as *not*
         synchronised against in-flight requests.
         """
-        log.debug(f"[DSYNC] Binding Sync Service URL: {url!r}")
+        log.debug(f"Binding Sync Service URL: {url!r}")
         self.client.set_sync_service_url(url)
 
     @property
@@ -1122,10 +1132,6 @@ class AlfrescoRemote:
         self, subscriber_id: str, subscription_id: str, /, *, client_version: str
     ) -> SyncStatus:
         """Start a sync and return the status carrying its ``sync_id``."""
-        log.debug(
-            f"[DSYNC] start_sync subscriber={subscriber_id!r} "
-            f"subscription={subscription_id!r} client_version={client_version!r}"
-        )
         return self.client.sync_service.start_sync(
             subscriber_id, subscription_id, client_version=client_version
         )
@@ -1142,7 +1148,6 @@ class AlfrescoRemote:
         self, subscriber_id: str, subscription_id: str, sync_id: str, /
     ) -> None:
         """Acknowledge a completed sync."""
-        log.debug(f"[DSYNC] clear_sync sync_id={sync_id!r}")
         self.client.sync_service.clear_sync(subscriber_id, subscription_id, sync_id)
 
     def close(self) -> None:

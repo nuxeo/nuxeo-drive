@@ -85,6 +85,51 @@ class AlfrescoEngine(Engine):
 
     # -- Filter selection tracking -------------------------------------------
 
+    def add_filter(self, path: str, /, *, node_id: str = "") -> None:
+        """Exclude *path* from synchronisation and drop its local copy.
+
+        The base implementation locates the pair by splitting the filter path
+        into ``(remote_ref, remote_parent_path)``. That only works for Nuxeo,
+        whose filter paths are built from file-system item ids. Alfresco
+        filters are human-readable paths, while ``States.remote_ref`` holds
+        node ids — the two never match, so the pair was never found and the
+        local copy was left behind. The node id gives us a direct lookup.
+        """
+        self.dao.add_filter(path, node_id=node_id)
+
+        if not node_id:
+            log.warning(
+                f"No node id for filter {path!r}; its local copy cannot be removed"
+            )
+            return
+
+        pair = self.dao.get_normal_state_from_remote(node_id)
+        if not pair:
+            log.debug(f"Nothing synced under {path!r}, nothing to remove")
+            return
+
+        log.debug(f"Filtering out {path!r}, removing its local copy")
+        self.dao.delete_remote_state(pair)
+
+    def remove_filter(self, path: str, /) -> None:
+        """Un-filter *path*, handing the affected node ids to the watcher.
+
+        Device Sync only reports server-side events, so widening the selection
+        produces no change to poll for. The ids have to be captured here —
+        ``super()`` deletes the rows that hold them.
+        """
+        node_ids = []
+        try:
+            node_ids = self.dao.get_filter_node_ids(path)
+        except Exception:
+            log.warning(f"Could not read node ids for filter {path!r}", exc_info=True)
+
+        super().remove_filter(path)
+
+        watcher = getattr(self, "_remote_watcher", None)
+        if watcher is not None:
+            watcher.queue_unfiltered(path, node_ids)
+
     def needs_filters_selection(self) -> bool:
         """Return True if the user hasn't yet selected folders to sync.
 
@@ -196,7 +241,7 @@ class AlfrescoEngine(Engine):
             provisioner.teardown()
         except Exception:
             log.warning(
-                "[DSYNC] Device Sync teardown failed; the subscriber may be "
+                "Device Sync teardown failed; the subscriber may be "
                 "left behind on the server",
                 exc_info=True,
             )
