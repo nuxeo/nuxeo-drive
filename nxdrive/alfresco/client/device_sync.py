@@ -319,12 +319,17 @@ class DeviceSyncProvisioner:
         self.subscription_id = subscription_id
         return True
 
-    def _delete_subscription(self, subscriber_id: str, subscription_id: str, /) -> None:
+    def _delete_subscription(self, subscriber_id: str, subscription_id: str, /) -> bool:
         try:
             self.remote.client.sync_amp.delete_subscription(
                 subscriber_id, subscription_id
             )
             log.debug(f"Deleted subscription {subscription_id!r}")
+            return True
+        except NotFoundError:
+            # Already gone server-side, so the local id is safe to drop.
+            log.debug(f"Subscription {subscription_id!r} already absent")
+            return True
         except AlfrescoError:
             # Deleting a subscription whose target node was permanently
             # removed fails server-side with HTTP 400; never fatal here.
@@ -332,6 +337,7 @@ class DeviceSyncProvisioner:
                 f"Could not delete subscription {subscription_id!r}",
                 exc_info=True,
             )
+            return False
 
     def teardown(self) -> None:
         """Remove this device's server-side Device Sync state.
@@ -349,18 +355,31 @@ class DeviceSyncProvisioner:
             f"subscription={subscription_id!r}"
         )
 
+        subscription_gone = True
         if subscriber_id and subscription_id:
-            self._delete_subscription(subscriber_id, subscription_id)
+            subscription_gone = self._delete_subscription(
+                subscriber_id, subscription_id
+            )
 
+        subscriber_gone = True
         if subscriber_id:
             try:
                 self.remote.client.sync_amp.delete_subscriber(subscriber_id)
                 log.debug(f"Deleted subscriber {subscriber_id!r}")
+            except NotFoundError:
+                log.debug(f"Subscriber {subscriber_id!r} already absent")
             except AlfrescoError:
-                log.warning(
-                    f"Could not delete subscriber {subscriber_id!r}",
+                subscriber_gone = False
+                log.error(
+                    f"Could not delete subscriber {subscriber_id!r}; keeping its "
+                    "id so teardown can be retried",
                     exc_info=True,
                 )
+
+        # Dropping an id we failed to delete would strand the server-side
+        # state with no handle left to retry or clean it up.
+        if not (subscription_gone and subscriber_gone):
+            return
 
         for key in (
             CONF_SUBSCRIBER_ID,

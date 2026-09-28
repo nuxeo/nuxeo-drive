@@ -214,9 +214,12 @@ class AlfrescoEngine(Engine):
     def unbind(self) -> None:
         """Release the Device Sync registration before the account is dropped.
 
-        Runs first because the base implementation disposes of the DAO, and
-        the subscriber/subscription ids we need live in its ``Config`` table.
+        Ordering matters twice over: the watcher must be stopped first so no
+        poll is in flight while the subscription is deleted, and teardown must
+        precede ``super().unbind()`` because that disposes the DAO holding the
+        subscriber/subscription ids.
         """
+        self.stop()
         self._teardown_device_sync()
         super().unbind()
 

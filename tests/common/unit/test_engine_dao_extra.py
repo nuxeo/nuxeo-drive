@@ -989,6 +989,33 @@ def test_counts_partial_queries_filters_and_scan_paths(dao):
     assert dao.get_filters() == ["/filter/"]
 
 
+def test_filter_prefix_does_not_treat_underscore_as_wildcard(dao):
+    """``_`` is a LIKE wildcard, so an unescaped prefix hit siblings."""
+    dao.add_filter("/A_B", node_id="keep-me")
+    dao.add_filter("/A1B", node_id="unrelated")
+
+    assert dao.get_filter_node_ids("/A_B") == ["keep-me"]
+
+    dao.remove_filter("/A_B")
+    assert dao.get_filters() == ["/A1B/"]
+
+
+def test_filter_prefix_does_not_treat_percent_as_wildcard(dao):
+    dao.add_filter("/100%", node_id="keep-me")
+    dao.add_filter("/100pc", node_id="unrelated")
+
+    assert dao.get_filter_node_ids("/100%") == ["keep-me"]
+
+    dao.remove_filter("/100%")
+    assert dao.get_filters() == ["/100pc/"]
+
+
+def test_filter_prefix_still_matches_descendants(dao):
+    dao.add_filter("/parent/child", node_id="child-id")
+
+    assert dao.get_filter_node_ids("/parent") == ["child-id"]
+
+
 def test_upload_download_crud_status_fallbacks_and_suspension(dao):
     dao.transferUpdated = Mock()
     dao.directTransferUpdated = Mock()

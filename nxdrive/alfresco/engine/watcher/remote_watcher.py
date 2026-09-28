@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NetworkError as AlfrescoNetworkError
+from alfresco.exceptions import NotFoundError
 from alfresco.models.subscription import Change, ChangeType, SyncState
 
 from nxdrive.alfresco.client.device_sync import (
@@ -167,7 +168,13 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             return False
 
         # Recursive walk
-        self._scan_remote_recursive(root_pair, root_info)
+        complete = self._scan_remote_recursive(root_pair, root_info)
+        if not complete:
+            log.error(
+                "Alfresco full remote scan was incomplete; some subtrees could "
+                "not be listed and will not be recorded as seeded"
+            )
+            return False
 
         self._last_remote_full_scan = datetime.now(tz=timezone.utc)
         self.dao.update_config("remote_last_full_scan", self._last_remote_full_scan)
@@ -180,21 +187,22 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         self,
         doc_pair: DocPair,
         remote_info: RemoteFileInfo,
-    ) -> None:
+    ) -> bool:
         """Recursively scan children of a folder and insert/update DAO state.
 
-        Mirrors ``RemoteWatcher._scan_remote_recursive()``: fetch
-        children, match or create ``DocPair`` entries, recurse into
-        sub-folders, and mark missing children as deleted.
+        Returns whether the whole subtree was walked successfully. A partial
+        walk must never be recorded as a completed bootstrap: the change feed
+        only carries events from subscription creation onward, so content
+        missed here would never be replayed.
         """
         if not remote_info.folderish:
-            return
+            return True
 
         self._interact()
 
         remote = self.engine.remote
         if not remote:
-            return
+            return False
 
         remote_parent_path = doc_pair.remote_parent_path + "/" + remote_info.uid
 
@@ -210,10 +218,8 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 remote.client.nodes.iter_children(remote_info.uid, include=["path"])
             )
         except Exception:
-            log.warning(
-                f"Error listing children of {remote_info.name!r}", exc_info=True
-            )
-            return
+            log.exception(f"Error listing children of {remote_info.name!r}")
+            return False
 
         to_scan: List[tuple] = []
 
@@ -241,8 +247,11 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self.dao.delete_remote_state(deleted_pair)
 
         # Recurse into sub-folders
+        complete = True
         for pair, info in to_scan:
-            self._scan_remote_recursive(pair, info)
+            if not self._scan_remote_recursive(pair, info):
+                complete = False
+        return complete
 
     # -- Shared reconcile logic ----------------------------------------------
 
@@ -291,6 +300,27 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             return self._match_or_create_child(
                 child_info, local_path, local_parent_path, remote_parent_path
             )
+
+        # Widening the selection brings back a row that add_filter() marked
+        # deleted. update_remote_state() alone cannot revive it: Alfresco
+        # digests are None, so its "not dirty" short-circuit returns before
+        # persisting anything and the row stays remotely_deleted — the
+        # processor would then delete the local copy we just restored.
+        if child_pair.remote_state == "deleted" or child_pair.pair_state in (
+            "remotely_deleted",
+            "parent_remotely_deleted",
+        ):
+            log.info(f"Restoring {child_info.name!r} from {child_pair.pair_state!r}")
+            self.dao.update_remote_state(
+                child_pair,
+                child_info,
+                remote_parent_path=remote_parent_path,
+                force_update=True,
+                versioned=False,
+            )
+            self.dao.force_remote(child_pair)
+            return self.dao.get_state_from_id(child_pair.id, from_write=True)
+
         # Alfresco does not expose a content hash, so digest is
         # always None.  Detect content changes by comparing the
         # modification timestamp instead.
@@ -486,27 +516,34 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # Snapshot queue size before the poll to detect new work
         qm_before = self.engine.queue_manager.get_overall_size()
 
-        if not self._ensure_provisioned():
-            self.updated.emit()
-            return False
-
-        # An on-demand re-scan (e.g. the user just chose folders to sync)
-        # means our local view is incomplete, not that the subscription is
-        # stale — re-seed rather than throwing away the change feed.
-        if self.dao.get_config("remote_need_full_scan") is not None:
-            log.info("On-demand re-scan requested, forcing a re-seed")
-            self.dao.update_config("remote_need_full_scan", None)
-            self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
-
-        # A new subscription starts empty: the feed only carries events from
-        # its creation onward, so existing content must be seeded once.
-        self._bootstrap_if_needed()
-
-        # Widening the selection exposes content the feed will never mention.
-        self._apply_unfiltered()
-
+        # Provisioning, seeding and un-filtering all do remote work, so they
+        # share the poll's recovery boundary: an exception escaping here
+        # reaches Worker.run(), which quits the thread and silently ends
+        # remote synchronisation for the rest of the session.
         try:
+            if not self._ensure_provisioned():
+                self.updated.emit()
+                return False
+
+            # An on-demand re-scan (e.g. the user just chose folders to sync)
+            # means our local view is incomplete, not that the subscription is
+            # stale — re-seed rather than throwing away the change feed.
+            if self.dao.get_config("remote_need_full_scan") is not None:
+                log.info("On-demand re-scan requested, forcing a re-seed")
+                self.dao.update_config("remote_need_full_scan", None)
+                self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
+
+            # A new subscription starts empty: the feed only carries events
+            # from its creation onward, so existing content is seeded once.
+            self._bootstrap_if_needed()
+
+            # Widening the selection exposes content the feed never mentions.
+            self._apply_unfiltered()
+
             self._poll_device_sync()
+        except ThreadInterrupt:
+            # Cooperative shutdown from _interact(), not a failure.
+            raise
         except AlfrescoAuthError:
             log.warning("Change poll failed, credentials are invalid", exc_info=True)
             self.engine.set_invalid_credentials(
@@ -583,24 +620,43 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         log.debug(f"Resolving {len(node_ids)} unfiltered node(s)")
         for node_id in node_ids:
             self._interact()
-            self._resolve_unfiltered_node(node_id)
+            if not self._resolve_unfiltered_node(node_id):
+                # The change feed never replays already-existing content, so
+                # a dropped id is the only handle we have on it.
+                self._unfiltered_nodes.add(node_id)
 
-    def _resolve_unfiltered_node(self, node_id: str, /) -> None:
+        if self._unfiltered_nodes:
+            log.error(
+                f"{len(self._unfiltered_nodes)} unfiltered node(s) could not be "
+                "resolved; retrying on the next poll cycle"
+            )
+            self._next_check = monotonic() + FILTER_RESCAN_DELAY
+
+    def _resolve_unfiltered_node(self, node_id: str, /) -> bool:
+        """Pull one un-filtered node back into scope.
+
+        Returns ``False`` only when the caller should retry later.
+        """
         remote = self.engine.remote
         try:
             node = remote.get_node(node_id, include=["path"])
-        except Exception:
+        except AlfrescoAuthError:
+            log.exception(f"Cannot fetch unfiltered node {node_id!r}, auth failed")
+            raise
+        except NotFoundError:
             log.warning(
-                f"Could not fetch unfiltered node {node_id!r}; it may have "
-                "been deleted since it was filtered",
-                exc_info=True,
+                f"Unfiltered node {node_id!r} no longer exists on the server, "
+                "nothing to restore"
             )
-            return
+            return True
+        except Exception:
+            log.exception(f"Could not fetch unfiltered node {node_id!r}")
+            return False
 
         info = remote._node_to_remote_file_info(node)
         if self._is_filtered_path(info.path):
             log.debug(f"Unfiltered {info.path!r} is still excluded by another rule")
-            return
+            return True
 
         parent_pair = self._resolve_parent(info)
         if parent_pair is None:
@@ -610,7 +666,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 "falling back to a full re-seed"
             )
             self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
-            return
+            return True
 
         remote_parent_path = (
             parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
@@ -624,8 +680,14 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             f"({'dir' if info.folderish else 'file'})"
         )
 
-        if info.folderish and pair:
-            self._scan_remote_recursive(pair, info)
+        if info.folderish and pair and not self._scan_remote_recursive(pair, info):
+            log.error(
+                f"Subtree of restored {info.path!r} was only partially scanned; "
+                "forcing a re-seed"
+            )
+            self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
+
+        return True
 
     # -- Device Sync provisioning --------------------------------------------
 
@@ -925,6 +987,14 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         remote = self.engine.remote
         try:
             node = remote.get_node(change.node_id, include=["path"])
+        except AlfrescoAuthError:
+            # Must reach _do_handle_changes so credentials are flagged invalid;
+            # falling back to the payload would insert a half-populated row.
+            log.exception(
+                f"Cannot fetch node {change.node_id!r} ({change.name!r}), "
+                "auth failed"
+            )
+            raise
         except Exception:
             # The node may already be gone again by the time we look.
             log.warning(
