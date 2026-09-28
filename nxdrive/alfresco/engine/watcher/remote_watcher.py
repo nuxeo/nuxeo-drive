@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
 from time import monotonic, sleep
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NetworkError as AlfrescoNetworkError
@@ -56,6 +56,15 @@ NOT_READY_POLL_DELAY = 0.5
 #: deadline out again, so a whole burst collapses into a single pass.
 FILTER_RESCAN_DELAY = 2.0
 
+#: How many cycles a single change may fail before it is abandoned. Failing
+#: changes are retried by *not* acknowledging the sync, so a change that can
+#: never be applied would otherwise block every later change forever.
+MAX_CHANGE_RETRIES = 3
+
+#: ``last_error`` written on a pair whose change could not be applied.
+#: Rendered by ``FileCard.qml`` as ``ERROR_REASON_<code>``.
+CHANGE_FAILED_ERROR = "DEVICE_SYNC_CHANGE_FAILED"
+
 #: Platform label reported when registering the Device Sync subscriber.
 DEVICE_OS = "windows" if WINDOWS else "macos" if MAC else "linux"
 
@@ -80,6 +89,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         #: Set when a lifted filter carried no node id, so only a walk can
         #: discover what we are now missing.
         self._unfiltered_needs_scan = False
+
+        #: Consecutive apply failures per node id, so a transient error is
+        #: retried but a permanently broken change is eventually abandoned.
+        self._change_failures: Dict[str, int] = {}
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
@@ -809,24 +822,37 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             log.error(f"start_sync returned no sync_id: {started!r}")
             return
 
-        total_changes = 0
-        try:
-            total_changes = self._drain_sync(subscriber_id, subscription_id, sync_id)
-        finally:
-            # Always release the server-side sync, even if applying the
-            # changes raised: an uncleared syncId pins server state.
+        total_changes, drained = self._drain_sync(
+            subscriber_id, subscription_id, sync_id
+        )
+
+        # clear_sync() is the acknowledgement: the service re-delivers an
+        # uncleared sync on the next start_sync (at-least-once), so clearing
+        # a sync we did not finish would silently drop its changes. The cost
+        # of not clearing is a server-side cursor that is pinned until the
+        # sync is eventually drained, so only skip it on genuine failures.
+        if drained:
             try:
                 remote.clear_sync(subscriber_id, subscription_id, sync_id)
             except Exception:
                 log.warning(f"Could not clear sync {sync_id!r}", exc_info=True)
+        else:
+            log.warning(
+                f"Leaving sync {sync_id!r} unacknowledged so the server "
+                "re-delivers its changes on the next cycle"
+            )
 
         if total_changes:
             log.debug(f"Sync {sync_id!r} applied {total_changes} change(s)")
 
     def _drain_sync(
         self, subscriber_id: str, subscription_id: str, sync_id: str, /
-    ) -> int:
+    ) -> Tuple[int, bool]:
         """Poll *sync_id* until it is exhausted, applying every page.
+
+        Returns ``(changes_applied, fully_drained)``. ``fully_drained`` is the
+        caller's cue to acknowledge the sync; it is ``False`` whenever changes
+        may remain undelivered.
 
         Handles both async states the Sync Service can report: ``notReady``
         (still preparing, keep polling) and ``ready`` with ``more_changes``
@@ -848,7 +874,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
             if status.status == SyncState.ERROR:
                 log.error(f"Sync {sync_id!r} failed: {status.message!r}")
-                return total
+                return total, False
 
             if status.status == SyncState.NOT_READY:
                 sleep(NOT_READY_POLL_DELAY)
@@ -862,7 +888,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     "— re-provisioning on the next cycle"
                 )
                 self._invalidate_provisioning()
-                return total
+                return total, False
 
             if status.resets:
                 log.warning(
@@ -870,27 +896,93 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     "local view is stale, re-subscribing for a full replay"
                 )
                 self._resubscribe()
-                return total
+                # Re-subscribing replays everything, so this sync's contents
+                # are redundant and acknowledging it avoids a leaked cursor.
+                return total, True
 
             total += self._apply_changes(status.changes)
 
             if not status.more_changes:
-                return total
+                return total, True
 
         log.error(
             f"Sync {sync_id!r} did not complete within "
             f"{MAX_SYNC_POLLS} polls, abandoning this cycle"
         )
-        return total
+        return total, False
 
     def _apply_changes(self, changes: List[Change], /) -> int:
-        """Apply one page of the change feed. Returns how many were applied."""
+        """Apply one page of the change feed. Returns how many were applied.
+
+        A failing change is re-raised so the sync goes unacknowledged and the
+        server re-delivers it, which recovers transient faults. Once a node has
+        failed :data:`MAX_CHANGE_RETRIES` times it is abandoned instead, or it
+        would block every later change forever.
+        """
         applied = 0
         for change in self._dedupe_changes(changes):
             self._interact()
-            if self._apply_change(change):
-                applied += 1
+            try:
+                if self._apply_change(change):
+                    applied += 1
+            except (ThreadInterrupt, AlfrescoAuthError):
+                raise
+            except Exception as exc:
+                if self._retry_change(change, exc):
+                    raise
+            else:
+                self._change_failures.pop(change.node_id, None)
         return applied
+
+    def _retry_change(self, change: Change, exc: Exception, /) -> bool:
+        """Record a failed change; return whether it should be retried."""
+        failures = self._change_failures.get(change.node_id, 0) + 1
+        self._change_failures[change.node_id] = failures
+
+        if failures < MAX_CHANGE_RETRIES:
+            log.warning(
+                f"Could not apply change seq={change.seq_no} "
+                f"node={change.node_id!r} (attempt {failures}/"
+                f"{MAX_CHANGE_RETRIES}), leaving it unacknowledged to retry",
+                exc_info=True,
+            )
+            return True
+
+        log.error(
+            f"Abandoning change seq={change.seq_no} node={change.node_id!r} "
+            f"after {failures} attempts: {exc}",
+            exc_info=True,
+        )
+        self._change_failures.pop(change.node_id, None)
+        self._report_change_failure(change, exc)
+        return False
+
+    def _report_change_failure(self, change: Change, exc: Exception, /) -> None:
+        """Surface an abandoned change to the user.
+
+        Acknowledging the sync drops the change for good, so the mismatch has
+        to become visible: the pair is pushed past the queue manager's error
+        threshold, which lists it in the systray and fires ``newError``.
+        """
+        pair = self.dao.get_normal_state_from_remote(change.node_id)
+        if not pair:
+            # Nothing local to attach the error to, so the only way back to a
+            # correct state is to walk the tree again on the next cycle.
+            log.error(
+                f"Abandoned change for unsynced node {change.node_id!r}; "
+                "forcing a re-seed to recover it"
+            )
+            self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
+            return
+
+        threshold = self.engine.queue_manager.get_error_threshold()
+        self.dao.increase_error(
+            pair,
+            CHANGE_FAILED_ERROR,
+            details=str(exc),
+            incr=threshold + 1,
+        )
+        self.engine.queue_manager.push_error(pair)
 
     @staticmethod
     def _dedupe_changes(changes: List[Change], /) -> List[Change]:
