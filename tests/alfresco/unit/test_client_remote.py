@@ -408,12 +408,15 @@ class TestRenameAndMove:
         updated_node.created_at = None
         updated_node.modified_by_user = None
         updated_node.path = None
-        remote.client.nodes.update.return_value = updated_node
+        # The info comes from the re-fetch, not from the update response,
+        # which carries no path.
+        remote.client.nodes.get.return_value = updated_node
 
         info = remote.rename("node-1", "NewName.txt")
         remote.client.nodes.update.assert_called_once_with(
             "node-1", {"name": "NewName.txt"}
         )
+        remote.client.nodes.get.assert_called_once_with("node-1", include=["path"])
         assert info.name == "NewName.txt"
 
     def test_move_returns_remote_file_info(self, _client_patch) -> None:
@@ -428,12 +431,13 @@ class TestRenameAndMove:
         moved_node.created_at = None
         moved_node.modified_by_user = None
         moved_node.path = None
-        remote.client.nodes.move.return_value = moved_node
+        remote.client.nodes.get.return_value = moved_node
 
         info = remote.move("node-1", "new-parent", name="File.txt")
         remote.client.nodes.move.assert_called_once_with(
             "node-1", "new-parent", name="File.txt"
         )
+        remote.client.nodes.get.assert_called_once_with("node-1", include=["path"])
         assert info.parent_uid == "new-parent"
 
 

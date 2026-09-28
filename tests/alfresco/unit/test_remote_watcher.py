@@ -8,6 +8,7 @@ import pytest
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NetworkError as AlfrescoNetworkError
 
+from nxdrive.alfresco.client.device_sync import CONF_BOOTSTRAPPED_FOR
 from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.objects import RemoteFileInfo
@@ -37,6 +38,33 @@ def _make_watcher():
     w._interact = MagicMock()
     w.remoteScanFinished = MagicMock()
     w.remoteWatcherStopped = MagicMock()
+
+    # Device Sync state, as it looks once a subscription is live.
+    w._provisioner = MagicMock(
+        provisioned=True,
+        subscriber_id="subscriber-1",
+        subscription_id="subscription-1",
+        client_version="1.0.3",
+    )
+    w._root_node_id = "root-id"
+    w._unfiltered_nodes = set()
+    w._unfiltered_needs_scan = False
+    w._change_failures = {}
+    return w
+
+
+def _polling_watcher():
+    """A watcher whose poll cycle is stubbed out, for _handle_changes tests."""
+    w = _make_watcher()
+    w.engine.remote = MagicMock()
+    w.engine.queue_manager.get_overall_size.return_value = 0
+    w.updated = MagicMock()
+    w.initiate = MagicMock()
+    w.empty_polls = 0
+    w._bootstrap_if_needed = MagicMock()
+    w._apply_unfiltered = MagicMock()
+    w._poll_device_sync = MagicMock()
+    w._scan_local_changes = MagicMock()
     return w
 
 
@@ -542,29 +570,27 @@ class TestScanRemoteRecursive:
 
 
 class TestHandleChanges:
-    def test_first_pass_calls_scan_remote(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(watcher, "scan_remote") as mock_scan:
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=True)
-        mock_scan.assert_called_once()
+    def test_first_pass_polls_device_sync(self):
+        watcher = _polling_watcher()
+        watcher._handle_changes(first_pass=True)
+        watcher._poll_device_sync.assert_called_once()
 
-    def test_subsequent_pass_calls_scan_remote(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(watcher, "scan_remote") as mock_scan:
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=False)
-        mock_scan.assert_called_once()
+    def test_subsequent_pass_polls_device_sync(self):
+        watcher = _polling_watcher()
+        watcher._handle_changes(first_pass=False)
+        watcher._poll_device_sync.assert_called_once()
+
+    def test_poll_seeds_then_widens_then_drains(self):
+        """The delta is only trusted once seeding and un-filtering have run."""
+        watcher = _polling_watcher()
+        order = []
+        watcher._bootstrap_if_needed.side_effect = lambda: order.append("bootstrap")
+        watcher._apply_unfiltered.side_effect = lambda: order.append("unfiltered")
+        watcher._poll_device_sync.side_effect = lambda: order.append("poll")
+
+        watcher._handle_changes(first_pass=True)
+
+        assert order == ["bootstrap", "unfiltered", "poll"]
 
 
 class TestScanLocalChanges:
@@ -705,140 +731,90 @@ class TestHandleChangesExtended:
     """Additional _handle_changes coverage."""
 
     def test_first_pass_emits_initiate(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=True)
+        watcher = _polling_watcher()
+        watcher._handle_changes(first_pass=True)
         watcher.initiate.emit.assert_called_once()
         watcher.updated.emit.assert_not_called()
 
     def test_subsequent_pass_emits_updated(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=False)
+        watcher = _polling_watcher()
+        watcher._handle_changes(first_pass=False)
         watcher.updated.emit.assert_called_once()
         watcher.initiate.emit.assert_not_called()
 
     def test_auth_error_sets_invalid_credentials(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(
-            watcher, "scan_remote", side_effect=AlfrescoAuthError("expired")
-        ):
-            watcher._handle_changes(first_pass=True)
+        watcher = _polling_watcher()
+        watcher._poll_device_sync.side_effect = AlfrescoAuthError("expired")
+
+        watcher._handle_changes(first_pass=True)
+
         watcher.engine.set_invalid_credentials.assert_called_once()
+        # Once from the failure path, once from _notify_pass_done.
         watcher.updated.emit.assert_called_once()
+        watcher.initiate.emit.assert_called_once()
 
     def test_scan_error_does_not_set_invalid_credentials(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(
-            watcher, "scan_remote", side_effect=RuntimeError("unexpected")
-        ):
-            watcher._handle_changes(first_pass=False)
+        watcher = _polling_watcher()
+        watcher._poll_device_sync.side_effect = RuntimeError("unexpected")
+
+        watcher._handle_changes(first_pass=False)
+
         watcher.engine.set_invalid_credentials.assert_not_called()
-        watcher.updated.emit.assert_called_once()
+        # Failure path plus _notify_pass_done both emit on a later pass.
+        assert watcher.updated.emit.call_count == 2
 
-    def test_scan_failure_leaves_the_first_pass_undone(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
+    def test_poll_failure_still_completes_the_first_pass(self):
+        """initiate starts the processors, so it must fire even on failure."""
+        watcher = _polling_watcher()
         watcher.first_pass_done = False
+        watcher._poll_device_sync.side_effect = RuntimeError("unexpected")
 
-        with patch.object(
-            watcher, "scan_remote", side_effect=RuntimeError("unexpected")
-        ):
-            watcher._handle_changes(first_pass=True)
+        watcher._handle_changes(first_pass=True)
 
-        assert watcher.first_pass_done is False
-        watcher.initiate.emit.assert_not_called()
+        assert watcher.first_pass_done is True
+        watcher.initiate.emit.assert_called_once()
 
     def test_successful_first_pass_marks_it_done(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
+        watcher = _polling_watcher()
         watcher.first_pass_done = False
 
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=True)
+        watcher._handle_changes(first_pass=True)
 
         assert watcher.first_pass_done is True
 
     def test_no_remote_returns_early(self):
-        watcher = _make_watcher()
+        watcher = _polling_watcher()
         watcher.engine.remote = None
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
+
         watcher._handle_changes(first_pass=False)
-        # Should not have attempted scan
-        watcher.updated.emit.assert_not_called()
+
+        watcher._poll_device_sync.assert_not_called()
 
     def test_queue_size_increase_resets_empty_polls(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
+        watcher = _polling_watcher()
         watcher.engine.queue_manager.get_overall_size.side_effect = [0, 5]
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
         watcher.empty_polls = 10
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=False)
+        watcher._handle_changes(first_pass=False)
         assert watcher.empty_polls == 0
 
     def test_no_new_work_increments_empty_polls(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
+        watcher = _polling_watcher()
         watcher.empty_polls = 3
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=False)
+        watcher._handle_changes(first_pass=False)
         assert watcher.empty_polls == 4
 
     def test_rescan_requested(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        # Simulate rescan config being set
+        watcher = _polling_watcher()
+        # An on-demand re-scan clears the seeding marker so the tree is walked
+        # again; the subscription itself stays valid.
         watcher.dao.get_config.side_effect = lambda key: (
             "true" if key == "remote_need_full_scan" else None
         )
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=False)
-        # Should have cleared the rescan flag
+
+        watcher._handle_changes(first_pass=False)
+
         watcher.dao.update_config.assert_any_call("remote_need_full_scan", None)
+        watcher.dao.update_config.assert_any_call(CONF_BOOTSTRAPPED_FOR, None)
 
 
 class TestScanRemoteRecursiveExtended:

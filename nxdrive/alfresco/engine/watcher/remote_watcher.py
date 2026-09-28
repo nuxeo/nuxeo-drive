@@ -342,7 +342,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # full datetime objects.  Normalise both sides to the
         # DB format before comparing.
         remote_ts = child_info.last_modification_time
-        if hasattr(remote_ts, "strftime"):
+        if isinstance(remote_ts, datetime):
             remote_ts_str = remote_ts.strftime("%Y-%m-%d %H:%M:%S")
         else:
             remote_ts_str = str(remote_ts)[:19]

@@ -89,7 +89,10 @@ def test_handle_changes_ignores_local_scan_failure_and_finishes_poll():
     watcher = _watcher()
     watcher.engine.remote = MagicMock()
     watcher.engine.queue_manager.get_overall_size.return_value = 0
-    watcher.scan_remote = MagicMock()
+    watcher._provisioner = MagicMock(provisioned=True)
+    watcher._bootstrap_if_needed = MagicMock()
+    watcher._apply_unfiltered = MagicMock()
+    watcher._poll_device_sync = MagicMock()
     watcher._scan_local_changes = MagicMock(side_effect=OSError("unreadable"))
 
     watcher._handle_changes(first_pass=False)
