@@ -7,16 +7,21 @@ clearing costs a server-side cursor that stays pinned (there is no reaper),
 so it must be skipped only on genuine failures.
 """
 
+from time import time
 from unittest.mock import MagicMock, patch
 
 import pytest
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.models.subscription import SyncState
 
-from nxdrive.alfresco.client.device_sync import CONF_BOOTSTRAPPED_FOR
+from nxdrive.alfresco.client.device_sync import (
+    CONF_BOOTSTRAPPED_FOR,
+    CONF_LAST_SYNC_CLEAR,
+)
 from nxdrive.alfresco.engine.watcher.remote_watcher import (
     CHANGE_FAILED_ERROR,
     MAX_CHANGE_RETRIES,
+    SYNC_KEEPALIVE_INTERVAL,
     AlfrescoRemoteWatcher,
 )
 from nxdrive.drive.exceptions import ThreadInterrupt
@@ -31,6 +36,9 @@ def _watcher():
     watcher.dao = dao
     watcher._interact = MagicMock()
     watcher._change_failures = {}
+    # Left as a MagicMock this reads as a float, so the keepalive would always
+    # look due and the idle-batch branch would never be exercised.
+    dao.get_config.return_value = None
     watcher._provisioner = MagicMock(
         subscriber_id="sub-1", subscription_id="subscription-1", client_version="1.0.3"
     )
@@ -40,6 +48,11 @@ def _watcher():
     return watcher
 
 
+def _changes(*seq_nos):
+    """Changes carrying a ``seq_no``, which the batch-repeat guard reads."""
+    return [MagicMock(node_id=f"node-{n}", seq_no=n) for n in seq_nos]
+
+
 def _status(
     *,
     state=SyncState.READY,
@@ -47,7 +60,8 @@ def _status(
     more=False,
     resets=None,
     missing=None,
-    message=None
+    message=None,
+    sync_id="sync-1",
 ):
     return MagicMock(
         status=state,
@@ -56,6 +70,7 @@ def _status(
         resets=resets or [],
         missing=missing or [],
         message=message,
+        sync_id=sync_id,
     )
 
 
@@ -219,3 +234,193 @@ def test_thread_interrupt_in_a_change_still_propagates():
 
     with pytest.raises(ThreadInterrupt):
         watcher._apply_changes([change])
+
+
+class TestBatching:
+    """A backlog is drained one POST/GET/DELETE round per batch.
+
+    The service caps a batch at 100 changes and only moves ``last_seq_num``
+    when a sync is cleared, so re-polling one sync returns the identical
+    payload forever -- the cause of "only 100 of 500 files arrived".
+    """
+
+    def test_a_new_sync_is_started_for_every_batch(self):
+        watcher = _watcher()
+        watcher._apply_changes = MagicMock(return_value=1)
+        watcher.engine.remote.get_sync.side_effect = [
+            _status(changes=_changes(1), more=True),
+            _status(changes=_changes(2), more=True),
+            _status(changes=_changes(3), more=False),
+        ]
+
+        watcher._poll_device_sync()
+
+        assert watcher.engine.remote.start_sync.call_count == 3
+        assert watcher.engine.remote.clear_sync.call_count == 3
+
+    def test_every_batch_is_applied(self):
+        watcher = _watcher()
+        watcher._apply_changes = MagicMock(return_value=1)
+        batches = [_changes(1), _changes(2), _changes(3)]
+        watcher.engine.remote.get_sync.side_effect = [
+            _status(changes=batches[0], more=True),
+            _status(changes=batches[1], more=True),
+            _status(changes=batches[2], more=False),
+        ]
+
+        watcher._poll_device_sync()
+
+        assert [c.args[0] for c in watcher._apply_changes.call_args_list] == batches
+
+    def test_each_batch_is_cleared_before_the_next_is_started(self):
+        """Clearing is what commits the cursor, so it must precede the next POST."""
+        watcher = _watcher()
+        watcher._apply_changes = MagicMock(return_value=1)
+        watcher.engine.remote.get_sync.side_effect = [
+            _status(changes=_changes(1), more=True),
+            _status(changes=_changes(2), more=False),
+        ]
+        calls = []
+        watcher.engine.remote.start_sync.side_effect = lambda *a, **k: (
+            calls.append("start") or MagicMock(status=SyncState.OK, sync_id="sync-1")
+        )
+        watcher.engine.remote.clear_sync.side_effect = lambda *a: calls.append("clear")
+
+        watcher._poll_device_sync()
+
+        assert calls == ["start", "clear", "start", "clear"]
+
+    def test_a_single_batch_stops_after_one_round(self):
+        watcher = _watcher()
+        watcher.engine.remote.get_sync.return_value = _status(more=False)
+
+        watcher._poll_device_sync()
+
+        assert watcher.engine.remote.start_sync.call_count == 1
+        watcher.engine.remote.clear_sync.assert_called_once_with(
+            "sub-1", "subscription-1", "sync-1"
+        )
+
+    def test_an_unapplied_batch_is_not_cleared_and_stops_the_loop(self):
+        """Clearing here advances the cursor past changes we dropped."""
+        watcher = _watcher()
+        watcher.engine.remote.get_sync.return_value = _status(
+            state=SyncState.ERROR, message="boom"
+        )
+
+        watcher._poll_device_sync()
+
+        watcher.engine.remote.clear_sync.assert_not_called()
+        assert watcher.engine.remote.start_sync.call_count == 1
+
+    def test_a_failed_clear_stops_the_loop(self):
+        """The cursor did not move, so another round would re-apply the batch."""
+        watcher = _watcher()
+        watcher._apply_changes = MagicMock(return_value=1)
+        watcher.engine.remote.get_sync.return_value = _status(
+            changes=_changes(1), more=True
+        )
+        watcher.engine.remote.clear_sync.side_effect = OSError("network")
+
+        watcher._poll_device_sync()
+
+        assert watcher.engine.remote.start_sync.call_count == 1
+
+    def test_a_repeated_batch_stops_instead_of_looping(self):
+        """An expired sync clears with 204 without moving the cursor."""
+        watcher = _watcher()
+        watcher._apply_changes = MagicMock(return_value=1)
+        watcher.engine.remote.get_sync.return_value = _status(
+            changes=_changes(7), more=True
+        )
+
+        watcher._poll_device_sync()
+
+        assert watcher.engine.remote.start_sync.call_count == 2
+
+    def test_the_round_budget_is_bounded(self):
+        watcher = _watcher()
+        watcher._apply_changes = MagicMock(return_value=1)
+        seqs = iter(range(1, 500))
+        watcher.engine.remote.get_sync.side_effect = lambda *a: _status(
+            changes=_changes(next(seqs)), more=True
+        )
+
+        with patch("nxdrive.alfresco.engine.watcher.remote_watcher.MAX_SYNC_ROUNDS", 4):
+            watcher._poll_device_sync()
+
+        assert watcher.engine.remote.start_sync.call_count == 4
+
+
+class TestIdleBatch:
+    """An empty batch must not be acknowledged.
+
+    Its pending bookmark is the highest sequence number ever handed out, which
+    runs ahead of changes that are allocated but not yet visible -- committing
+    it skips them permanently.
+    """
+
+    def test_an_empty_batch_is_not_cleared(self):
+        watcher = _watcher()
+        watcher.dao.get_config.return_value = str(time())
+        watcher.engine.remote.get_sync.return_value = _status(more=False)
+
+        watcher._poll_device_sync()
+
+        watcher.engine.remote.clear_sync.assert_not_called()
+
+    def test_a_non_empty_batch_is_still_cleared(self):
+        watcher = _watcher()
+        watcher.dao.get_config.return_value = str(time())
+        watcher._apply_changes = MagicMock(return_value=1)
+        watcher.engine.remote.get_sync.return_value = _status(
+            changes=_changes(1), more=False
+        )
+
+        watcher._poll_device_sync()
+
+        watcher.engine.remote.clear_sync.assert_called_once()
+
+    def test_an_empty_batch_is_cleared_once_the_keepalive_is_due(self):
+        """Only a cleared sync refreshes the server's staleness clock."""
+        watcher = _watcher()
+        watcher.dao.get_config.return_value = str(time() - SYNC_KEEPALIVE_INTERVAL - 1)
+        watcher.engine.remote.get_sync.return_value = _status(more=False)
+
+        watcher._poll_device_sync()
+
+        watcher.engine.remote.clear_sync.assert_called_once()
+
+    def test_a_subscription_that_never_cleared_is_due(self):
+        watcher = _watcher()
+        watcher.dao.get_config.return_value = None
+        watcher.engine.remote.get_sync.return_value = _status(more=False)
+
+        watcher._poll_device_sync()
+
+        watcher.engine.remote.clear_sync.assert_called_once()
+
+    def test_clearing_records_when_it_happened(self):
+        watcher = _watcher()
+        watcher._apply_changes = MagicMock(return_value=1)
+        watcher.engine.remote.get_sync.return_value = _status(
+            changes=_changes(1), more=False
+        )
+
+        watcher._poll_device_sync()
+
+        key, value = watcher.dao.update_config.call_args.args
+        assert key == CONF_LAST_SYNC_CLEAR
+        assert abs(time() - float(value)) < 5
+
+    def test_a_failed_clear_is_not_recorded(self):
+        watcher = _watcher()
+        watcher._apply_changes = MagicMock(return_value=1)
+        watcher.engine.remote.get_sync.return_value = _status(
+            changes=_changes(1), more=False
+        )
+        watcher.engine.remote.clear_sync.side_effect = OSError("network")
+
+        watcher._poll_device_sync()
+
+        watcher.dao.update_config.assert_not_called()

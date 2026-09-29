@@ -52,6 +52,11 @@ CONF_BOOTSTRAPPED_FOR = "device_sync_bootstrapped_for"
 #: checkpoints are discarded when the subscription changes.
 CONF_SEEDING_FOR = "device_sync_seeding_for"
 
+#: Epoch seconds of the last acknowledged sync. Clearing a sync is what
+#: refreshes the server's ``last_sync_time``, and a subscription that is not
+#: refreshed within ``sync.cleanup.keepPeriod`` (28 days) is reset.
+CONF_LAST_SYNC_CLEAR = "device_sync_last_clear"
+
 #: Subscription kind requested from the AMP.
 SUBSCRIPTION_TYPE = "CONTENT"
 

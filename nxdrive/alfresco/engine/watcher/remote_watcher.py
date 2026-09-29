@@ -15,8 +15,8 @@ from contextlib import suppress
 from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
-from time import monotonic, sleep
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
+from time import monotonic, sleep, time
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Set
 
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NetworkError as AlfrescoNetworkError
@@ -25,6 +25,7 @@ from alfresco.models.subscription import Change, ChangeType, SyncState
 
 from nxdrive.alfresco.client.device_sync import (
     CONF_BOOTSTRAPPED_FOR,
+    CONF_LAST_SYNC_CLEAR,
     CONF_SEEDING_FOR,
     DEVICE_SYNC_CLIENT_VERSION,
     DeviceSyncProvisioner,
@@ -45,12 +46,41 @@ __all__ = ("AlfrescoRemoteWatcher",)
 
 log = getLogger(__name__)
 
-#: Upper bound on ``get_sync`` calls for a single sync round. Guards against
-#: a server that never leaves ``notReady`` or never clears ``more_changes``.
+
+class _SyncBatch(NamedTuple):
+    """Outcome of one ``POST``/``GET`` round of the change feed."""
+
+    applied: int
+    #: Clearing a batch we did not fully apply commits a bookmark that covers
+    #: changes we dropped, so this gates the acknowledgement.
+    acknowledge: bool
+    more: bool
+    last_seq: Optional[int]
+    #: The server had nothing for us; its pending bookmark is unsafe to commit.
+    idle: bool
+
+
+#: Upper bound on ``get_sync`` calls while a batch is still being prepared.
+#: Guards against a server that never leaves ``notReady``.
 MAX_SYNC_POLLS = 120
 
-#: Pause between polls while the service reports ``notReady``.
-NOT_READY_POLL_DELAY = 0.5
+#: Upper bound on batches consumed in one cycle. The service hands out 100
+#: changes at a time and only moves its cursor when a batch is cleared, so a
+#: backlog needs one POST/GET/DELETE round per batch. Anything left over is
+#: picked up by the next cycle.
+MAX_SYNC_ROUNDS = 200
+
+#: Backoff while the service reports ``notReady``. Starting a sync is
+#: asynchronous, so the first poll or two normally answer ``notReady`` and
+#: most batches resolve in well under a second.
+NOT_READY_POLL_DELAY = 0.1
+NOT_READY_POLL_MAX = 2.0
+NOT_READY_TIMEOUT = 60.0
+
+#: How long an idle subscription may go without acknowledging a sync. Only a
+#: cleared sync refreshes the server's staleness clock, and we otherwise skip
+#: clearing empty batches.
+SYNC_KEEPALIVE_INTERVAL = 86400.0
 
 #: Grace period after a filter change before acting on it. The folder picker
 #: applies its selection one path at a time, and each call pushes this
@@ -886,7 +916,13 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
     # -- Device Sync change feed ---------------------------------------------
 
     def _poll_device_sync(self) -> None:
-        """Run one full sync round: start, drain every page, then clear."""
+        """Consume the change feed, one batch per POST/GET/DELETE round.
+
+        The service caps a batch at 100 changes and only moves its cursor
+        (``last_seq_num``) when a sync is cleared, so a backlog is drained by
+        repeating the whole cycle -- re-polling one sync returns the identical
+        payload forever.
+        """
         provisioner = self._provisioner
         if not provisioner:
             return
@@ -894,61 +930,105 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         remote = self.engine.remote
         subscriber_id = provisioner.subscriber_id
         subscription_id = provisioner.subscription_id
+        total_changes = 0
+        previous_seq: Optional[int] = None
+        rounds = 0
 
-        started = remote.start_sync(
-            subscriber_id, subscription_id, client_version=provisioner.client_version
-        )
+        for rounds in range(1, MAX_SYNC_ROUNDS + 1):
+            self._interact()
 
-        if started.status == SyncState.ERROR:
-            log.error(
-                f"Server refused to start a sync: {started.message!r} "
-                f"(subscriber={subscriber_id!r}, subscription={subscription_id!r})"
+            started = remote.start_sync(
+                subscriber_id,
+                subscription_id,
+                client_version=provisioner.client_version,
             )
-            return
 
-        sync_id = started.sync_id
-        if not sync_id:
-            log.error(f"start_sync returned no sync_id: {started!r}")
-            return
+            if started.status == SyncState.ERROR:
+                log.error(
+                    f"Server refused to start a sync: {started.message!r} "
+                    f"(subscriber={subscriber_id!r}, "
+                    f"subscription={subscription_id!r})"
+                )
+                return
 
-        total_changes, drained = self._drain_sync(
-            subscriber_id, subscription_id, sync_id
-        )
+            sync_id = started.sync_id
+            if not sync_id:
+                log.error(f"start_sync returned no sync_id: {started!r}")
+                return
 
-        # clear_sync() is the acknowledgement: the service re-delivers an
-        # uncleared sync on the next start_sync (at-least-once), so clearing
-        # a sync we did not finish would silently drop its changes. The cost
-        # of not clearing is a server-side cursor that is pinned until the
-        # sync is eventually drained, so only skip it on genuine failures.
-        if drained:
+            batch = self._consume_sync(subscriber_id, subscription_id, sync_id)
+            total_changes += batch.applied
+
+            if not batch.acknowledge:
+                log.warning(
+                    f"Leaving sync {sync_id!r} unacknowledged so the server "
+                    "re-delivers its changes on the next cycle"
+                )
+                break
+
+            # An empty batch's pending bookmark is the highest sequence number
+            # ever handed out, which runs ahead of changes that are allocated
+            # but not yet visible. Committing it would skip them for good, so
+            # an idle sync is abandoned rather than cleared.
+            if batch.idle and not self._sync_keepalive_due():
+                break
+
+            # DELETE is what commits ``last_seq_num``; until it lands the
+            # server keeps serving this same batch.
             try:
                 remote.clear_sync(subscriber_id, subscription_id, sync_id)
             except Exception:
-                log.warning(f"Could not clear sync {sync_id!r}", exc_info=True)
+                log.warning(
+                    f"Could not clear sync {sync_id!r}, stopping this cycle "
+                    "so the batch is not re-applied",
+                    exc_info=True,
+                )
+                break
+            self.dao.update_config(CONF_LAST_SYNC_CLEAR, str(time()))
+
+            if not batch.more:
+                break
+
+            # An expired sync is cleared with a 204 without moving the cursor,
+            # so an identical batch means we would loop on it indefinitely.
+            if batch.last_seq is not None and batch.last_seq == previous_seq:
+                log.error(
+                    f"Batch ending at seq={batch.last_seq} was delivered twice "
+                    "in a row, the server cursor is not advancing; abandoning "
+                    "this cycle"
+                )
+                break
+            previous_seq = batch.last_seq
         else:
             log.warning(
-                f"Leaving sync {sync_id!r} unacknowledged so the server "
-                "re-delivers its changes on the next cycle"
+                f"Stopped after {MAX_SYNC_ROUNDS} batches with more changes "
+                "pending, the rest follows on the next cycle"
             )
 
         if total_changes:
-            log.debug(f"Sync {sync_id!r} applied {total_changes} change(s)")
+            log.debug(f"Applied {total_changes} change(s) in {rounds} batch(es)")
 
-    def _drain_sync(
-        self, subscriber_id: str, subscription_id: str, sync_id: str, /
-    ) -> Tuple[int, bool]:
-        """Poll *sync_id* until it is exhausted, applying every page.
+    def _sync_keepalive_due(self) -> bool:
+        """Whether an idle sync should be cleared anyway.
 
-        Returns ``(changes_applied, fully_drained)``. ``fully_drained`` is the
-        caller's cue to acknowledge the sync; it is ``False`` whenever changes
-        may remain undelivered.
-
-        Handles both async states the Sync Service can report: ``notReady``
-        (still preparing, keep polling) and ``ready`` with ``more_changes``
-        (another page is waiting).
+        Only a cleared sync refreshes the server's ``last_sync_time``, and a
+        subscription left untouched for ``sync.cleanup.keepPeriod`` is forced
+        into a full replay.
         """
+        last = self.dao.get_config(CONF_LAST_SYNC_CLEAR)
+        if not last:
+            return True
+        return time() - float(last) >= SYNC_KEEPALIVE_INTERVAL
+
+    def _consume_sync(
+        self, subscriber_id: str, subscription_id: str, sync_id: str, /
+    ) -> "_SyncBatch":
+        """Wait for one batch to be ready and apply it."""
         remote = self.engine.remote
         total = 0
+        delay = NOT_READY_POLL_DELAY
+        deadline = monotonic() + NOT_READY_TIMEOUT
+        attempt = 0
 
         for attempt in range(1, MAX_SYNC_POLLS + 1):
             self._interact()
@@ -963,10 +1043,15 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
             if status.status == SyncState.ERROR:
                 log.error(f"Sync {sync_id!r} failed: {status.message!r}")
-                return total, False
+                return _SyncBatch(total, False, False, None, False)
 
+            # Starting a sync is asynchronous, so this is the normal answer
+            # until the worker thread has built the batch.
             if status.status == SyncState.NOT_READY:
-                sleep(NOT_READY_POLL_DELAY)
+                if monotonic() >= deadline:
+                    break
+                sleep(delay)
+                delay = min(delay * 1.5, NOT_READY_POLL_MAX)
                 continue
 
             # Both signals invalidate the sync we are draining, so stop
@@ -977,27 +1062,35 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     "— re-provisioning on the next cycle"
                 )
                 self._invalidate_provisioning()
-                return total, False
+                return _SyncBatch(total, False, False, None, False)
 
+            # A reset rides along with an otherwise successful response and its
+            # bookmark is already pending, so it has to be cleared or the
+            # server replays it forever.
             if status.resets:
                 log.warning(
                     f"Server requested a reset of {status.resets} — the "
                     "local view is stale, re-subscribing for a full replay"
                 )
-                # Only a successful re-subscription replays this content;
-                # otherwise the sync stays unacknowledged so it is re-sent.
-                return total, self._resubscribe()
+                return _SyncBatch(total, self._resubscribe(), False, None, False)
 
             total += self._apply_changes(status.changes)
-
-            if not status.more_changes:
-                return total, True
+            last_seq = (
+                max((c.seq_no or 0) for c in status.changes) if status.changes else None
+            )
+            return _SyncBatch(
+                total,
+                True,
+                bool(status.more_changes),
+                last_seq,
+                not status.changes,
+            )
 
         log.error(
-            f"Sync {sync_id!r} did not complete within "
-            f"{MAX_SYNC_POLLS} polls, abandoning this cycle"
+            f"Sync {sync_id!r} was still not ready after {attempt} polls, "
+            "abandoning this cycle"
         )
-        return total, False
+        return _SyncBatch(total, False, False, None, False)
 
     def _apply_changes(self, changes: List[Change], /) -> int:
         """Apply one page of the change feed. Returns how many were applied.
