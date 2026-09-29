@@ -25,6 +25,7 @@ from alfresco.models.subscription import Change, ChangeType, SyncState
 
 from nxdrive.alfresco.client.device_sync import (
     CONF_BOOTSTRAPPED_FOR,
+    CONF_SEEDING_FOR,
     DEVICE_SYNC_CLIENT_VERSION,
     DeviceSyncProvisioner,
 )
@@ -65,6 +66,16 @@ MAX_CHANGE_RETRIES = 3
 #: Rendered by ``FileCard.qml`` as ``ERROR_REASON_<code>``.
 CHANGE_FAILED_ERROR = "DEVICE_SYNC_CHANGE_FAILED"
 
+#: Extra attempts at listing a folder before the seed gives up on it.
+#: ``Errno 49`` (ephemeral ports exhausted) clears on its own, and an
+#: abandoned folder is queued for the next cycle rather than lost.
+LISTING_RETRIES = 2
+LISTING_RETRY_DELAY = 5.0
+
+#: Entries examined per local scan cycle. The sweep resumes where it left
+#: off, so a large workspace no longer keeps the watcher busy for minutes.
+LOCAL_SCAN_CHUNK = 100
+
 #: Platform label reported when registering the Device Sync subscriber.
 DEVICE_OS = "windows" if WINDOWS else "macos" if MAC else "linux"
 
@@ -93,6 +104,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         #: Consecutive apply failures per node id, so a transient error is
         #: retried but a permanently broken change is eventually abandoned.
         self._change_failures: Dict[str, int] = {}
+
+        #: Resumable local sweep. Walking a large workspace in one cycle kept
+        #: the watcher busy for minutes, so it advances a chunk at a time.
+        self._local_scan_dirs: List[Path] = []
+        self._local_scan_seen: Set[str] = set()
+        self._local_scan_deletions: List[DocPair] = []
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
@@ -211,6 +228,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         if not remote_info.folderish:
             return True
 
+        # Resume support: a folder already walked during this seed is skipped,
+        # so a retry costs only what actually failed. Keyed on the node id
+        # because Alfresco paths are human-readable and change on rename.
+        if self.dao.is_path_scanned(remote_info.uid):
+            return True
+
         self._interact()
 
         remote = self.engine.remote
@@ -225,13 +248,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             child.remote_ref: child for child in db_children
         }
 
-        # Fetch remote children via the Alfresco Nodes API
-        try:
-            nodes = list(
-                remote.client.nodes.iter_children(remote_info.uid, include=["path"])
-            )
-        except Exception:
-            log.exception(f"Error listing children of {remote_info.name!r}")
+        nodes = self._list_children(remote, remote_info)
+        if nodes is None:
+            self.dao.add_path_to_scan(remote_info.uid)
             return False
 
         to_scan: List[tuple] = []
@@ -264,7 +283,38 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         for pair, info in to_scan:
             if not self._scan_remote_recursive(pair, info):
                 complete = False
+
+        if complete:
+            self.dao.add_path_scanned(remote_info.uid)
+            self.dao.delete_path_to_scan(remote_info.uid)
         return complete
+
+    def _list_children(self, remote: Any, remote_info: RemoteFileInfo, /) -> Any:
+        """List a folder's children, or ``None`` once the retries are spent."""
+        for attempt in range(LISTING_RETRIES + 1):
+            try:
+                return list(
+                    remote.client.nodes.iter_children(remote_info.uid, include=["path"])
+                )
+            except (AlfrescoNetworkError, OSError):
+                if attempt == LISTING_RETRIES:
+                    break
+                log.warning(
+                    f"Could not list children of {remote_info.name!r} "
+                    f"(attempt {attempt + 1}/{LISTING_RETRIES + 1}), "
+                    f"retrying in {LISTING_RETRY_DELAY}s",
+                    exc_info=True,
+                )
+                sleep(LISTING_RETRY_DELAY)
+            except Exception:
+                log.exception(f"Error listing children of {remote_info.name!r}")
+                return None
+
+        log.error(
+            f"Giving up listing children of {remote_info.name!r}; "
+            "it will be retried on the next cycle"
+        )
+        return None
 
     # -- Shared reconcile logic ----------------------------------------------
 
@@ -774,6 +824,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         if done_for == provisioner.subscription_id:
             return
 
+        # Checkpoints belong to one subscription; a different one invalidates
+        # them, otherwise a resumed seed would skip folders it never walked.
+        if self.dao.get_config(CONF_SEEDING_FOR) != provisioner.subscription_id:
+            self._reset_scan_progress()
+            self.dao.update_config(CONF_SEEDING_FOR, provisioner.subscription_id)
+
         log.info(
             "Seeding initial content for subscription "
             f"{provisioner.subscription_id!r} (previous seed: {done_for!r})"
@@ -782,17 +838,28 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         queue_before = self.engine.queue_manager.get_overall_size()
 
         if not self._scan_remote_tree():
+            owed = len(self.dao.get_paths_to_scan())
             log.error(
-                "Initial scan did not complete; will retry on the next poll cycle"
+                f"Initial scan did not complete; {owed} folder(s) will be "
+                "retried on the next poll cycle (already-walked folders are "
+                "skipped)"
             )
             return
 
+        self._reset_scan_progress()
+        self.dao.update_config(CONF_SEEDING_FOR, None)
         self.dao.update_config(CONF_BOOTSTRAPPED_FOR, provisioner.subscription_id)
         queue_after = self.engine.queue_manager.get_overall_size()
         log.info(
             f"Seeding finished in {monotonic() - start:.2f}s, "
             f"queued {queue_after - queue_before} item(s)"
         )
+
+    def _reset_scan_progress(self) -> None:
+        """Drop the per-folder checkpoints of a seed."""
+        self.dao.clean_scanned()
+        for path in self.dao.get_paths_to_scan():
+            self.dao.delete_path_to_scan(path)
 
     # -- Device Sync change feed ---------------------------------------------
 
@@ -1114,7 +1181,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
     @tooltip("Local change scan (Alfresco)")
     def _scan_local_changes(self) -> None:
-        """Walk the local sync folder and detect modifications or new files.
+        """Advance the local sweep by one chunk, resuming across cycles.
 
         The watchdog-based local watcher can miss changes when:
         - An application saves via atomic temp-file + rename (e.g. Word, LibreOffice)
@@ -1122,10 +1189,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         - The watchdog ``[modified]`` event fires before the actual write completes
 
         This method compensates by doing a periodic digest comparison for
-        existing pairs and discovering new files not yet tracked.
+        existing pairs and discovering new files not yet tracked. Only
+        :data:`LOCAL_SCAN_CHUNK` entries are examined per cycle so a large
+        workspace cannot monopolise the watcher thread.
         """
-        log.info("Starting Alfresco local change scan")
-        start = monotonic()
         local = self.engine.local
         dao = self.dao
 
@@ -1133,23 +1200,130 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             log.warning("Local sync root does not exist, skipping local scan")
             return
 
-        # Two aggregators threaded through the recursion.
-        #   seen_remote_refs: every ``remote_id`` xattr encountered while
-        #     walking the tree. Used to distinguish a genuine local
-        #     deletion from a rename/move whose watchdog event has not
-        #     yet been processed (NXDRIVE-3221).
-        #   pending_deletions: pairs whose local path is missing on disk.
-        #     Deletion is *deferred* until the full tree walk completes so
-        #     we can consult ``seen_remote_refs`` for the whole workspace,
-        #     not just the current directory.
-        seen_remote_refs: Set[str] = set()
-        pending_deletions: List[DocPair] = []
-        self._scan_local_recursive(
-            ROOT, local, dao, seen_remote_refs, pending_deletions
-        )
-        self._process_pending_deletions(pending_deletions, seen_remote_refs)
+        if not self._local_scan_dirs:
+            # Two aggregators threaded through the sweep.
+            #   _local_scan_seen: every ``remote_id`` xattr encountered while
+            #     walking the tree. Used to distinguish a genuine local
+            #     deletion from a rename/move whose watchdog event has not
+            #     yet been processed (NXDRIVE-3221).
+            #   _local_scan_deletions: pairs whose local path is missing on
+            #     disk. Deletion is *deferred* until the whole tree has been
+            #     walked so we can consult the complete set of surviving refs.
+            log.info("Starting Alfresco local change scan")
+            self._local_scan_dirs = [ROOT]
+            self._local_scan_seen = set()
+            self._local_scan_deletions = []
 
+        start = monotonic()
+        examined = 0
+        while self._local_scan_dirs and examined < LOCAL_SCAN_CHUNK:
+            self._interact()
+            examined += self._scan_local_directory(
+                self._local_scan_dirs.pop(0), local, dao
+            )
+
+        if self._local_scan_dirs:
+            log.debug(
+                f"Local scan paused after {examined} entr(ies) in "
+                f"{monotonic() - start:.2f}s, "
+                f"{len(self._local_scan_dirs)} folder(s) left"
+            )
+            return
+
+        # Only a completed sweep has seen every surviving xattr, so deletions
+        # can finally be told apart from renames.
+        self._process_pending_deletions(
+            self._local_scan_deletions, self._local_scan_seen
+        )
+        self._local_scan_seen = set()
+        self._local_scan_deletions = []
         log.debug(f"Alfresco local change scan finished in {monotonic() - start:.2f}s")
+
+    def _scan_local_directory(self, path: Path, local: Any, dao: Any, /) -> int:
+        """Scan one directory, queueing its sub-folders. Returns entries seen.
+
+        A directory is always processed whole: the leftover entries of
+        ``db_by_name`` are what reveal local deletions.
+        """
+        try:
+            children_info = local.get_children_info(path)
+        except OSError:
+            return 0
+
+        # Build a map of DB children keyed by name
+        db_children = dao.get_local_children(path)
+        db_by_name = {child.local_name: child for child in db_children}
+
+        for child_info in children_info:
+            child_name = child_info.path.name
+
+            if local.is_ignored(path, child_name):
+                continue
+
+            # Record the ``remote_id`` xattr for every visited child so a
+            # deferred deletion candidate can be recognised as a rename.
+            remote_ref = local.get_remote_id(child_info.path)
+            if remote_ref:
+                self._local_scan_seen.add(remote_ref)
+
+            if child_name in db_by_name:
+                child_pair = db_by_name[child_name]
+
+                # Already queued, or being processed: nothing to compare, but
+                # sub-folders still need walking.
+                if child_pair.pair_state != "synchronized" or child_pair.processor > 0:
+                    if child_info.folderish:
+                        self._local_scan_dirs.append(child_info.path)
+                    continue
+
+                if not child_info.folderish:
+                    # Compare digest for files
+                    try:
+                        digest = child_info.get_digest()
+                    except Exception:
+                        log.debug(
+                            f"Cannot compute digest for {child_info.path!r}",
+                            exc_info=True,
+                        )
+                        continue
+
+                    if child_pair.local_digest and digest != child_pair.local_digest:
+                        log.info(
+                            f"Local change detected for {child_info.path!r}: "
+                            f"old={child_pair.local_digest!r} new={digest!r}"
+                        )
+                        child_pair.local_digest = digest
+                        child_pair.local_state = "modified"
+                        dao.update_local_state(child_pair, child_info)
+                else:
+                    self._local_scan_dirs.append(child_info.path)
+            else:
+                # New local file/folder not in DB — check it has no remote_id
+                # (if it does, the local watcher should handle it)
+                if not remote_ref:
+                    log.info(
+                        f"New local {'folder' if child_info.folderish else 'file'} "
+                        f"detected: {child_info.path!r}"
+                    )
+                    dao.insert_local_state(child_info, path)
+
+                if child_info.folderish:
+                    self._local_scan_dirs.append(child_info.path)
+
+        # Detect files/folders deleted locally while the app was not running.
+        # Remaining db_by_name entries have no corresponding local file.
+        # Only consider pairs that were previously synchronized — skip
+        # pairs still waiting for download (remotely_created, unknown, etc.).
+        # Actual delete_doc() is deferred to _process_pending_deletions()
+        # so we can distinguish deletions from renames after the full
+        # tree walk has collected every surviving remote_id xattr.
+        for child_name, child_pair in db_by_name.items():
+            if child_pair.pair_state != "synchronized":
+                continue
+            if not local.exists(child_pair.local_path):
+                self._local_scan_deletions.append(child_pair)
+
+        return len(children_info)
 
     def _process_pending_deletions(
         self,
@@ -1179,122 +1353,3 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 f"(missing on disk)"
             )
             self.engine.delete_doc(child_pair.local_path)
-
-    def _scan_local_recursive(
-        self,
-        path: Path,
-        local: Any,
-        dao: Any,
-        seen_remote_refs: Set[str],
-        pending_deletions: List[DocPair],
-        /,
-    ) -> None:
-        """Recursively scan *path* for local changes."""
-        self._interact()
-
-        try:
-            children_info = local.get_children_info(path)
-        except OSError:
-            return
-
-        # Build a map of DB children keyed by name
-        db_children = dao.get_local_children(path)
-        db_by_name = {child.local_name: child for child in db_children}
-
-        for child_info in children_info:
-            child_name = child_info.path.name
-
-            if local.is_ignored(path, child_name):
-                continue
-
-            # Record the ``remote_id`` xattr for every visited child so a
-            # deferred deletion candidate can be recognised as a rename.
-            remote_ref = local.get_remote_id(child_info.path)
-            if remote_ref:
-                seen_remote_refs.add(remote_ref)
-
-            if child_name in db_by_name:
-                child_pair = db_by_name[child_name]
-
-                if child_pair.pair_state != "synchronized":
-                    # Already queued for processing, skip
-                    if child_info.folderish:
-                        self._scan_local_recursive(
-                            child_info.path,
-                            local,
-                            dao,
-                            seen_remote_refs,
-                            pending_deletions,
-                        )
-                    continue
-
-                if child_pair.processor > 0:
-                    # Being processed, skip
-                    if child_info.folderish:
-                        self._scan_local_recursive(
-                            child_info.path,
-                            local,
-                            dao,
-                            seen_remote_refs,
-                            pending_deletions,
-                        )
-                    continue
-
-                if not child_info.folderish:
-                    # Compare digest for files
-                    try:
-                        digest = child_info.get_digest()
-                    except Exception:
-                        log.debug(
-                            f"Cannot compute digest for {child_info.path!r}",
-                            exc_info=True,
-                        )
-                        continue
-
-                    if child_pair.local_digest and digest != child_pair.local_digest:
-                        log.info(
-                            f"Local change detected for {child_info.path!r}: "
-                            f"old={child_pair.local_digest!r} new={digest!r}"
-                        )
-                        child_pair.local_digest = digest
-                        child_pair.local_state = "modified"
-                        dao.update_local_state(child_pair, child_info)
-                else:
-                    self._scan_local_recursive(
-                        child_info.path,
-                        local,
-                        dao,
-                        seen_remote_refs,
-                        pending_deletions,
-                    )
-            else:
-                # New local file/folder not in DB — check it has no remote_id
-                # (if it does, the local watcher should handle it)
-                if not remote_ref:
-                    log.info(
-                        f"New local {'folder' if child_info.folderish else 'file'} "
-                        f"detected: {child_info.path!r}"
-                    )
-                    dao.insert_local_state(child_info, path)
-
-                if child_info.folderish:
-                    self._scan_local_recursive(
-                        child_info.path,
-                        local,
-                        dao,
-                        seen_remote_refs,
-                        pending_deletions,
-                    )
-
-        # Detect files/folders deleted locally while the app was not running.
-        # Remaining db_by_name entries have no corresponding local file.
-        # Only consider pairs that were previously synchronized — skip
-        # pairs still waiting for download (remotely_created, unknown, etc.).
-        # Actual delete_doc() is deferred to _process_pending_deletions()
-        # so we can distinguish deletions from renames after the full
-        # tree walk has collected every surviving remote_id xattr.
-        for child_name, child_pair in db_by_name.items():
-            if child_pair.pair_state != "synchronized":
-                continue
-            if not local.exists(child_pair.local_path):
-                pending_deletions.append(child_pair)

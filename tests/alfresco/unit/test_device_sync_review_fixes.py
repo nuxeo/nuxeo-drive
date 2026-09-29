@@ -15,18 +15,28 @@ from alfresco.exceptions import NotFoundError
 
 from nxdrive.alfresco.client.device_sync import (
     CONF_BOOTSTRAPPED_FOR,
+    CONF_SEEDING_FOR,
     CONF_SUBSCRIBER_ID,
     CONF_SUBSCRIPTION_ID,
     DeviceSyncProvisioner,
 )
-from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
+from nxdrive.alfresco.engine.watcher.remote_watcher import (
+    LISTING_RETRIES,
+    AlfrescoRemoteWatcher,
+)
 from nxdrive.drive.exceptions import ThreadInterrupt
+
+#: Total listing attempts: the first try plus its retries.
+MAX_LISTING_ATTEMPTS = LISTING_RETRIES + 1
 
 
 def _watcher():
     engine = MagicMock()
     dao = MagicMock()
     dao.get_config.return_value = None
+    # Nothing has been checkpointed yet, otherwise every folder looks scanned.
+    dao.is_path_scanned.return_value = False
+    dao.get_paths_to_scan.return_value = []
     with patch.object(AlfrescoRemoteWatcher, "__init__", return_value=None):
         watcher = AlfrescoRemoteWatcher(engine, dao)
     watcher.engine = engine
@@ -59,10 +69,13 @@ def test_scan_remote_recursive_reports_failure_when_children_unlistable():
     remote.client.nodes.iter_children.side_effect = OSError("boom")
 
     pair = MagicMock(remote_parent_path="", remote_ref="root-id")
-    assert (
-        watcher._scan_remote_recursive(pair, _remote_info("root", folderish=True))
-        is False
-    )
+    with patch("nxdrive.alfresco.engine.watcher.remote_watcher.sleep"):
+        assert (
+            watcher._scan_remote_recursive(pair, _remote_info("root", folderish=True))
+            is False
+        )
+    # The folder is recorded so the next cycle retries only what failed.
+    watcher.dao.add_path_to_scan.assert_called_once_with("node-1")
 
 
 def test_scan_remote_recursive_propagates_failure_from_subtree():
@@ -86,7 +99,95 @@ def test_scan_remote_recursive_propagates_failure_from_subtree():
     )
 
     pair = MagicMock(remote_parent_path="", remote_ref="root-id")
-    assert watcher._scan_remote_recursive(pair, root) is False
+    with patch("nxdrive.alfresco.engine.watcher.remote_watcher.sleep"):
+        assert watcher._scan_remote_recursive(pair, root) is False
+
+
+# -- Resumable seeding: a retry costs only what actually failed -------------
+
+
+def test_already_scanned_folder_is_skipped():
+    """The whole point of resumption: no HTTP call for a done subtree."""
+    watcher = _watcher()
+    watcher.dao.is_path_scanned.return_value = True
+
+    pair = MagicMock(remote_parent_path="", remote_ref="root-id")
+    assert (
+        watcher._scan_remote_recursive(pair, _remote_info("root", folderish=True))
+        is True
+    )
+    watcher.engine.remote.client.nodes.iter_children.assert_not_called()
+
+
+def test_completed_folder_is_checkpointed_by_node_id():
+    watcher = _watcher()
+    remote = watcher.engine.remote
+    remote.client.nodes.iter_children.return_value = []
+    watcher.dao.get_remote_children.return_value = []
+
+    pair = MagicMock(remote_parent_path="", remote_ref="root-id")
+    watcher._scan_remote_recursive(pair, _remote_info("root", folderish=True))
+
+    # Keyed on the node id, not the path, which changes on rename.
+    watcher.dao.add_path_scanned.assert_called_once_with("node-1")
+
+
+def test_listing_is_retried_before_giving_up():
+    watcher = _watcher()
+    remote = watcher.engine.remote
+    remote.client.nodes.iter_children.side_effect = OSError("Errno 49")
+
+    with patch("nxdrive.alfresco.engine.watcher.remote_watcher.sleep") as mock_sleep:
+        watcher._list_children(remote, _remote_info("root", folderish=True))
+
+    assert remote.client.nodes.iter_children.call_count == MAX_LISTING_ATTEMPTS
+    assert mock_sleep.call_count == LISTING_RETRIES
+
+
+def test_listing_recovers_on_a_later_attempt():
+    watcher = _watcher()
+    remote = watcher.engine.remote
+    remote.client.nodes.iter_children.side_effect = [OSError("Errno 49"), []]
+
+    with patch("nxdrive.alfresco.engine.watcher.remote_watcher.sleep"):
+        assert watcher._list_children(remote, _remote_info("root")) == []
+
+
+def test_completed_seed_clears_its_checkpoints():
+    watcher = _watcher()
+    watcher._provisioner = MagicMock(subscription_id="sub-1")
+    watcher._scan_remote_tree = MagicMock(return_value=True)
+    watcher.engine.queue_manager.get_overall_size.return_value = 0
+
+    watcher._bootstrap_if_needed()
+
+    watcher.dao.clean_scanned.assert_called()
+
+
+def test_incomplete_seed_keeps_its_checkpoints():
+    """Checkpoints must survive so the retry skips finished folders."""
+    watcher = _watcher()
+    watcher._provisioner = MagicMock(subscription_id="sub-1")
+    watcher.dao.get_config.return_value = "sub-1"
+    watcher._scan_remote_tree = MagicMock(return_value=False)
+
+    watcher._bootstrap_if_needed()
+
+    watcher.dao.clean_scanned.assert_not_called()
+
+
+def test_new_subscription_discards_stale_checkpoints():
+    watcher = _watcher()
+    watcher._provisioner = MagicMock(subscription_id="sub-2")
+    # Progress recorded against a different subscription.
+    watcher.dao.get_config.side_effect = lambda key: (
+        "sub-1" if key == CONF_SEEDING_FOR else None
+    )
+    watcher._scan_remote_tree = MagicMock(return_value=False)
+
+    watcher._bootstrap_if_needed()
+
+    watcher.dao.clean_scanned.assert_called_once()
 
 
 def test_bootstrap_not_recorded_when_scan_incomplete():

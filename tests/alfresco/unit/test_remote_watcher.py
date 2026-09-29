@@ -9,7 +9,10 @@ from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NetworkError as AlfrescoNetworkError
 
 from nxdrive.alfresco.client.device_sync import CONF_BOOTSTRAPPED_FOR
-from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
+from nxdrive.alfresco.engine.watcher.remote_watcher import (
+    LOCAL_SCAN_CHUNK,
+    AlfrescoRemoteWatcher,
+)
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.objects import RemoteFileInfo
 
@@ -27,6 +30,9 @@ def _make_watcher():
     dao.get_config.return_value = None
     dao.get_state_from_local.return_value = None
     dao.get_normal_state_from_remote.return_value = None
+    # Nothing has been checkpointed yet, otherwise every folder looks scanned.
+    dao.is_path_scanned.return_value = False
+    dao.get_paths_to_scan.return_value = []
 
     with patch.object(AlfrescoRemoteWatcher, "__init__", lambda self, *a, **kw: None):
         w = AlfrescoRemoteWatcher(engine, dao)
@@ -50,6 +56,9 @@ def _make_watcher():
     w._unfiltered_nodes = set()
     w._unfiltered_needs_scan = False
     w._change_failures = {}
+    w._local_scan_dirs = []
+    w._local_scan_seen = set()
+    w._local_scan_deletions = []
     return w
 
 
@@ -594,24 +603,56 @@ class TestHandleChanges:
 
 
 class TestScanLocalChanges:
-    def test_calls_scan_local_recursive(self):
+    def test_scans_the_root(self):
         watcher = _make_watcher()
         watcher.engine.local = MagicMock()
         watcher.engine.local.exists.return_value = True
 
-        with patch.object(watcher, "_scan_local_recursive") as mock_slr:
+        with patch.object(watcher, "_scan_local_directory", return_value=0) as mock_dir:
             with patch.object(watcher, "_process_pending_deletions"):
                 watcher._scan_local_changes()
 
-        mock_slr.assert_called_once()
+        mock_dir.assert_called_once()
 
     def test_missing_root_returns_early(self):
         watcher = _make_watcher()
         watcher.engine.local = MagicMock()
         watcher.engine.local.exists.return_value = False
-        with patch.object(watcher, "_scan_local_recursive") as mock_slr:
+        with patch.object(watcher, "_scan_local_directory") as mock_dir:
             watcher._scan_local_changes()
-        mock_slr.assert_not_called()
+        mock_dir.assert_not_called()
+
+    def test_chunk_budget_pauses_the_sweep(self):
+        """A big workspace must not monopolise the watcher thread."""
+        watcher = _make_watcher()
+        watcher.engine.local = MagicMock()
+        watcher.engine.local.exists.return_value = True
+        # Every directory yields a full chunk and queues one more folder.
+        watcher._local_scan_dirs = []
+
+        def _fake_dir(path, local, dao, /):
+            watcher._local_scan_dirs.append(PurePosixPath(f"/sub{len(path.parts)}"))
+            return LOCAL_SCAN_CHUNK
+
+        with patch.object(watcher, "_scan_local_directory", side_effect=_fake_dir):
+            with patch.object(watcher, "_process_pending_deletions") as mock_del:
+                watcher._scan_local_changes()
+
+        # Paused mid-sweep: deletions must wait for a complete walk.
+        assert watcher._local_scan_dirs
+        mock_del.assert_not_called()
+
+    def test_deletions_only_run_on_a_complete_sweep(self):
+        watcher = _make_watcher()
+        watcher.engine.local = MagicMock()
+        watcher.engine.local.exists.return_value = True
+
+        with patch.object(watcher, "_scan_local_directory", return_value=1):
+            with patch.object(watcher, "_process_pending_deletions") as mock_del:
+                watcher._scan_local_changes()
+
+        mock_del.assert_called_once()
+        assert watcher._local_scan_dirs == []
 
 
 class TestProcessPendingDeletions:
@@ -633,7 +674,7 @@ class TestProcessPendingDeletions:
         watcher.engine.delete_doc.assert_not_called()
 
 
-class TestScanLocalRecursive:
+class TestScanLocalDirectory:
     def _setup(self):
         watcher = _make_watcher()
         local = MagicMock()
@@ -650,9 +691,7 @@ class TestScanLocalRecursive:
         local.get_remote_id.return_value = None
         dao.get_local_children.return_value = []
 
-        seen = set()
-        pending = []
-        watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+        watcher._scan_local_directory(ROOT, local, dao)
 
         dao.insert_local_state.assert_called_once()
 
@@ -673,9 +712,7 @@ class TestScanLocalRecursive:
         )
         dao.get_local_children.return_value = [db_pair]
 
-        seen = set()
-        pending = []
-        watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+        watcher._scan_local_directory(ROOT, local, dao)
 
         dao.update_local_state.assert_called_once()
         assert db_pair.local_digest == "new_digest"
@@ -693,11 +730,24 @@ class TestScanLocalRecursive:
         dao.get_local_children.return_value = [db_pair]
         local.exists.return_value = False
 
-        seen = set()
-        pending = []
-        watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+        watcher._scan_local_directory(ROOT, local, dao)
 
-        assert db_pair in pending
+        assert db_pair in watcher._local_scan_deletions
+
+    def test_subfolder_is_queued_not_recursed(self):
+        """Sub-folders are deferred to the queue so the budget can apply."""
+        watcher, local, dao = self._setup()
+        child_info = MagicMock()
+        child_info.path = PurePosixPath("/root/sub")
+        child_info.folderish = True
+        local.get_children_info.return_value = [child_info]
+        local.is_ignored.return_value = False
+        local.get_remote_id.return_value = None
+        dao.get_local_children.return_value = []
+
+        watcher._scan_local_directory(ROOT, local, dao)
+
+        assert watcher._local_scan_dirs == [child_info.path]
 
     def test_ignored_file_skipped(self):
         watcher, local, dao = self._setup()
@@ -708,9 +758,7 @@ class TestScanLocalRecursive:
         local.is_ignored.return_value = True
         dao.get_local_children.return_value = []
 
-        seen = set()
-        pending = []
-        watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+        watcher._scan_local_directory(ROOT, local, dao)
 
         dao.insert_local_state.assert_not_called()
 
@@ -718,10 +766,8 @@ class TestScanLocalRecursive:
         watcher, local, dao = self._setup()
         local.get_children_info.side_effect = OSError("permission denied")
 
-        seen = set()
-        pending = []
-        # Should not raise
-        watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+        # Should not raise, and contributes nothing to the budget.
+        assert watcher._scan_local_directory(ROOT, local, dao) == 0
 
 
 # --- NEW TESTS BELOW ---

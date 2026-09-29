@@ -48,6 +48,10 @@ CONF_SUBSCRIPTION_ID = "device_sync_subscription_id"
 #: Holds a subscription id (not a flag) so a re-subscription seeds again.
 CONF_BOOTSTRAPPED_FOR = "device_sync_bootstrapped_for"
 
+#: Subscription a partially-finished seed belongs to, so its per-folder
+#: checkpoints are discarded when the subscription changes.
+CONF_SEEDING_FOR = "device_sync_seeding_for"
+
 #: Subscription kind requested from the AMP.
 SUBSCRIPTION_TYPE = "CONTENT"
 
