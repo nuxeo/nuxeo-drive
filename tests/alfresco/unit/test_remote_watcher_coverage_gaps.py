@@ -32,6 +32,7 @@ def _watcher():
     watcher._local_scan_dirs = []
     watcher._local_scan_seen = set()
     watcher._local_scan_deletions = []
+    watcher.first_pass_done = False
     return watcher
 
 

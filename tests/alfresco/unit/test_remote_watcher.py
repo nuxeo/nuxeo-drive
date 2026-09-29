@@ -59,6 +59,7 @@ def _make_watcher():
     w._local_scan_dirs = []
     w._local_scan_seen = set()
     w._local_scan_deletions = []
+    w.first_pass_done = False
     return w
 
 
@@ -809,16 +810,22 @@ class TestHandleChangesExtended:
         # Failure path plus _notify_pass_done both emit on a later pass.
         assert watcher.updated.emit.call_count == 2
 
-    def test_poll_failure_still_completes_the_first_pass(self):
-        """initiate starts the processors, so it must fire even on failure."""
+    def test_poll_failure_starts_processors_but_holds_local_creations(self):
+        """Two separate concerns: workers must start, the seed must not count.
+
+        ``initiate`` wires up the queue manager, so skipping it strands the
+        engine with no workers. ``first_pass_done`` gates local creations, so
+        setting it before the remote view is complete duplicates documents
+        created server-side while Drive was stopped.
+        """
         watcher = _polling_watcher()
         watcher.first_pass_done = False
         watcher._poll_device_sync.side_effect = RuntimeError("unexpected")
 
         watcher._handle_changes(first_pass=True)
 
-        assert watcher.first_pass_done is True
         watcher.initiate.emit.assert_called_once()
+        assert watcher.first_pass_done is False
 
     def test_successful_first_pass_marks_it_done(self):
         watcher = _polling_watcher()
@@ -826,6 +833,20 @@ class TestHandleChangesExtended:
 
         watcher._handle_changes(first_pass=True)
 
+        assert watcher.first_pass_done is True
+        watcher.initiate.emit.assert_called_once()
+
+    def test_failed_first_pass_is_retried_as_a_first_pass(self):
+        """Otherwise local creations stay blocked for the whole session."""
+        watcher = _polling_watcher()
+        watcher.first_pass_done = False
+        watcher._poll_device_sync.side_effect = [RuntimeError("boom"), None]
+
+        watcher._handle_changes(not watcher.first_pass_done)
+        assert watcher.first_pass_done is False
+
+        # The next cycle asks the same question and gets "still the first".
+        watcher._handle_changes(not watcher.first_pass_done)
         assert watcher.first_pass_done is True
 
     def test_no_remote_returns_early(self):

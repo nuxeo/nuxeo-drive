@@ -12,6 +12,7 @@ import pytest
 from alfresco.exceptions import AlfrescoError
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NotFoundError
+from alfresco.models.subscription import SyncState
 
 from nxdrive.alfresco.client.device_sync import (
     CONF_BOOTSTRAPPED_FOR,
@@ -246,6 +247,103 @@ def test_unfiltered_auth_failure_propagates():
 
     with pytest.raises(AlfrescoAuthError):
         watcher._apply_unfiltered()
+
+
+def test_unfiltered_auth_failure_keeps_every_pending_id():
+    """The raise aborts the loop, so untouched ids must survive it too."""
+    watcher = _watcher()
+    watcher._unfiltered_nodes = {"node-1", "node-2", "node-3"}
+    watcher.engine.remote.get_node.side_effect = AlfrescoAuthError("expired")
+
+    with pytest.raises(AlfrescoAuthError):
+        watcher._apply_unfiltered()
+
+    assert watcher._unfiltered_nodes == {"node-1", "node-2", "node-3"}
+
+
+def test_unfiltered_ids_after_the_failure_are_not_dropped():
+    watcher = _watcher()
+    watcher._unfiltered_nodes = {"a", "b", "c"}
+    # "a" resolves, "b" blows up, "c" was never reached.
+    watcher._resolve_unfiltered_node = MagicMock(
+        side_effect=[True, AlfrescoAuthError("expired")]
+    )
+
+    with pytest.raises(AlfrescoAuthError):
+        watcher._apply_unfiltered()
+
+    assert watcher._unfiltered_nodes == {"b", "c"}
+
+
+# -- C2: a reset is only acknowledged once the replay is guaranteed --------
+
+
+def test_failed_resubscribe_leaves_the_sync_unacknowledged():
+    watcher = _watcher()
+    watcher._provisioner = MagicMock(subscriber_id="s", subscription_id="sub-1")
+    watcher._provisioner.resubscribe.return_value = False
+    watcher._root_node_id = "root-id"
+    watcher.engine.remote.get_sync.return_value = MagicMock(
+        status=SyncState.READY,
+        changes=[],
+        more_changes=False,
+        resets=["sub-1"],
+        missing=[],
+    )
+    watcher.engine.remote.start_sync.return_value = MagicMock(
+        status=SyncState.OK, sync_id="sync-1", message=None
+    )
+
+    watcher._poll_device_sync()
+
+    watcher.engine.remote.clear_sync.assert_not_called()
+
+
+def test_successful_resubscribe_acknowledges_the_sync():
+    watcher = _watcher()
+    watcher._provisioner = MagicMock(subscriber_id="s", subscription_id="sub-1")
+    watcher._provisioner.resubscribe.return_value = True
+    watcher._root_node_id = "root-id"
+    watcher.engine.remote.get_sync.return_value = MagicMock(
+        status=SyncState.READY,
+        changes=[],
+        more_changes=False,
+        resets=["sub-1"],
+        missing=[],
+    )
+    watcher.engine.remote.start_sync.return_value = MagicMock(
+        status=SyncState.OK, sync_id="sync-1", message=None
+    )
+
+    watcher._poll_device_sync()
+
+    watcher.engine.remote.clear_sync.assert_called_once()
+
+
+def test_resubscribe_without_a_provisioner_reports_failure():
+    watcher = _watcher()
+    watcher._provisioner = None
+    assert watcher._resubscribe() is False
+
+
+# -- C3: an unknown parent must not be silently acknowledged ---------------
+
+
+def test_unknown_parent_schedules_a_reseed():
+    watcher = _watcher()
+    info = _remote_info("orphan.txt", uid="child-1")
+    info.parent_uid = "missing-parent"
+    watcher.engine.remote._change_to_remote_file_info.return_value = info
+    watcher._is_filtered_path = MagicMock(return_value=False)
+    watcher._fetch_node_info = MagicMock(return_value=info)
+    watcher._resolve_parent = MagicMock(return_value=None)
+    watcher.dao.get_normal_state_from_remote.return_value = None
+
+    change = MagicMock(node_id="child-1", change_type="CREATE_REPOS", seq_no=1)
+
+    assert watcher._apply_change(change) is False
+    watcher.dao.add_path_to_scan.assert_called_once_with("missing-parent")
+    watcher.dao.update_config.assert_any_call(CONF_BOOTSTRAPPED_FOR, None)
 
 
 # -- C11: nothing may escape the poll and kill the watcher thread -----------

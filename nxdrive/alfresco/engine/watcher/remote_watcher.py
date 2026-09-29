@@ -118,7 +118,6 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         return metrics
 
     def _execute(self) -> None:
-        first_pass = True
         now = monotonic
         handle_changes = self._handle_changes
         interact = self._interact
@@ -126,10 +125,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         try:
             while "working":
                 if now() > self._next_check:
-                    handle_changes(first_pass)
-                    # @tooltip decorator swallows return values,
-                    # so always flip first_pass after the first call.
-                    first_pass = False
+                    # ``first_pass_done`` is the authority rather than a local
+                    # flag: a failed first pass must be retried as a first pass,
+                    # or local creations stay blocked for the whole session.
+                    # Re-emitting ``initiate`` is harmless, ``init_processors()``
+                    # is idempotent.
+                    handle_changes(not self.first_pass_done)
                     self._next_check = now() + Options.delay
 
                 interact()
@@ -555,19 +556,30 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         failure is logged loudly and the cycle is skipped so the problem
         surfaces instead of being masked by an O(tree) walk.
 
-        The pass is always notified, even when the cycle aborts early:
-        ``initiate`` (emitted on the first pass) is what starts the queue
-        manager's processors, so skipping it would leave the engine with no
-        workers for the rest of the session.
+        The signal is always emitted, but the pass is only *recorded* as done
+        when it succeeded. These are separate concerns that the base class
+        bundles together:
+
+        - ``initiate`` starts the queue manager's processors. Skipping it
+          leaves the engine with no workers for the rest of the session.
+        - ``first_pass_done`` gates local creations
+          (``Processor._ensure_remote_first_pass``). Setting it before the
+          remote view is complete duplicates documents created server-side
+          while Drive was stopped, instead of flagging them as conflicts.
         """
+        succeeded = False
         try:
-            return self._do_handle_changes(first_pass)
+            succeeded = bool(self._do_handle_changes(first_pass))
+            return succeeded
         finally:
-            self._notify_pass_done(first_pass)
-            # Directly call _check_last_sync because the @tooltip decorator
-            # swallows return values, preventing the signal-based path from
-            # working reliably.
-            if not first_pass:
+            if first_pass:
+                if succeeded:
+                    self.first_pass_done = True
+                self.initiate.emit()
+            else:
+                self.updated.emit()
+                # Called directly because the @tooltip decorator swallows
+                # return values, breaking the signal-based path.
                 self.engine._check_last_sync()
 
     def _do_handle_changes(self, first_pass: bool, /) -> bool:
@@ -681,11 +693,19 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         node_ids = sorted(self._unfiltered_nodes)
         self._unfiltered_nodes.clear()
         log.debug(f"Resolving {len(node_ids)} unfiltered node(s)")
-        for node_id in node_ids:
+        for index, node_id in enumerate(node_ids):
             self._interact()
-            if not self._resolve_unfiltered_node(node_id):
-                # The change feed never replays already-existing content, so
-                # a dropped id is the only handle we have on it.
+            try:
+                resolved = self._resolve_unfiltered_node(node_id)
+            except Exception:
+                # An auth failure (or a shutdown) aborts the loop, so put back
+                # this id and every one still untouched: the change feed never
+                # replays already-existing content, and a dropped id is the
+                # only handle we have on it.
+                self._unfiltered_nodes.update(node_ids[index:])
+                self._next_check = monotonic() + FILTER_RESCAN_DELAY
+                raise
+            if not resolved:
                 self._unfiltered_nodes.add(node_id)
 
         if self._unfiltered_nodes:
@@ -796,12 +816,14 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         return True
 
-    def _resubscribe(self) -> None:
+    def _resubscribe(self) -> bool:
         """Recreate the subscription so the server replays the full content."""
         if not self._provisioner or not self._root_node_id:
-            return
+            return False
         if not self._provisioner.resubscribe(self._root_node_id):
             log.error("Re-subscription failed, change feed is stale")
+            return False
+        return True
 
     # -- Initial seeding -----------------------------------------------------
 
@@ -962,10 +984,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     f"Server requested a reset of {status.resets} — the "
                     "local view is stale, re-subscribing for a full replay"
                 )
-                self._resubscribe()
-                # Re-subscribing replays everything, so this sync's contents
-                # are redundant and acknowledging it avoids a leaked cursor.
-                return total, True
+                # Only a successful re-subscription replays this content;
+                # otherwise the sync stays unacknowledged so it is re-sent.
+                return total, self._resubscribe()
 
             total += self._apply_changes(status.changes)
 
@@ -1109,10 +1130,16 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         parent_pair = self._resolve_parent(info)
         if parent_pair is None:
-            log.warning(
-                f"Parent {info.parent_uid!r} of {info.name!r} is unknown, "
-                "skipping (it should have arrived earlier in seq_no order)"
+            # Normally the parent arrived earlier in seq_no order, but a seed
+            # that missed it (or an earlier page that failed) breaks that.
+            # Acknowledging here would drop the child for good, so record the
+            # parent as owed work and force a seed that can find it.
+            log.error(
+                f"Parent {info.parent_uid!r} of {info.name!r} is unknown; "
+                "scheduling a re-seed so it is not lost"
             )
+            self.dao.add_path_to_scan(info.parent_uid)
+            self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
             return False
 
         remote_parent_path = (
