@@ -550,11 +550,19 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 f"existing local pair {existing!r}"
             )
             # A local creation that was never uploaded means the remote node
-            # was created independently: same name on both sides is a
-            # conflict, not a link.  ``versioned`` bumps the row version so
-            # an in-flight processor holding stale state cannot overwrite
-            # the conflict via ``synchronize_state``'s optimistic lock.
-            conflicting = not existing.remote_ref and existing.local_state == "created"
+            # was created independently: for a document, same name on both
+            # sides is a conflict rather than a link. Folders are merged
+            # instead -- the processor already adopts a same-named remote
+            # folder, and "keep local or remote" cannot be answered for a
+            # folder without discarding its children. ``versioned`` bumps the
+            # row version so an in-flight processor holding stale state cannot
+            # overwrite the conflict via ``synchronize_state``'s optimistic
+            # lock.
+            conflicting = (
+                not child_info.folderish
+                and not existing.remote_ref
+                and existing.local_state == "created"
+            )
             if conflicting:
                 existing.remote_state = "created"
             self.dao.update_remote_state(
@@ -1428,7 +1436,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     dao.insert_local_state(child_info, path)
 
                 if child_info.folderish:
-                    self._local_scan_dirs.append(child_info.path)
+                    # Jump the queue: appending would hold this folder's
+                    # contents back until the rest of the tree has been swept,
+                    # which is minutes on a large workspace.
+                    self._local_scan_dirs.insert(0, child_info.path)
 
         # Detect files/folders deleted locally while the app was not running.
         # Remaining db_by_name entries have no corresponding local file.

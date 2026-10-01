@@ -930,6 +930,20 @@ class AlfrescoProcessor(_ProcessorBase):
         # so that the next remote scan doesn't see a spurious mismatch.
         if fs_item_info.digest:
             doc_pair.local_digest = fs_item_info.digest
+
+        # The watcher may have raised a conflict on this pair while the
+        # creation was in flight. ``update_remote_state`` is not version
+        # checked, so writing now would erase the conflict and leave the row
+        # claiming an ordinary local creation.
+        current = self.dao.get_state_from_id(doc_pair.id)
+        if current and current.pair_state == "conflicted":
+            log.info(
+                f"Keeping the conflict raised for {doc_pair.local_name!r} "
+                "while its creation was in flight"
+            )
+            self.remove_void_transfers(doc_pair)
+            return
+
         self.dao.update_remote_state(
             doc_pair,
             fs_item_info,

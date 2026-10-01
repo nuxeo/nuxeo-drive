@@ -509,44 +509,69 @@ class TestGetFsChildren:
 
 
 class TestMakeFolder:
+    """The created node is re-fetched because only that carries a path."""
+
+    @staticmethod
+    def _node(name, node_id, path):
+        node = MagicMock()
+        node.name = name
+        node.id = node_id
+        node.parent_id = "parent"
+        node.is_folder = True
+        node.is_file = False
+        node.modified_at = None
+        node.created_at = None
+        node.modified_by_user = None
+        # The REST API returns the path *to* the node, not including it.
+        node.path = (
+            {"elements": [{"name": e} for e in path]} if path is not None else None
+        )
+        return node
+
     def test_success(self, _client_patch) -> None:
         remote = _build_remote(_client_patch)
-        folder_node = MagicMock()
-        folder_node.name = "NewDir"
-        folder_node.id = "new-id"
-        folder_node.parent_id = "parent"
-        folder_node.is_folder = True
-        folder_node.is_file = False
-        folder_node.modified_at = None
-        folder_node.created_at = None
-        folder_node.modified_by_user = None
-        folder_node.path = None
-        remote.client.nodes.create_folder.return_value = folder_node
+        remote.client.nodes.create_folder.return_value = self._node(
+            "NewDir", "new-id", None
+        )
+        remote.client.nodes.get.return_value = self._node(
+            "NewDir", "new-id", ["Company Home", "parent"]
+        )
 
         info = remote.make_folder("parent", "NewDir")
         assert info.uid == "new-id"
         assert info.folderish is True
+
+    def test_the_returned_info_carries_the_full_path(self, _client_patch) -> None:
+        """A truncated path is stored as ``remote_parent_path`` and breaks
+        later child resolution."""
+        remote = _build_remote(_client_patch)
+        remote.client.nodes.create_folder.return_value = self._node(
+            "NewDir", "new-id", None
+        )
+        remote.client.nodes.get.return_value = self._node(
+            "NewDir", "new-id", ["Company Home", "parent"]
+        )
+
+        info = remote.make_folder("parent", "NewDir")
+
+        assert info.path == "/Company Home/parent/NewDir"
+        remote.client.nodes.get.assert_called_once_with("new-id", include=["path"])
 
     def test_conflict_adopts_existing(self, _client_patch) -> None:
         from alfresco.exceptions import ConflictError
 
         remote = _build_remote(_client_patch)
         remote.client.nodes.create_folder.side_effect = ConflictError("duplicate")
-
-        existing = MagicMock()
-        existing.name = "Existing"
-        existing.id = "existing-id"
-        existing.parent_id = "parent"
-        existing.is_folder = True
-        existing.is_file = False
-        existing.modified_at = None
-        existing.created_at = None
-        existing.modified_by_user = None
-        existing.path = None
-        remote.client.nodes.iter_children.return_value = [existing]
+        remote.client.nodes.iter_children.return_value = [
+            self._node("Existing", "existing-id", None)
+        ]
+        remote.client.nodes.get.return_value = self._node(
+            "Existing", "existing-id", ["Company Home", "parent"]
+        )
 
         info = remote.make_folder("parent", "Existing")
         assert info.uid == "existing-id"
+        assert info.path == "/Company Home/parent/Existing"
 
 
 class TestStreamFile:

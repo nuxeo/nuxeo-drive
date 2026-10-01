@@ -1004,7 +1004,10 @@ class AlfrescoRemote:
                 # original error so it is not silently swallowed.
                 raise
             node = existing
-        return self._node_to_remote_file_info(node)
+        # Neither nodes.create_folder() nor the children listing accepts
+        # ``include``, so the node carries no path and the pair would record a
+        # truncated ``remote_parent_path``.
+        return self._get_with_path(node.id)
 
     def _find_child_folder(self, parent_id: str, name: str, /) -> Optional[Node]:
         """Return the existing child folder *name* under *parent_id*,

@@ -642,6 +642,7 @@ class LocalWatcher(EngineWorker):
         self._event_handler = DriveFSEventHandler(
             self, ignore_patterns=ignore_patterns, engine=self.engine
         )
+        log.info(f"Watchdog event filter: {self._event_handler!r}")
         self._observer.schedule(self._event_handler, base, recursive=True)
 
         if Feature.synchronization:
@@ -1338,6 +1339,12 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
         )
 
     def on_any_event(self, event: FileSystemEvent, /) -> None:
+        # Temporary (NXDRIVE-3283): directory moves reach the fsevents emitter
+        # but are never queued. Logged here, before the filter below, to tell
+        # "watchdog never dispatched it" apart from "we dropped it".
+        if event.event_type == "moved":
+            log.info(f"Watchdog dispatched a move: {event!r}")
+
         # Skip read-only inotify events (opened, closed, closed_no_write) that
         # some watchdog backends surface but that carry no filesystem change.
         # Processing them for every file access floods the queue, blocks the

@@ -1,7 +1,7 @@
 """Unit tests for nxdrive.alfresco.engine.watcher.remote_watcher."""
 
 from datetime import datetime, timezone
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -1112,3 +1112,99 @@ class TestExecuteLoop:
                 watcher._execute()
 
         watcher.remoteWatcherStopped.emit.assert_called_once()
+
+
+class TestMatchOrCreateChild:
+    """Same name on both sides: documents conflict, folders merge.
+
+    A folder conflict is not actionable -- "keep local" or "keep remote"
+    cannot be answered without discarding the folder's children -- and the
+    processor already adopts a same-named remote folder, so flagging one here
+    only makes the conflict count depend on which side wins the race.
+    """
+
+    @staticmethod
+    def _unlinked_local_pair():
+        return MagicMock(id=7, remote_ref="", local_state="created")
+
+    @staticmethod
+    def _remote(folderish):
+        return MagicMock(
+            uid="remote-id", name="nested", folderish=folderish, parent_uid="p"
+        )
+
+    def _link(self, folderish):
+        watcher = _make_watcher()
+        existing = self._unlinked_local_pair()
+        watcher.dao.get_state_from_local.return_value = existing
+        watcher.dao.get_normal_state_from_remote.return_value = None
+
+        watcher._match_or_create_child(
+            self._remote(folderish),
+            Path("conflicts/nested"),
+            Path("conflicts"),
+            "/Company Home/conflicts",
+        )
+        return watcher, existing
+
+    def test_a_folder_is_linked_not_conflicted(self):
+        watcher, existing = self._link(folderish=True)
+
+        assert existing.remote_state != "created"
+        assert watcher.dao.update_remote_state.call_args.kwargs["versioned"] is False
+
+    def test_a_document_still_conflicts(self):
+        watcher, existing = self._link(folderish=False)
+
+        assert existing.remote_state == "created"
+        assert watcher.dao.update_remote_state.call_args.kwargs["versioned"] is True
+
+    def test_a_merged_folder_claims_the_remote_id(self):
+        """Only a conflict must leave the xattr alone."""
+        watcher, _ = self._link(folderish=True)
+
+        watcher.engine.local.set_remote_id.assert_called_once()
+
+    def test_a_conflicting_document_does_not_claim_the_remote_id(self):
+        watcher, _ = self._link(folderish=False)
+
+        watcher.engine.local.set_remote_id.assert_not_called()
+
+
+class TestNewFolderPriority:
+    """A newly found folder is swept before the rest of the backlog.
+
+    The sweep only examines LOCAL_SCAN_CHUNK entries per cycle, so appending
+    a new folder holds its contents back until the whole tree has been walked
+    -- minutes on a large workspace, which is what QA saw as a slow upload.
+    """
+
+    @staticmethod
+    def _child(path, folderish=True):
+        info = MagicMock()
+        info.path = PurePosixPath(path)
+        info.folderish = folderish
+        return info
+
+    def _scan(self, *, known):
+        watcher = _make_watcher()
+        local = MagicMock()
+        dao = MagicMock()
+        local.get_children_info.return_value = [self._child("/root/fresh")]
+        local.is_ignored.return_value = False
+        local.get_remote_id.return_value = None
+        if known:
+            pair = MagicMock(local_name="fresh", pair_state="synchronized", processor=0)
+            dao.get_local_children.return_value = [pair]
+        else:
+            dao.get_local_children.return_value = []
+
+        watcher._local_scan_dirs = [PurePosixPath("/root/backlog")]
+        watcher._scan_local_directory(ROOT, local, dao)
+        return watcher._local_scan_dirs
+
+    def test_a_new_folder_is_scanned_before_the_backlog(self):
+        assert self._scan(known=False)[0] == PurePosixPath("/root/fresh")
+
+    def test_an_already_known_folder_waits_its_turn(self):
+        assert self._scan(known=True)[-1] == PurePosixPath("/root/fresh")
