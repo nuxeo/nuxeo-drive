@@ -215,7 +215,7 @@ class DocumentsDialog(DialogMixin):
         for item in items:
             path = item.get_path()
             if item.state == qt.Unchecked:
-                self.engine.add_filter(path)
+                self.engine.add_filter(path, node_id=item.get_id())
             elif item.state == qt.Checked:
                 self.engine.remove_filter(path)
             elif item.state == qt.PartiallyChecked:
@@ -252,7 +252,7 @@ class DocumentsDialog(DialogMixin):
         for child in item.get_children():
             child_path = child.get_path()
             if child.state == qt.Unchecked:
-                self.engine.add_filter(child_path)
+                self.engine.add_filter(child_path, node_id=child.get_id())
             elif child.state == qt.PartiallyChecked:
                 self._apply_partial_children(child)
             # Checked children: nothing to do, they remain synced.
