@@ -37,6 +37,7 @@ from nxdrive.drive.engine.watcher.remote_watcher_base import RemoteWatcherBase
 from nxdrive.drive.exceptions import ThreadInterrupt
 from nxdrive.drive.objects import DocPair, Metrics, RemoteFileInfo
 from nxdrive.drive.options import Options
+from nxdrive.drive.qt.imports import Slot
 
 if TYPE_CHECKING:
     from nxdrive.alfresco.engine.engine import AlfrescoEngine
@@ -140,6 +141,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         self._local_scan_dirs: List[Path] = []
         self._local_scan_seen: Set[str] = set()
         self._local_scan_deletions: List[DocPair] = []
+        self._local_scan_incomplete = False
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
@@ -648,12 +650,13 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
             # A new subscription starts empty: the feed only carries events
             # from its creation onward, so existing content is seeded once.
-            self._bootstrap_if_needed()
+            seeded = self._bootstrap_if_needed()
 
             # Widening the selection exposes content the feed never mentions.
             self._apply_unfiltered()
 
-            self._poll_device_sync()
+            drained = self._poll_device_sync()
+            completed = seeded and drained
         except ThreadInterrupt:
             # Cooperative shutdown from _interact(), not a failure.
             raise
@@ -686,7 +689,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         else:
             self.empty_polls += 1
 
-        return True
+        if not completed:
+            log.warning(
+                "Remote view is not complete after this cycle; local "
+                "creations stay held until a pass finishes cleanly"
+            )
+        return completed
 
     def scan_pair(self, remote_path: str, /) -> None:
         """Nudge the poll timer after a filter change.
@@ -696,6 +704,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         """
         self._next_check = monotonic() + FILTER_RESCAN_DELAY
 
+    @Slot(str, object)
     def queue_unfiltered(self, remote_path: str, node_ids: List[str], /) -> None:
         """Record nodes whose filter was just lifted.
 
@@ -865,7 +874,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
     # -- Initial seeding -----------------------------------------------------
 
-    def _bootstrap_if_needed(self) -> None:
+    def _bootstrap_if_needed(self) -> bool:
         """Seed the DAO with existing remote content, once per subscription.
 
         Device Sync reports events from subscription creation onward, so a
@@ -875,14 +884,18 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         Keyed on the subscription id rather than a boolean so that a
         re-subscription (after a server-side reset) seeds again.
+
+        Returns whether the local view can be considered seeded -- the first
+        pass must not complete on a half-walked tree, or local creations are
+        released against an incomplete remote view and get duplicated.
         """
         provisioner = self._provisioner
         if not provisioner or not provisioner.subscription_id:
-            return
+            return False
 
         done_for = self.dao.get_config(CONF_BOOTSTRAPPED_FOR)
         if done_for == provisioner.subscription_id:
-            return
+            return True
 
         # Checkpoints belong to one subscription; a different one invalidates
         # them, otherwise a resumed seed would skip folders it never walked.
@@ -904,7 +917,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 "retried on the next poll cycle (already-walked folders are "
                 "skipped)"
             )
-            return
+            return False
 
         self._reset_scan_progress()
         self.dao.update_config(CONF_SEEDING_FOR, None)
@@ -914,6 +927,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             f"Seeding finished in {monotonic() - start:.2f}s, "
             f"queued {queue_after - queue_before} item(s)"
         )
+        return True
 
     def _reset_scan_progress(self) -> None:
         """Drop the per-folder checkpoints of a seed."""
@@ -923,17 +937,24 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
     # -- Device Sync change feed ---------------------------------------------
 
-    def _poll_device_sync(self) -> None:
+    def _poll_device_sync(self) -> bool:
         """Consume the change feed, one batch per POST/GET/DELETE round.
 
         The service caps a batch at 100 changes and only moves its cursor
         (``last_seq_num``) when a sync is cleared, so a backlog is drained by
         repeating the whole cycle -- re-polling one sync returns the identical
         payload forever.
+
+        The pending bookmark is stored per *subscription*, not per sync, so
+        clearing anything other than the most recently started sync would
+        commit a bookmark that belongs to a batch we never applied.
+
+        Returns whether the feed was drained: a cycle that left changes
+        undelivered must not count as a completed first pass.
         """
         provisioner = self._provisioner
         if not provisioner:
-            return
+            return False
 
         remote = self.engine.remote
         subscriber_id = provisioner.subscriber_id
@@ -941,6 +962,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         total_changes = 0
         previous_seq: Optional[int] = None
         rounds = 0
+        drained = False
 
         for rounds in range(1, MAX_SYNC_ROUNDS + 1):
             self._interact()
@@ -957,12 +979,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     f"(subscriber={subscriber_id!r}, "
                     f"subscription={subscription_id!r})"
                 )
-                return
+                return False
 
             sync_id = started.sync_id
             if not sync_id:
                 log.error(f"start_sync returned no sync_id: {started!r}")
-                return
+                return False
 
             batch = self._consume_sync(subscriber_id, subscription_id, sync_id)
             total_changes += batch.applied
@@ -979,6 +1001,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             # but not yet visible. Committing it would skip them for good, so
             # an idle sync is abandoned rather than cleared.
             if batch.idle and not self._sync_keepalive_due():
+                drained = True
                 break
 
             # DELETE is what commits ``last_seq_num``; until it lands the
@@ -986,7 +1009,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             try:
                 remote.clear_sync(subscriber_id, subscription_id, sync_id)
             except Exception:
-                log.warning(
+                log.error(
                     f"Could not clear sync {sync_id!r}, stopping this cycle "
                     "so the batch is not re-applied",
                     exc_info=True,
@@ -995,6 +1018,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self.dao.update_config(CONF_LAST_SYNC_CLEAR, str(time()))
 
             if not batch.more:
+                drained = True
                 break
 
             # An expired sync is cleared with a 204 without moving the cursor,
@@ -1015,6 +1039,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         if total_changes:
             log.debug(f"Applied {total_changes} change(s) in {rounds} batch(es)")
+        return drained
 
     def _sync_keepalive_due(self) -> bool:
         """Whether an idle sync should be cleared anyway.
@@ -1341,6 +1366,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self._local_scan_dirs = [ROOT]
             self._local_scan_seen = set()
             self._local_scan_deletions = []
+            self._local_scan_incomplete = False
 
         start = monotonic()
         examined = 0
@@ -1360,9 +1386,16 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         # Only a completed sweep has seen every surviving xattr, so deletions
         # can finally be told apart from renames.
-        self._process_pending_deletions(
-            self._local_scan_deletions, self._local_scan_seen
-        )
+        if self._local_scan_incomplete:
+            log.warning(
+                "Local scan finished with unreadable directories; skipping "
+                f"{len(self._local_scan_deletions)} deletion candidate(s) "
+                "until a clean sweep confirms them"
+            )
+        else:
+            self._process_pending_deletions(
+                self._local_scan_deletions, self._local_scan_seen
+            )
         self._local_scan_seen = set()
         self._local_scan_deletions = []
         log.debug(f"Alfresco local change scan finished in {monotonic() - start:.2f}s")
@@ -1376,6 +1409,15 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         try:
             children_info = local.get_children_info(path)
         except OSError:
+            # Deletion is decided by what the sweep did *not* see, so a
+            # directory we failed to list would make anything moved into it
+            # look deleted.
+            log.error(
+                f"Could not list {path!r}; local deletions will not be "
+                "processed for this sweep",
+                exc_info=True,
+            )
+            self._local_scan_incomplete = True
             return 0
 
         # Build a map of DB children keyed by name

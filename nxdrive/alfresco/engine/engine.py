@@ -34,7 +34,7 @@ from nxdrive.drive.exceptions import RemoteUnauthorized
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import Binder, EngineDef
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import Slot
+from nxdrive.drive.qt.imports import Signal, Slot
 from nxdrive.drive.utils import set_path_readonly, unset_path_readonly
 
 if TYPE_CHECKING:
@@ -58,6 +58,10 @@ class AlfrescoEngine(Engine):
     """
 
     type = _st.get("ALFRESCO").engine_type
+
+    #: Un-filtered path and the node ids it covered, delivered to the watcher
+    #: thread rather than written across it.
+    _unfiltered = Signal(str, object)
 
     def __init__(
         self,
@@ -126,9 +130,10 @@ class AlfrescoEngine(Engine):
 
         super().remove_filter(path)
 
-        watcher = getattr(self, "_remote_watcher", None)
-        if watcher is not None:
-            watcher.queue_unfiltered(path, node_ids)
+        # Queued so the watcher's own thread mutates its state: a direct call
+        # from the picker races the sweep that reads and clears it, and a
+        # dropped id is the only handle on content the feed never replays.
+        self._unfiltered.emit(path, node_ids)
 
     def needs_filters_selection(self) -> bool:
         """Return True if the user hasn't yet selected folders to sync.
@@ -463,6 +468,7 @@ class AlfrescoEngine(Engine):
         )
         self._remote_watcher.updated.connect(self._check_last_sync)
         self._scanPair.connect(self._remote_watcher.scan_pair)
+        self._unfiltered.connect(self._remote_watcher.queue_unfiltered)
 
     @Slot()
     def _check_last_sync(self) -> None:

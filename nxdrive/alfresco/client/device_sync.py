@@ -18,6 +18,7 @@ driven by :class:`~nxdrive.alfresco.engine.watcher.remote_watcher.AlfrescoRemote
 this module only provisions.
 """
 
+from enum import Enum
 from logging import getLogger
 from typing import TYPE_CHECKING, Optional
 
@@ -31,6 +32,21 @@ if TYPE_CHECKING:
 __all__ = ("DEVICE_SYNC_CLIENT_VERSION", "DeviceSyncProvisioner")
 
 log = getLogger(__name__)
+
+
+class DeleteOutcome(Enum):
+    """Why a subscription delete did or did not happen.
+
+    ``FAILED`` and ``REFUSED`` both mean the subscription is still there, but
+    they call for opposite handling: a transient fault is worth retrying with
+    the id kept, whereas a refusal never succeeds on its own and the only
+    remaining cleanup is removing the subscriber.
+    """
+
+    GONE = "gone"
+    FAILED = "failed"
+    REFUSED = "refused"
+
 
 #: Version advertised to Device Sync when registering a subscriber and when
 #: starting a sync. This is the ``alfresco-rest-client`` library version, not
@@ -56,6 +72,11 @@ CONF_SEEDING_FOR = "device_sync_seeding_for"
 #: refreshes the server's ``last_sync_time``, and a subscription that is not
 #: refreshed within ``sync.cleanup.keepPeriod`` (28 days) is reset.
 CONF_LAST_SYNC_CLEAR = "device_sync_last_clear"
+
+#: Subscriptions the server refused to delete, kept so a later cleanup still
+#: has a handle on them. An uncleared subscription pins its server-side cursor
+#: indefinitely, and there is no reaper.
+CONF_ORPHAN_SUBSCRIPTIONS = "device_sync_orphan_subscriptions"
 
 #: Subscription kind requested from the AMP.
 SUBSCRIPTION_TYPE = "CONTENT"
@@ -226,7 +247,12 @@ class DeviceSyncProvisioner:
             f"(repo={syncer.repo_info.version_label!r}, "
             f"min client={syncer.dsync_client_version_min!r})"
         )
-        self.remote.set_sync_service_url(syncer.uri)
+        # Rebinding swaps the auth handler on a client the processors may
+        # already be using. Compare against what the client actually holds,
+        # not the stored value: after a restart the config is populated but
+        # the fresh client is still unbound.
+        if self.remote.sync_service_url != syncer.uri:
+            self.remote.set_sync_service_url(syncer.uri)
         self.dao.update_config(CONF_SERVICE_URL, syncer.uri)
 
         if not self._check_service_reachable():
@@ -280,7 +306,17 @@ class DeviceSyncProvisioner:
                     f"{subscription.target_node_id!r}, expected {root_node_id!r} — "
                     "recreating"
                 )
-                self._delete_subscription(subscriber_id, stored)
+                outcome = self._delete_subscription(subscriber_id, stored)
+                if outcome is DeleteOutcome.FAILED:
+                    # Creating a replacement would overwrite the stored id and
+                    # leave this one unreachable; try again next cycle.
+                    log.warning(
+                        f"Keeping subscription {stored!r} until it can be "
+                        "deleted; provisioning will retry"
+                    )
+                    return ""
+                if outcome is DeleteOutcome.REFUSED:
+                    self._record_orphan(stored)
 
         return self._create_subscription(subscriber_id, root_node_id)
 
@@ -316,7 +352,19 @@ class DeviceSyncProvisioner:
         """
         log.warning(f"Re-subscribing to {root_node_id!r} after a server-side reset")
         if self.subscriber_id and self.subscription_id:
-            self._delete_subscription(self.subscriber_id, self.subscription_id)
+            outcome = self._delete_subscription(
+                self.subscriber_id, self.subscription_id
+            )
+            if outcome is DeleteOutcome.FAILED:
+                # The id below is the only handle on it, and the next line
+                # would erase it. Retry rather than orphan the subscription.
+                log.warning(
+                    f"Keeping subscription {self.subscription_id!r} until it "
+                    "can be deleted; the reset will be re-sent"
+                )
+                return False
+            if outcome is DeleteOutcome.REFUSED:
+                self._record_orphan(self.subscription_id)
 
         self.dao.update_config(CONF_SUBSCRIPTION_ID, None)
         self.subscription_id = ""
@@ -328,25 +376,46 @@ class DeviceSyncProvisioner:
         self.subscription_id = subscription_id
         return True
 
-    def _delete_subscription(self, subscriber_id: str, subscription_id: str, /) -> bool:
+    def _delete_subscription(
+        self, subscriber_id: str, subscription_id: str, /
+    ) -> DeleteOutcome:
         try:
             self.remote.client.sync_amp.delete_subscription(
                 subscriber_id, subscription_id
             )
             log.debug(f"Deleted subscription {subscription_id!r}")
-            return True
+            return DeleteOutcome.GONE
         except NotFoundError:
             # Already gone server-side, so the local id is safe to drop.
             log.debug(f"Subscription {subscription_id!r} already absent")
-            return True
-        except AlfrescoError:
-            # Deleting a subscription whose target node was permanently
-            # removed fails server-side with HTTP 400; never fatal here.
+            return DeleteOutcome.GONE
+        except AlfrescoError as exc:
+            # The AMP answers HTTP 400 for a subscription whose target node is
+            # already gone, and retrying never clears it.
+            if exc.status == 400:
+                log.error(
+                    f"Server refuses to delete subscription {subscription_id!r}"
+                    f" ({exc}); it can only be removed with its subscriber"
+                )
+                return DeleteOutcome.REFUSED
             log.warning(
-                f"Could not delete subscription {subscription_id!r}",
+                f"Could not delete subscription {subscription_id!r}, " "will retry",
                 exc_info=True,
             )
-            return False
+            return DeleteOutcome.FAILED
+
+    def _record_orphan(self, subscription_id: str, /) -> None:
+        """Keep a refused subscription's id so cleanup still has a handle."""
+        stored = self.dao.get_config(CONF_ORPHAN_SUBSCRIPTIONS) or ""
+        orphans = [o for o in stored.split(",") if o]
+        if subscription_id in orphans:
+            return
+        orphans.append(subscription_id)
+        self.dao.update_config(CONF_ORPHAN_SUBSCRIPTIONS, ",".join(orphans))
+        log.error(
+            f"Subscription {subscription_id!r} left on the server; its cursor "
+            "stays pinned until it is removed"
+        )
 
     def teardown(self) -> None:
         """Remove this device's server-side Device Sync state.
@@ -364,11 +433,20 @@ class DeviceSyncProvisioner:
             f"subscription={subscription_id!r}"
         )
 
-        subscription_gone = True
         if subscriber_id and subscription_id:
-            subscription_gone = self._delete_subscription(
-                subscriber_id, subscription_id
-            )
+            outcome = self._delete_subscription(subscriber_id, subscription_id)
+            if outcome is DeleteOutcome.FAILED:
+                # Removing the subscriber now would take the only route to
+                # this subscription with it; keep both ids and retry.
+                log.warning(
+                    f"Leaving subscriber {subscriber_id!r} in place so "
+                    f"subscription {subscription_id!r} can be retried"
+                )
+                return
+            if outcome is DeleteOutcome.REFUSED:
+                # Deleting the subscriber is the only cleanup left, and the
+                # orphan list keeps a handle on what it leaves behind.
+                self._record_orphan(subscription_id)
 
         subscriber_gone = True
         if subscriber_id:
@@ -387,7 +465,7 @@ class DeviceSyncProvisioner:
 
         # Dropping an id we failed to delete would strand the server-side
         # state with no handle left to retry or clean it up.
-        if not (subscription_gone and subscriber_gone):
+        if not subscriber_gone:
             return
 
         for key in (

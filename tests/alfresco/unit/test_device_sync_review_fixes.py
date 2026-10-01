@@ -16,6 +16,7 @@ from alfresco.models.subscription import SyncState
 
 from nxdrive.alfresco.client.device_sync import (
     CONF_BOOTSTRAPPED_FOR,
+    CONF_ORPHAN_SUBSCRIPTIONS,
     CONF_SEEDING_FOR,
     CONF_SUBSCRIBER_ID,
     CONF_SUBSCRIPTION_ID,
@@ -534,3 +535,124 @@ def test_unbind_stops_engine_before_teardown():
         engine.unbind()
 
     assert order == ["stop", "teardown", "super"]
+
+
+# -- Tier 2: a refused delete is not a transient one -------------------------
+
+
+def _refusal():
+    return AlfrescoError("Duplicate/invalid target", 400)
+
+
+class TestTeardownDeleteOutcome:
+    """A refusal never succeeds alone, a transient fault is worth retrying.
+
+    Deleting the subscriber takes the only route to its subscriptions with
+    it, so it must not run while the subscription delete is still retryable.
+    """
+
+    def test_a_transient_failure_spares_the_subscriber(self):
+        prov = _provisioner()
+        prov.remote.client.sync_amp.delete_subscription.side_effect = AlfrescoError(
+            "503", 503
+        )
+
+        prov.teardown()
+
+        prov.remote.client.sync_amp.delete_subscriber.assert_not_called()
+        cleared = [c.args[0] for c in prov.dao.update_config.call_args_list]
+        assert CONF_SUBSCRIBER_ID not in cleared
+        assert prov.subscription_id == "subscription-1"
+
+    def test_a_refusal_still_removes_the_subscriber(self):
+        """It is the only cleanup left for a subscription the server keeps."""
+        prov = _provisioner()
+        prov.remote.client.sync_amp.delete_subscription.side_effect = _refusal()
+
+        prov.teardown()
+
+        prov.remote.client.sync_amp.delete_subscriber.assert_called_once()
+
+    def test_a_refusal_is_recorded_as_an_orphan(self):
+        prov = _provisioner()
+        prov.remote.client.sync_amp.delete_subscription.side_effect = _refusal()
+
+        prov.teardown()
+
+        recorded = [
+            c.args[1]
+            for c in prov.dao.update_config.call_args_list
+            if c.args[0] == CONF_ORPHAN_SUBSCRIPTIONS
+        ]
+        assert recorded == ["subscription-1"]
+
+    def test_a_refusal_still_clears_the_live_ids(self):
+        """The orphan list holds the handle, so these need not stay pinned."""
+        prov = _provisioner()
+        prov.remote.client.sync_amp.delete_subscription.side_effect = _refusal()
+
+        prov.teardown()
+
+        cleared = [c.args[0] for c in prov.dao.update_config.call_args_list]
+        assert CONF_SUBSCRIBER_ID in cleared
+        assert CONF_SUBSCRIPTION_ID in cleared
+
+
+class TestResubscribeDeleteOutcome:
+    def test_a_transient_failure_keeps_the_id(self):
+        """The next line erases it, and it is the only handle we have."""
+        prov = _provisioner()
+        prov.remote.client.sync_amp.delete_subscription.side_effect = AlfrescoError(
+            "503", 503
+        )
+
+        assert prov.resubscribe("root-node") is False
+        assert prov.subscription_id == "subscription-1"
+        prov.remote.client.sync_amp.create_subscription.assert_not_called()
+
+    def test_a_refusal_records_the_orphan_and_continues(self):
+        prov = _provisioner()
+        prov.remote.client.sync_amp.delete_subscription.side_effect = _refusal()
+        prov.remote.client.sync_amp.create_subscription.return_value = MagicMock(
+            id="subscription-2"
+        )
+
+        assert prov.resubscribe("root-node") is True
+
+        recorded = [
+            c.args[1]
+            for c in prov.dao.update_config.call_args_list
+            if c.args[0] == CONF_ORPHAN_SUBSCRIPTIONS
+        ]
+        assert recorded == ["subscription-1"]
+
+
+class TestSyncServiceUrlRebind:
+    """Rebinding swaps the auth handler on a client the processors may use."""
+
+    def _resolve(self, *, bound_url):
+        prov = _provisioner()
+        prov.remote.sync_service_url = bound_url
+        prov.dao.get_config.return_value = "0"
+        syncer = MagicMock(uri="https://acs.example.com/syncservice")
+        prov.remote.client.sync_amp.get_syncer.return_value = syncer
+        assert prov._ensure_service_url("subscriber-1") is True
+        return prov
+
+    def test_no_rebind_when_the_url_is_unchanged(self):
+        prov = self._resolve(bound_url="https://acs.example.com/syncservice")
+
+        prov.remote.set_sync_service_url.assert_not_called()
+
+    def test_rebind_when_the_url_differs(self):
+        prov = self._resolve(bound_url="https://old.example.com/syncservice")
+
+        prov.remote.set_sync_service_url.assert_called_once_with(
+            "https://acs.example.com/syncservice"
+        )
+
+    def test_a_fresh_client_is_always_bound(self):
+        """After a restart the config is set but the client is not."""
+        prov = self._resolve(bound_url=None)
+
+        prov.remote.set_sync_service_url.assert_called_once()

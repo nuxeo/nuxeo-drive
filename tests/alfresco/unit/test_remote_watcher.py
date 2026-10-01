@@ -71,9 +71,10 @@ def _polling_watcher():
     w.updated = MagicMock()
     w.initiate = MagicMock()
     w.empty_polls = 0
-    w._bootstrap_if_needed = MagicMock()
+    # Both now report completion; the first pass only finishes when they do.
+    w._bootstrap_if_needed = MagicMock(return_value=True)
     w._apply_unfiltered = MagicMock()
-    w._poll_device_sync = MagicMock()
+    w._poll_device_sync = MagicMock(return_value=True)
     w._scan_local_changes = MagicMock()
     return w
 
@@ -840,7 +841,7 @@ class TestHandleChangesExtended:
         """Otherwise local creations stay blocked for the whole session."""
         watcher = _polling_watcher()
         watcher.first_pass_done = False
-        watcher._poll_device_sync.side_effect = [RuntimeError("boom"), None]
+        watcher._poll_device_sync.side_effect = [RuntimeError("boom"), True]
 
         watcher._handle_changes(not watcher.first_pass_done)
         assert watcher.first_pass_done is False
@@ -848,6 +849,26 @@ class TestHandleChangesExtended:
         # The next cycle asks the same question and gets "still the first".
         watcher._handle_changes(not watcher.first_pass_done)
         assert watcher.first_pass_done is True
+
+    def test_an_incomplete_seed_does_not_finish_the_first_pass(self):
+        """Releasing local creations against a half-walked tree duplicates them."""
+        watcher = _polling_watcher()
+        watcher.first_pass_done = False
+        watcher._bootstrap_if_needed.return_value = False
+
+        watcher._handle_changes(first_pass=True)
+
+        assert watcher.first_pass_done is False
+        watcher.initiate.emit.assert_called_once()
+
+    def test_an_undrained_feed_does_not_finish_the_first_pass(self):
+        watcher = _polling_watcher()
+        watcher.first_pass_done = False
+        watcher._poll_device_sync.return_value = False
+
+        watcher._handle_changes(first_pass=True)
+
+        assert watcher.first_pass_done is False
 
     def test_no_remote_returns_early(self):
         watcher = _polling_watcher()
@@ -1208,3 +1229,52 @@ class TestNewFolderPriority:
 
     def test_an_already_known_folder_waits_its_turn(self):
         assert self._scan(known=True)[-1] == PurePosixPath("/root/fresh")
+
+
+class TestIncompleteSweep:
+    """Deletion is decided by what the sweep did NOT see.
+
+    A directory we failed to list contributes none of its children's refs, so
+    anything moved into it looks deleted and would be removed locally.
+    """
+
+    def _sweep(self, *, listing_fails):
+        watcher = _make_watcher()
+        local = MagicMock()
+        dao = MagicMock()
+        local.exists.return_value = True
+        if listing_fails:
+            local.get_children_info.side_effect = OSError("permission denied")
+        else:
+            local.get_children_info.return_value = []
+        dao.get_local_children.return_value = []
+        watcher.engine.local = local
+        watcher.dao = dao
+        watcher._process_pending_deletions = MagicMock()
+
+        watcher._local_scan_dirs = []
+        watcher._scan_local_changes()
+        return watcher
+
+    def test_an_unreadable_directory_blocks_deletion_processing(self):
+        watcher = self._sweep(listing_fails=True)
+
+        watcher._process_pending_deletions.assert_not_called()
+
+    def test_a_clean_sweep_still_processes_deletions(self):
+        watcher = self._sweep(listing_fails=False)
+
+        watcher._process_pending_deletions.assert_called_once()
+
+    def test_the_flag_resets_for_the_next_sweep(self):
+        """A one-off error must not disable deletions forever."""
+        watcher = self._sweep(listing_fails=True)
+        assert watcher._local_scan_incomplete is True
+
+        watcher.engine.local.get_children_info.side_effect = None
+        watcher.engine.local.get_children_info.return_value = []
+        watcher._local_scan_dirs = []
+        watcher._scan_local_changes()
+
+        assert watcher._local_scan_incomplete is False
+        watcher._process_pending_deletions.assert_called_once()
