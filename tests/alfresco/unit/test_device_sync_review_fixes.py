@@ -656,3 +656,116 @@ class TestSyncServiceUrlRebind:
         prov = self._resolve(bound_url=None)
 
         prov.remote.set_sync_service_url.assert_called_once()
+
+
+# -- Expired credentials must reach the watcher, not look like "unprovisioned" --
+
+
+class TestAuthErrorsEscapeProvisioning:
+    """`AuthenticationError` subclasses `AlfrescoError`, so the recoverable
+    handlers would otherwise swallow it and the watcher would retry forever
+    without ever prompting for a re-login."""
+
+    def _prov(self):
+        prov = _provisioner()
+        prov.dao.get_config.return_value = None
+        return prov
+
+    def test_amp_probe(self):
+        prov = self._prov()
+        prov.remote.device_sync_available.side_effect = AlfrescoAuthError("401")
+
+        with pytest.raises(AlfrescoAuthError):
+            prov._check_amp_available()
+
+    def test_subscriber_registration(self):
+        prov = self._prov()
+        prov.remote.client.sync_amp.create_subscriber.side_effect = AlfrescoAuthError(
+            "401"
+        )
+
+        with pytest.raises(AlfrescoAuthError):
+            prov._create_subscriber()
+
+    def test_syncer_lookup(self):
+        prov = self._prov()
+        prov.dao.get_config.return_value = "0"
+        prov.remote.client.sync_amp.get_syncer.side_effect = AlfrescoAuthError("401")
+
+        with pytest.raises(AlfrescoAuthError):
+            prov._ensure_service_url("subscriber-1")
+
+    def test_health_check(self):
+        prov = self._prov()
+        prov.remote.sync_service_reachable.side_effect = AlfrescoAuthError("401")
+
+        with pytest.raises(AlfrescoAuthError):
+            prov._check_service_reachable()
+
+    def test_subscription_creation(self):
+        prov = self._prov()
+        prov.remote.client.sync_amp.create_subscription.side_effect = AlfrescoAuthError(
+            "401"
+        )
+
+        with pytest.raises(AlfrescoAuthError):
+            prov._create_subscription("subscriber-1", "root-node")
+
+    def test_a_plain_transport_failure_is_still_recoverable(self):
+        """Only auth escapes; everything else keeps the retry behaviour."""
+        prov = self._prov()
+        prov.remote.sync_service_reachable.side_effect = AlfrescoError("503", 503)
+
+        assert prov._check_service_reachable() is False
+
+
+class TestCleanupOrphansGuard:
+    """Without an id to keep, every registration looks like an orphan.
+
+    This is a recovery tool, so it is reached exactly when provisioning has
+    not completed and ``subscriber_id`` is still empty.
+    """
+
+    def _prov(self, *, stored=None, current=""):
+        prov = _provisioner()
+        prov.subscriber_id = current
+        prov.dao.get_config.return_value = stored
+        prov.remote.client.sync_amp.iter_subscribers.return_value = [
+            MagicMock(id="subscriber-1"),
+            MagicMock(id="other-machine"),
+        ]
+        return prov
+
+    def test_it_refuses_without_an_id_to_keep(self):
+        prov = self._prov()
+
+        assert prov.cleanup_orphans() == 0
+        prov.remote.client.sync_amp.delete_subscriber.assert_not_called()
+
+    def test_the_persisted_id_makes_it_usable_after_a_restart(self):
+        """The in-memory id is only set once provisioning completes."""
+        prov = self._prov(stored="subscriber-1")
+
+        assert prov.cleanup_orphans() == 1
+        prov.remote.client.sync_amp.delete_subscriber.assert_called_once_with(
+            "other-machine"
+        )
+
+    def test_an_explicit_keep_id_wins(self):
+        prov = self._prov(stored="subscriber-1")
+
+        assert prov.cleanup_orphans(keep_id="other-machine") == 1
+        prov.remote.client.sync_amp.delete_subscriber.assert_called_once_with(
+            "subscriber-1"
+        )
+
+    def test_the_subscriber_being_used_is_never_deleted(self):
+        prov = self._prov(current="subscriber-1")
+
+        prov.cleanup_orphans()
+
+        deleted = [
+            c.args[0]
+            for c in prov.remote.client.sync_amp.delete_subscriber.call_args_list
+        ]
+        assert "subscriber-1" not in deleted

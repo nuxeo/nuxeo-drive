@@ -23,7 +23,7 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Optional
 
 import alfresco
-from alfresco.exceptions import AlfrescoError, NotFoundError
+from alfresco.exceptions import AlfrescoError, AuthenticationError, NotFoundError
 
 if TYPE_CHECKING:
     from nxdrive.alfresco.client.remote import AlfrescoRemote
@@ -151,6 +151,11 @@ class DeviceSyncProvisioner:
         """Probe the repository for the Device Sync AMP endpoints."""
         try:
             available = self.remote.device_sync_available()
+        except AuthenticationError:
+            # Every handler below returns a "not provisioned" sentinel, which
+            # the watcher cannot tell apart from a recoverable fault. Expired
+            # credentials have to reach its invalid-credentials path instead.
+            raise
         except AlfrescoError:
             log.exception(
                 "Could not determine whether the Device Sync AMP is "
@@ -180,6 +185,8 @@ class DeviceSyncProvisioner:
                     f"Stored subscriber {stored!r} no longer exists on the "
                     "server — registering a new one"
                 )
+            except AuthenticationError:
+                raise
             except AlfrescoError:
                 log.exception(f"Could not validate subscriber {stored!r}")
                 return ""
@@ -205,6 +212,8 @@ class DeviceSyncProvisioner:
             subscriber = self.remote.client.sync_amp.create_subscriber(
                 self.device_os, self.client_version
             )
+        except AuthenticationError:
+            raise
         except AlfrescoError:
             log.exception("Failed to register a Device Sync subscriber")
             return ""
@@ -234,6 +243,8 @@ class DeviceSyncProvisioner:
 
         try:
             syncer = self.remote.client.sync_amp.get_syncer(syncer_id)
+        except AuthenticationError:
+            raise
         except AlfrescoError:
             log.exception(f"Failed to resolve syncer {syncer_id!r}")
             return False
@@ -263,6 +274,8 @@ class DeviceSyncProvisioner:
     def _check_service_reachable(self) -> bool:
         try:
             reachable = self.remote.sync_service_reachable()
+        except AuthenticationError:
+            raise
         except AlfrescoError:
             log.exception("Sync Service healthcheck raised")
             return False
@@ -290,6 +303,8 @@ class DeviceSyncProvisioner:
                     f"Stored subscription {stored!r} no longer exists — "
                     "creating a new one"
                 )
+            except AuthenticationError:
+                raise
             except AlfrescoError:
                 log.exception(f"Could not validate subscription {stored!r}")
                 return ""
@@ -325,6 +340,8 @@ class DeviceSyncProvisioner:
             subscription = self.remote.client.sync_amp.create_subscription(
                 subscriber_id, root_node_id, SUBSCRIPTION_TYPE
             )
+        except AuthenticationError:
+            raise
         except AlfrescoError:
             log.exception(f"Failed to subscribe {subscriber_id!r} to {root_node_id!r}")
             return ""
@@ -487,15 +504,27 @@ class DeviceSyncProvisioner:
 
         ``create_subscriber`` accepts no client-supplied identifier, so a crash
         between registration and persisting the id orphans a subscriber with no
-        way to recognise it later. ``list_subscribers`` is scoped to the
-        authenticated user, so everything it returns belongs to us; anything
-        that is not the subscriber we are actually using is stale.
+        way to recognise it later. Anything that is not the subscriber we are
+        actually using is stale.
 
         Not called automatically — device-per-user is not one-to-one (the same
         account may legitimately run Drive on several machines), so this would
         delete other machines' subscribers. Exposed for manual recovery.
+
+        Refuses to run without a subscriber to keep. This is a recovery tool,
+        so it is reached exactly when provisioning has not completed and
+        ``subscriber_id`` is still empty — and with no id to match, every
+        subscriber the server returns looks like an orphan.
         """
-        keep = keep_id or self.subscriber_id
+        keep = keep_id or self.subscriber_id or self.dao.get_config(CONF_SUBSCRIBER_ID)
+        if not keep:
+            log.error(
+                "Refusing to clean up orphan subscribers: no subscriber id to "
+                "keep, so every registration would be deleted — including "
+                "those of other machines on this account"
+            )
+            return 0
+
         removed = 0
         try:
             subscribers = list(self.remote.client.sync_amp.iter_subscribers())

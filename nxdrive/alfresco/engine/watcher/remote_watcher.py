@@ -59,6 +59,8 @@ class _SyncBatch(NamedTuple):
     last_seq: Optional[int]
     #: The server had nothing for us; its pending bookmark is unsafe to commit.
     idle: bool
+    #: The subscription was replaced, so nothing seeded so far describes it.
+    reset: bool = False
 
 
 #: Upper bound on ``get_sync`` calls while a batch is still being prepared.
@@ -349,6 +351,11 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     exc_info=True,
                 )
                 sleep(LISTING_RETRY_DELAY)
+            except AlfrescoAuthError:
+                # Returning None here would only mark the seed incomplete, so
+                # the watcher would retry forever without ever telling the user
+                # their credentials expired.
+                raise
             except Exception:
                 log.exception(f"Error listing children of {remote_info.name!r}")
                 return None
@@ -1033,6 +1040,15 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 break
             self.dao.update_config(CONF_LAST_SYNC_CLEAR, str(time()))
 
+            if batch.reset:
+                # The replacement subscription replays everything as fresh
+                # CREATEs, and none of it has been seeded yet.
+                log.warning(
+                    "Subscription was replaced after a reset; the remote view "
+                    "is incomplete until the new one is seeded"
+                )
+                break
+
             if not batch.more:
                 drained = True
                 break
@@ -1121,7 +1137,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     f"Server requested a reset of {status.resets} — the "
                     "local view is stale, re-subscribing for a full replay"
                 )
-                return _SyncBatch(total, self._resubscribe(), False, None, False)
+                return _SyncBatch(
+                    total, self._resubscribe(), False, None, False, reset=True
+                )
 
             total += self._apply_changes(status.changes)
             last_seq = (

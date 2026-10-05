@@ -424,3 +424,46 @@ class TestIdleBatch:
         watcher._poll_device_sync()
 
         watcher.dao.update_config.assert_not_called()
+
+
+class TestResetDuringFirstPass:
+    """A reset swaps the subscription, so nothing seeded so far describes it.
+
+    Treating that cycle as drained would let `first_pass_done` be set against
+    content that has not been seeded, releasing local creations early and
+    duplicating them.
+    """
+
+    def _reset_status(self):
+        return _status(resets=["subscription-1"], more=False)
+
+    def test_a_reset_leaves_the_feed_undrained(self):
+        watcher = _watcher()
+        watcher._resubscribe = MagicMock(return_value=True)
+        watcher.engine.remote.get_sync.return_value = self._reset_status()
+
+        assert watcher._poll_device_sync() is False
+
+    def test_a_reset_is_still_acknowledged(self):
+        """An uncleared reset is re-sent forever."""
+        watcher = _watcher()
+        watcher._resubscribe = MagicMock(return_value=True)
+        watcher.engine.remote.get_sync.return_value = self._reset_status()
+
+        watcher._poll_device_sync()
+
+        watcher.engine.remote.clear_sync.assert_called_once()
+
+    def test_a_failed_resubscribe_is_not_acknowledged(self):
+        watcher = _watcher()
+        watcher._resubscribe = MagicMock(return_value=False)
+        watcher.engine.remote.get_sync.return_value = self._reset_status()
+
+        assert watcher._poll_device_sync() is False
+        watcher.engine.remote.clear_sync.assert_not_called()
+
+    def test_an_ordinary_drain_is_unaffected(self):
+        watcher = _watcher()
+        watcher.engine.remote.get_sync.return_value = _status(more=False)
+
+        assert watcher._poll_device_sync() is True
