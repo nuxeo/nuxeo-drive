@@ -404,12 +404,12 @@ class Engine(QObject):
         return self._offline_state
 
     # ------------------------------------------------------------------ filters
-    def add_filter(self, path: str, /) -> None:
+    def add_filter(self, path: str, /, *, node_id: str = "") -> None:
         remote_ref = os.path.basename(path)
         remote_parent_path = os.path.dirname(path)
         if not remote_ref:
             return
-        self.dao.add_filter(path)
+        self.dao.add_filter(path, node_id=node_id)
         pair = self.dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
         if not pair:
             log.info(f"Cannot find the pair: {remote_ref} ({remote_parent_path!r})")

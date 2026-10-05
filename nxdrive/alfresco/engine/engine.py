@@ -15,9 +15,16 @@ from urllib.parse import urlsplit
 
 from alfresco.exceptions import AuthenticationError
 
+from nxdrive.alfresco.client.device_sync import (
+    DEVICE_SYNC_CLIENT_VERSION,
+    DeviceSyncProvisioner,
+)
 from nxdrive.alfresco.client.remote import AlfrescoRemote
 from nxdrive.alfresco.engine.processor import AlfrescoProcessor
-from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
+from nxdrive.alfresco.engine.watcher.remote_watcher import (
+    DEVICE_OS,
+    AlfrescoRemoteWatcher,
+)
 from nxdrive.drive import server_type as _st
 from nxdrive.drive.client.local import LocalClient
 from nxdrive.drive.client.local.base import LocalClientMixin
@@ -27,7 +34,7 @@ from nxdrive.drive.exceptions import RemoteUnauthorized
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import Binder, EngineDef
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import Slot
+from nxdrive.drive.qt.imports import Signal, Slot
 from nxdrive.drive.utils import set_path_readonly, unset_path_readonly
 
 if TYPE_CHECKING:
@@ -51,6 +58,10 @@ class AlfrescoEngine(Engine):
     """
 
     type = _st.get("ALFRESCO").engine_type
+
+    #: Un-filtered path and the node ids it covered, delivered to the watcher
+    #: thread rather than written across it.
+    _unfiltered = Signal(str, object)
 
     def __init__(
         self,
@@ -77,6 +88,52 @@ class AlfrescoEngine(Engine):
         )
 
     # -- Filter selection tracking -------------------------------------------
+
+    def add_filter(self, path: str, /, *, node_id: str = "") -> None:
+        """Exclude *path* from synchronisation and drop its local copy.
+
+        The base implementation locates the pair by splitting the filter path
+        into ``(remote_ref, remote_parent_path)``. That only works for Nuxeo,
+        whose filter paths are built from file-system item ids. Alfresco
+        filters are human-readable paths, while ``States.remote_ref`` holds
+        node ids — the two never match, so the pair was never found and the
+        local copy was left behind. The node id gives us a direct lookup.
+        """
+        self.dao.add_filter(path, node_id=node_id)
+
+        if not node_id:
+            log.warning(
+                f"No node id for filter {path!r}; its local copy cannot be removed"
+            )
+            return
+
+        pair = self.dao.get_normal_state_from_remote(node_id)
+        if not pair:
+            log.debug(f"Nothing synced under {path!r}, nothing to remove")
+            return
+
+        log.debug(f"Filtering out {path!r}, removing its local copy")
+        self.dao.delete_remote_state(pair)
+
+    def remove_filter(self, path: str, /) -> None:
+        """Un-filter *path*, handing the affected node ids to the watcher.
+
+        Device Sync only reports server-side events, so widening the selection
+        produces no change to poll for. The ids have to be captured here —
+        ``super()`` deletes the rows that hold them.
+        """
+        node_ids = []
+        try:
+            node_ids = self.dao.get_filter_node_ids(path)
+        except Exception:
+            log.warning(f"Could not read node ids for filter {path!r}", exc_info=True)
+
+        super().remove_filter(path)
+
+        # Queued so the watcher's own thread mutates its state: a direct call
+        # from the picker races the sweep that reads and clears it, and a
+        # dropped id is the only handle on content the feed never replays.
+        self._unfiltered.emit(path, node_ids)
 
     def needs_filters_selection(self) -> bool:
         """Return True if the user hasn't yet selected folders to sync.
@@ -156,6 +213,46 @@ class AlfrescoEngine(Engine):
             self.syncStateCleared.emit()
         except Exception:
             log.warning("Failed to emit syncStateCleared signal", exc_info=True)
+
+    # -- Account removal -----------------------------------------------------
+
+    def unbind(self) -> None:
+        """Release the Device Sync registration before the account is dropped.
+
+        Ordering matters twice over: the watcher must be stopped first so no
+        poll is in flight while the subscription is deleted, and teardown must
+        precede ``super().unbind()`` because that disposes the DAO holding the
+        subscriber/subscription ids.
+        """
+        self.stop()
+        self._teardown_device_sync()
+        super().unbind()
+
+    def _teardown_device_sync(self) -> None:
+        """Best-effort removal of this device's server-side sync state."""
+        watcher = getattr(self, "_remote_watcher", None)
+        provisioner = getattr(watcher, "_provisioner", None)
+
+        if provisioner is None:
+            if not self.remote:
+                return
+            # The watcher may never have polled (account removed straight
+            # after binding), so rebuild just enough to read the stored ids.
+            provisioner = DeviceSyncProvisioner(
+                self.remote,
+                self.dao,
+                device_os=DEVICE_OS,
+                client_version=DEVICE_SYNC_CLIENT_VERSION,
+            )
+
+        try:
+            provisioner.teardown()
+        except Exception:
+            log.warning(
+                "Device Sync teardown failed; the subscriber may be "
+                "left behind on the server",
+                exc_info=True,
+            )
 
     # -- Sync state tracking -------------------------------------------------
 
@@ -371,6 +468,7 @@ class AlfrescoEngine(Engine):
         )
         self._remote_watcher.updated.connect(self._check_last_sync)
         self._scanPair.connect(self._remote_watcher.scan_pair)
+        self._unfiltered.connect(self._remote_watcher.queue_unfiltered)
 
     @Slot()
     def _check_last_sync(self) -> None:

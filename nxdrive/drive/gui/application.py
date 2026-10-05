@@ -1447,6 +1447,10 @@ class Application(QApplication):
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.force_refresh_files)
+        # A pass that ended with errors reports itself here instead, and it
+        # leaves the engine in exactly the same settled state.
+        engine.syncPartialCompleted.connect(self.change_systray_icon)
+        engine.syncPartialCompleted.connect(self.force_refresh_files)
         engine.invalidAuthentication.connect(self.change_systray_icon)
         engine.syncSuspended.connect(self.change_systray_icon)
         engine.syncResumed.connect(self.change_systray_icon)
