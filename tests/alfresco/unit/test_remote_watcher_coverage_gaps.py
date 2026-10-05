@@ -165,13 +165,15 @@ def test_existing_remote_folder_is_recursed_into():
     original = AlfrescoRemoteWatcher._scan_remote_recursive
 
     with patch.object(watcher, "_scan_remote_recursive") as recurse:
-        recurse.side_effect = lambda pair, info: original(watcher, pair, info)
+        recurse.side_effect = lambda pair, info, **kw: original(
+            watcher, pair, info, **kw
+        )
         remote.client.nodes.iter_children.side_effect = [[node], []]
         watcher.dao.get_remote_children.side_effect = [[existing], []]
         watcher._scan_remote_recursive(parent, parent_info)
 
     assert recurse.call_count == 2
-    recurse.assert_any_call(existing, child_info)
+    recurse.assert_any_call(existing, child_info, force=False)
 
 
 def test_queued_folder_is_still_scanned_recursively():

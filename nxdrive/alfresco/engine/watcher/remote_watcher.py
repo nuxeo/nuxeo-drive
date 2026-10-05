@@ -230,8 +230,11 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             log.warning("Remote scan failed unexpectedly", exc_info=True)
             return False
 
-        # Recursive walk
-        complete = self._scan_remote_recursive(root_pair, root_info)
+        # Recursive walk. An explicit subtree rescan rebuilds rows that have
+        # just been removed, so it must not stop at a seed checkpoint.
+        complete = self._scan_remote_recursive(
+            root_pair, root_info, force=from_state is not None
+        )
         if not complete:
             log.error(
                 "Alfresco full remote scan was incomplete; some subtrees could "
@@ -250,6 +253,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         self,
         doc_pair: DocPair,
         remote_info: RemoteFileInfo,
+        /,
+        *,
+        force: bool = False,
     ) -> bool:
         """Recursively scan children of a folder and insert/update DAO state.
 
@@ -257,6 +263,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         walk must never be recorded as a completed bootstrap: the change feed
         only carries events from subscription creation onward, so content
         missed here would never be replayed.
+
+        *force* ignores the seed checkpoints. Callers rebuilding rows they
+        just deleted need the walk to happen even for a folder an unfinished
+        seed already visited.
         """
         if not remote_info.folderish:
             return True
@@ -264,7 +274,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # Resume support: a folder already walked during this seed is skipped,
         # so a retry costs only what actually failed. Keyed on the node id
         # because Alfresco paths are human-readable and change on rename.
-        if self.dao.is_path_scanned(remote_info.uid):
+        if not force and self.dao.is_path_scanned(remote_info.uid):
             return True
 
         self._interact()
@@ -314,7 +324,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # Recurse into sub-folders
         complete = True
         for pair, info in to_scan:
-            if not self._scan_remote_recursive(pair, info):
+            if not self._scan_remote_recursive(pair, info, force=force):
                 complete = False
 
         if complete:
@@ -810,7 +820,13 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             f"({'dir' if info.folderish else 'file'})"
         )
 
-        if info.folderish and pair and not self._scan_remote_recursive(pair, info):
+        # Filtering marked every descendant deleted, so the subtree has to be
+        # rebuilt even where an unfinished seed already checkpointed it.
+        if (
+            info.folderish
+            and pair
+            and not self._scan_remote_recursive(pair, info, force=True)
+        ):
             log.error(
                 f"Subtree of restored {info.path!r} was only partially scanned; "
                 "forcing a re-seed"

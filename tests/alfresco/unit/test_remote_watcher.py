@@ -1028,10 +1028,10 @@ class TestScanRemoteRecursiveExtended:
         with patch.object(
             watcher,
             "_scan_remote_recursive",
-            wraps=lambda p, i: (
+            wraps=lambda p, i, **kw: (
                 None
                 if p is child_pair_from_db
-                else AlfrescoRemoteWatcher._scan_remote_recursive(watcher, p, i)
+                else AlfrescoRemoteWatcher._scan_remote_recursive(watcher, p, i, **kw)
             ),
         ):
             watcher._scan_remote_recursive(
@@ -1278,3 +1278,112 @@ class TestIncompleteSweep:
 
         assert watcher._local_scan_incomplete is False
         watcher._process_pending_deletions.assert_called_once()
+
+
+class TestForcedRescan:
+    """Checkpoints make a failed seed cheap to resume, but an explicit rescan
+    is rebuilding rows that were just deleted -- it has to walk anyway."""
+
+    def _watcher_with_checkpoint(self):
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+        remote.client.nodes.iter_children.return_value = []
+        watcher.dao.get_remote_children.return_value = []
+        watcher.dao.is_filter.return_value = False
+        # The folder was already walked by an unfinished seed.
+        watcher.dao.is_path_scanned.return_value = True
+        return watcher
+
+    def test_a_checkpointed_folder_is_skipped_by_default(self):
+        """Resume support must survive the fix."""
+        watcher = self._watcher_with_checkpoint()
+
+        watcher._scan_remote_recursive(
+            _make_doc_pair(remote_ref="parent"), _make_remote_info(uid="parent")
+        )
+
+        watcher.engine.remote.client.nodes.iter_children.assert_not_called()
+
+    def test_a_forced_rescan_lists_a_checkpointed_folder(self):
+        watcher = self._watcher_with_checkpoint()
+
+        watcher._scan_remote_recursive(
+            _make_doc_pair(remote_ref="parent"),
+            _make_remote_info(uid="parent"),
+            force=True,
+        )
+
+        watcher.engine.remote.client.nodes.iter_children.assert_called_once()
+
+    def test_force_reaches_checkpointed_children(self):
+        """A checkpointed child would otherwise short-circuit mid-subtree."""
+        watcher = self._watcher_with_checkpoint()
+        child_pair = _make_doc_pair(remote_ref="child")
+        child_info = _make_remote_info(uid="child", name="sub", folderish=True)
+        watcher.engine.remote._node_to_remote_file_info.return_value = child_info
+        watcher.engine.remote.client.nodes.iter_children.side_effect = [
+            [MagicMock()],
+            [],
+        ]
+        watcher.dao.get_remote_children.side_effect = [[child_pair], []]
+
+        with patch.object(
+            watcher, "_scan_remote_recursive", wraps=watcher._scan_remote_recursive
+        ) as spy:
+            AlfrescoRemoteWatcher._scan_remote_recursive(
+                watcher,
+                _make_doc_pair(remote_ref="parent"),
+                _make_remote_info(uid="parent"),
+                force=True,
+            )
+
+        assert spy.call_args.kwargs["force"] is True
+
+    def test_restoring_an_unfiltered_folder_forces_the_walk(self):
+        """add_filter flagged every descendant deleted; they must come back."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+        info = _make_remote_info(uid="node-1", name="demo", folderish=True)
+        remote.get_node.return_value = MagicMock()
+        remote._node_to_remote_file_info.return_value = info
+        watcher._is_filtered_path = MagicMock(return_value=False)
+        watcher._resolve_parent = MagicMock(
+            return_value=_make_doc_pair(remote_ref="parent", remote_parent_path="")
+        )
+        watcher._reconcile_child = MagicMock(return_value=_make_doc_pair())
+        watcher._scan_remote_recursive = MagicMock(return_value=True)
+
+        watcher._resolve_unfiltered_node("node-1")
+
+        assert watcher._scan_remote_recursive.call_args.kwargs["force"] is True
+
+    def _tree_scan(self, *, from_state):
+        watcher = _make_watcher()
+        remote = MagicMock()
+        remote._node_to_remote_file_info.return_value = _make_remote_info(
+            uid="root-node", folderish=True
+        )
+        remote.get_node.return_value = MagicMock()
+        watcher.engine.remote = remote
+        watcher.engine.download_dir = PurePosixPath("/")
+        watcher.dao.get_state_from_local.return_value = _make_doc_pair(
+            remote_ref="root-node"
+        )
+
+        with patch.object(watcher, "_scan_remote_recursive") as recurse:
+            recurse.return_value = True
+            watcher.scan_remote(from_state=from_state)
+        return recurse
+
+    def test_a_subtree_rescan_is_forced(self):
+        """rollback_delete() removes the children before asking for them back."""
+        recurse = self._tree_scan(from_state=_make_doc_pair(remote_ref="sub"))
+
+        assert recurse.call_args.kwargs["force"] is True
+
+    def test_the_bootstrap_walk_keeps_its_checkpoints(self):
+        recurse = self._tree_scan(from_state=None)
+
+        assert recurse.call_args.kwargs["force"] is False
