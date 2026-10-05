@@ -430,7 +430,7 @@ class TestAddFilter:
 
         mock_engine.add_filter(path)
 
-        mock_engine.dao.add_filter.assert_called_once_with(path)
+        mock_engine.dao.add_filter.assert_called_once_with(path, node_id="")
         mock_engine.dao.get_state_from_remote_with_path.assert_called_once_with(
             "file.txt", "/remote/path"
         )
@@ -443,7 +443,7 @@ class TestAddFilter:
 
         mock_engine.add_filter(path)
 
-        mock_engine.dao.add_filter.assert_called_once_with(path)
+        mock_engine.dao.add_filter.assert_called_once_with(path, node_id="")
         mock_engine.dao.delete_remote_state.assert_not_called()
 
     def test_add_filter_empty_remote_ref(self, mock_engine):

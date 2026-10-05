@@ -758,3 +758,53 @@ class TestAlfrescoNoUseridMapperInBase:
             "If Alfresco needs custom token handling, add an override that "
             "does NOT reintroduce Nuxeo user_uuid semantics."
         )
+
+
+class TestUnfilteredHandoff:
+    """The ids go to the watcher's thread, not across it.
+
+    The picker thread used to mutate ``_unfiltered_nodes`` directly while the
+    watcher read and cleared it; an id added in that window was dropped, and
+    the change feed never replays already-existing content.
+    """
+
+    def test_remove_filter_emits_the_ids(self):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine.dao.get_filter_node_ids.return_value = ["node-1", "node-2"]
+
+        with patch.object(AlfrescoEngine.__bases__[0], "remove_filter"):
+            engine.remove_filter("/Company Home/demo")
+
+        engine._unfiltered.emit.assert_called_once_with(
+            "/Company Home/demo", ["node-1", "node-2"]
+        )
+
+    def test_the_ids_are_read_before_the_rows_are_deleted(self):
+        """``super().remove_filter()`` deletes the rows that hold them."""
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        calls = []
+        engine.dao.get_filter_node_ids.side_effect = lambda p: (
+            calls.append("read") or ["node-1"]
+        )
+
+        with patch.object(
+            AlfrescoEngine.__bases__[0],
+            "remove_filter",
+            side_effect=lambda p: calls.append("delete"),
+        ):
+            engine.remove_filter("/Company Home/demo")
+
+        assert calls == ["read", "delete"]
+
+    def test_a_lookup_failure_still_notifies_the_watcher(self):
+        """An empty id list is the signal to fall back to a full re-seed."""
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine.dao.get_filter_node_ids.side_effect = RuntimeError("db locked")
+
+        with patch.object(AlfrescoEngine.__bases__[0], "remove_filter"):
+            engine.remove_filter("/Company Home/demo")
+
+        engine._unfiltered.emit.assert_called_once_with("/Company Home/demo", [])

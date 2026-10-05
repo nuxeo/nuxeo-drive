@@ -1989,7 +1989,37 @@ class EngineDAO(BaseDAO):
         c = self._get_read_connection().cursor()
         return [entry.path for entry in c.execute("SELECT * FROM Filters").fetchall()]
 
-    def add_filter(self, path: str, /) -> None:
+    @staticmethod
+    def _like_prefix(path: str, /) -> str:
+        """Build a LIKE pattern matching *path* and everything beneath it.
+
+        Folder names routinely contain ``_`` and ``%``, which LIKE would
+        otherwise treat as wildcards and match unrelated siblings. Pair with
+        ``ESCAPE '\\'`` in the query.
+        """
+        escaped = path.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        return f"{escaped}%"
+
+    def get_filter_node_ids(self, path: str, /) -> List[str]:
+        """Return the node ids recorded for *path* and everything beneath it.
+
+        Mirrors the prefix semantics of :meth:`remove_filter`, so a caller can
+        collect the ids about to be dropped before the rows disappear. Rows
+        stored without an id (pre-migration, or added outside the folder
+        picker) are skipped.
+        """
+        path = self._clean_filter_path(path)
+        c = self._get_read_connection().cursor()
+        rows = c.execute(
+            "SELECT node_id"
+            "  FROM Filters"
+            " WHERE path LIKE ? ESCAPE '\\'"
+            "   AND node_id IS NOT NULL",
+            (self._like_prefix(path),),
+        ).fetchall()
+        return [row[0] for row in rows if row[0]]
+
+    def add_filter(self, path: str, /, *, node_id: str = "") -> None:
         if self.is_filter(path):
             return
 
@@ -1999,13 +2029,22 @@ class EngineDAO(BaseDAO):
         with self.lock:
             c = self._get_write_connection().cursor()
             # Delete any subfilters
-            c.execute("DELETE FROM Filters WHERE path LIKE ?", (f"{path}%",))
+            c.execute(
+                "DELETE FROM Filters WHERE path LIKE ? ESCAPE '\\'",
+                (self._like_prefix(path),),
+            )
 
             # Prevent any rescan
-            c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (f"{path}%",))
+            c.execute(
+                "DELETE FROM ToRemoteScan WHERE path LIKE ? ESCAPE '\\'",
+                (self._like_prefix(path),),
+            )
 
             # Add it
-            c.execute("INSERT INTO Filters (path) VALUES (?)", (path,))
+            c.execute(
+                "INSERT INTO Filters (path, node_id) VALUES (?, ?)",
+                (path, node_id or None),
+            )
 
             # TODO: Add this path as remotely_deleted?
 
@@ -2017,7 +2056,10 @@ class EngineDAO(BaseDAO):
         log.debug(f"Remove filter on {path!r}")
         with self.lock:
             c = self._get_write_connection().cursor()
-            c.execute("DELETE FROM Filters WHERE path LIKE ?", (f"{path}%",))
+            c.execute(
+                "DELETE FROM Filters WHERE path LIKE ? ESCAPE '\\'",
+                (self._like_prefix(path),),
+            )
             self._filters = self.get_filters()
             self.get_syncing_count()
 
