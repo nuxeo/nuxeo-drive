@@ -17,8 +17,8 @@ from nxdrive.drive.options import Options
 @pytest.fixture()
 def engine(manager_factory):
     """A bound Alfresco engine whose local folder can be manipulated freely."""
-    _manager, engine = manager_factory()
-    return engine
+    manager = manager_factory(with_engine=True)
+    return next(iter(manager.engines.values()))
 
 
 class TestSetupLocalFolder:
