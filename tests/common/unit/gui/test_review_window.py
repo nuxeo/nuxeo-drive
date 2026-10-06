@@ -1,5 +1,6 @@
 """Deterministic unit tests for the Direct Transfer selection review window."""
 
+import shutil
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -173,8 +174,8 @@ def test_item_counts_are_formatted_with_thousands_separators(tmp_path):
     paths = {folder: 0}
     for index in range(1_500):
         child = folder / f"file-{index:04}.txt"
-        child.touch()
-        paths[child] = 0
+        child.write_bytes(b"x")
+        paths[child] = 1
 
     model = ReviewFileModel(paths)
     assert item_for(model, folder).text() == "big (1,500)"
@@ -190,6 +191,67 @@ def test_row_holds_type_size_and_path_columns(model, sample_tree):
     photo = item_for(model, sample_tree["photo"])
     assert sibling(model, photo, model.TYPE).text() == Translator.get("FILE")
     assert sibling(model, photo, model.SIZE).text() == sizeof_fmt(7)
+
+
+def test_folders_and_subfolders_are_detected_with_the_real_queue_shape(tmp_path):
+    """The queue gives folders a size of 0; that must not make them files."""
+    folder = tmp_path / "docs"
+    nested = folder / "nested"
+    nested.mkdir(parents=True)
+    inner = nested / "a.txt"
+    inner.write_bytes(b"hello")
+
+    model = ReviewFileModel({folder: 0, nested: 0, inner: 5})
+
+    folder_item = item_for(model, folder)
+    nested_item = item_for(model, nested)
+    assert sibling(model, folder_item, model.TYPE).text() == Translator.get("FOLDER")
+    assert sibling(model, nested_item, model.TYPE).text() == Translator.get("FOLDER")
+    assert sibling(model, item_for(model, inner), model.TYPE).text() == Translator.get(
+        "FILE"
+    )
+    assert folder_item.text() == "docs (2)"
+    assert nested_item.text() == "nested (1)"
+    assert [item.data(model.PATH_ROLE) for item in children_of(model, folder_item)] == [
+        nested
+    ]
+
+
+def test_row_type_comes_from_the_queue_not_the_filesystem(tmp_path):
+    """A queued path may already be gone when the review window opens."""
+    folder = tmp_path / "docs"
+    nested = folder / "nested"
+    nested.mkdir(parents=True)
+    inner = nested / "a.txt"
+    inner.write_bytes(b"hello")
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    loose = tmp_path / "loose.txt"
+    loose.write_bytes(b"x")
+
+    paths = {folder: 0, nested: 0, inner: 5, empty: 0, loose: 1}
+
+    shutil.rmtree(folder)
+    shutil.rmtree(empty)
+    loose.unlink()
+
+    model = ReviewFileModel(paths)
+
+    assert {
+        item.data(model.PATH_ROLE): sibling(model, item, model.TYPE).text()
+        for item in model.iter_items()
+    } == {
+        folder: Translator.get("FOLDER"),
+        nested: Translator.get("FOLDER"),
+        empty: Translator.get("FOLDER"),
+        inner: Translator.get("FILE"),
+        loose: Translator.get("FILE"),
+    }
+    # Folders keep their item count, files keep their bare name
+    assert item_for(model, folder).text() == "docs (2)"
+    assert item_for(model, nested).text() == "nested (1)"
+    assert item_for(model, empty).text() == "empty (0)"
+    assert item_for(model, inner).text() == "a.txt"
 
 
 def test_headers_are_translated(model):

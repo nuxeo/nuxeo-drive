@@ -118,7 +118,9 @@ class ReviewFileModel(QStandardItemModel):
         *contents* is the number of items the path holds, shown in parentheses
         next to the name of a folder.
         """
-        is_folder = path.is_dir()
+        # Folders are queued with a size of 0 and empty files are never queued,
+        # so the disk is not consulted: the path may be gone by now.
+        is_folder = contents > 0 or size == 0
 
         label = path.name or str(path)
         name = QStandardItem(f"{label} ({contents:,})" if is_folder else label)
