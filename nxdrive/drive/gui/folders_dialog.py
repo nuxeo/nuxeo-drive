@@ -952,28 +952,24 @@ class FoldersDialog(DialogMixin):
     def remove_local_paths(self, paths: List[Path], /) -> None:
         """Remove *paths* from the upload queue and refresh the whole dialog."""
 
-        removed = 0
-        for path in paths:
-            # Unchecking a folder also removes everything it contains
-            targets = [path]
-            if path.is_dir():
-                targets.extend(
-                    known
-                    for known in list(self.paths)
-                    if known != path and known.is_relative_to(path)
-                )
+        # A queued path goes away when it was asked for, or when any of the
+        # folders holding it was. The queue decides that, not the filesystem,
+        # which may have changed since the selection was made.
+        requested = set(paths)
+        targets = [
+            known
+            for known in self.paths
+            if known in requested or not requested.isdisjoint(known.parents)
+        ]
 
-            for target in targets:
-                size = self.paths.pop(target, None)
-                if size is None:
-                    # Already gone, nothing to do
-                    continue
-                removed += 1
-                log.debug(
-                    f"Deselected {'folder' if target.is_dir() else 'file'} "
-                    f"{target.name!r} ({sizeof_fmt(size)}) from {str(target)!r}"
-                )
+        for target in targets:
+            size = self.paths.pop(target)
+            log.debug(
+                f"Deselected {target.name!r} ({sizeof_fmt(size)}) "
+                f"from {str(target)!r}"
+            )
 
+        removed = len(targets)
         log.info(f"Deselected {removed:,} item(s) from the Direct Transfer selection")
 
         if not removed:

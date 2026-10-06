@@ -86,7 +86,9 @@ class ReviewFileModel(QStandardItemModel):
         roots: List[Path] = []
 
         for path in sorted(paths):
-            if path.parent in paths:
+            # A filesystem root is its own parent: filing it under itself would
+            # drop it, and everything below it, from the tree.
+            if path.parent != path and path.parent in paths:
                 children.setdefault(path.parent, []).append(path)
             else:
                 roots.append(path)
@@ -144,7 +146,13 @@ class ReviewFileModel(QStandardItemModel):
         full_path.setToolTip(str(path))
         full_path.setData(str(path).lower(), qt.UserRole)
 
-        return [name, type_, size_, full_path]
+        cells = {
+            self.NAME: name,
+            self.TYPE: type_,
+            self.SIZE: size_,
+            self.PATH: full_path,
+        }
+        return [cells[column] for column in sorted(cells)]
 
     #
     # Iteration helpers
