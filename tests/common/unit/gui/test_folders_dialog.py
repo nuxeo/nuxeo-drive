@@ -5,7 +5,7 @@
 
 """Unit tests for DocumentsDialog._handle_no_roots function."""
 
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 from nxdrive.drive.gui.folders_dialog import (
     DocumentsDialog,
@@ -524,7 +524,7 @@ class TestDocumentsDialogApplyFilters:
         # Note: The sorting happens internally, but we can verify the engine calls
 
         # Verify item1 (Unchecked) -> add_filter
-        self.mock_engine.add_filter.assert_any_call("/folder1")
+        self.mock_engine.add_filter.assert_any_call("/folder1", node_id=ANY)
 
         # Verify item2 (Checked) -> remove_filter
         self.mock_engine.remove_filter.assert_any_call("/folder2")
@@ -533,8 +533,8 @@ class TestDocumentsDialogApplyFilters:
         # Should remove parent filter first
         self.mock_engine.remove_filter.assert_any_call("/folder3")
         # Should add filters for unchecked children
-        self.mock_engine.add_filter.assert_any_call("/folder3/child1")
-        self.mock_engine.add_filter.assert_any_call("/folder3/child3")
+        self.mock_engine.add_filter.assert_any_call("/folder3/child1", node_id=ANY)
+        self.mock_engine.add_filter.assert_any_call("/folder3/child3", node_id=ANY)
         # Should NOT add filter for checked child2
 
         # Verify total call counts
@@ -602,7 +602,7 @@ class TestDocumentsDialogApplyFilters:
         # Track call order
         call_order = []
 
-        def track_add_filter(path):
+        def track_add_filter(path, **kwargs):
             call_order.append(path)
 
         self.mock_engine.add_filter.side_effect = track_add_filter
@@ -673,13 +673,17 @@ class TestDocumentsDialogApplyFilters:
         self.mock_engine.remove_filter.assert_called_once_with("/complex_parent")
 
         # Verify only unchecked children got filters added
-        self.mock_engine.add_filter.assert_any_call("/complex_parent/unchecked1")
-        self.mock_engine.add_filter.assert_any_call("/complex_parent/unchecked2")
+        self.mock_engine.add_filter.assert_any_call(
+            "/complex_parent/unchecked1", node_id=ANY
+        )
+        self.mock_engine.add_filter.assert_any_call(
+            "/complex_parent/unchecked2", node_id=ANY
+        )
 
         # Verify checked and partially checked children did NOT get filters
         expected_add_calls = [
-            call("/complex_parent/unchecked1"),
-            call("/complex_parent/unchecked2"),
+            call("/complex_parent/unchecked1", node_id=ANY),
+            call("/complex_parent/unchecked2", node_id=ANY),
         ]
         actual_add_calls = self.mock_engine.add_filter.call_args_list
         assert len(actual_add_calls) == 2
@@ -758,7 +762,7 @@ class TestDocumentsDialogApplyFilters:
 
         # Verify state-specific behavior
         # Unchecked -> add_filter
-        self.mock_engine.add_filter.assert_any_call("/unchecked")
+        self.mock_engine.add_filter.assert_any_call("/unchecked", node_id=ANY)
 
         # Checked -> remove_filter
         self.mock_engine.remove_filter.assert_any_call("/checked")

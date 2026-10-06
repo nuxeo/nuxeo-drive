@@ -33,6 +33,7 @@ DirectTransferModel.destination_link  # Used in QML
 DirectDownload.download_folders  # Used in tests
 DirectDownload._cleanup_batch_folder  # Used in tests
 DirectDownload._update_download_progress  # Used in tests
+DeviceSyncProvisioner.cleanup_orphans  # Manual recovery for orphan subscribers
 DocPair.last_sync_error_date  # Check NXDRIVE-1804
 Download.transfer_type  # Used in QML
 Engine.folder  # Used in QML

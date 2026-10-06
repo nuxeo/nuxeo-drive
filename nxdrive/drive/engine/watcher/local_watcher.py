@@ -870,20 +870,20 @@ class LocalWatcher(EngineWorker):
             # NXDRIVE-471 case maybe
             remote_ref = client.get_remote_id(rel_path)
             if not remote_ref:
-                log.info(
+                log.debug(
                     "Created event on a known pair with no remote_ref, this should "
                     f"only happen in case of a quick move and copy-paste: {doc_pair!r}"
                 )
                 if local_info.get_digest() == doc_pair.local_digest:
                     return
 
-                log.info(
+                log.debug(
                     "Created event on a known pair with no remote_ref "
                     f"but with different digest: {doc_pair!r}"
                 )
             else:
                 # NXDRIVE-509
-                log.info(
+                log.debug(
                     f"Created event on a known pair with a remote_ref: {doc_pair!r}"
                 )
 
@@ -902,7 +902,7 @@ class LocalWatcher(EngineWorker):
             # Unchanged digest, can be the case if only the last
             # modification time or file permissions have been updated
             if doc_pair.local_digest == digest:
-                log.info(
+                log.debug(
                     f"Digest has not changed for {rel_path!r} (watchdog event "
                     f"[{evt.event_type}]), only update last_local_updated"
                 )
@@ -995,7 +995,7 @@ class LocalWatcher(EngineWorker):
         evt_log = f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}"
         if dst_path:
             evt_log += f" to {dst_path!r}"
-        log.info(evt_log)
+        log.debug(evt_log)
 
         try:
             # Set action=False to avoid forced normalization before

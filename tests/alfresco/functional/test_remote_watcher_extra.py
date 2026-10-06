@@ -12,11 +12,15 @@ and local change scanning.
 """
 
 from pathlib import Path
+from time import monotonic
 from uuid import uuid4
 
 import pytest
 
-from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
+from nxdrive.alfresco.engine.watcher.remote_watcher import (
+    FILTER_RESCAN_DELAY,
+    AlfrescoRemoteWatcher,
+)
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.utils import unset_path_readonly
 
@@ -142,11 +146,16 @@ class TestHandleChanges:
 class TestScanPair:
     """scan_pair."""
 
-    def test_scan_pair_resets_next_check(self, engine_and_watcher) -> None:
+    def test_scan_pair_brings_the_next_poll_forward(self, engine_and_watcher) -> None:
+        """The picker applies filters one path at a time, so a burst of calls
+        collapses into a single pass rather than waking the poll immediately."""
         _engine, watcher = engine_and_watcher
         watcher._next_check = 9999999
+
         watcher.scan_pair("/some/path")
-        assert watcher._next_check == 0
+
+        assert watcher._next_check < 9999999
+        assert watcher._next_check <= monotonic() + FILTER_RESCAN_DELAY
 
 
 class TestScanLocalChanges:

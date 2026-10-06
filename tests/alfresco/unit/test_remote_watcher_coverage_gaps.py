@@ -19,6 +19,9 @@ def _watcher():
     engine = MagicMock()
     dao = MagicMock()
     dao.get_config.return_value = None
+    # Nothing has been checkpointed yet, otherwise every folder looks scanned.
+    dao.is_path_scanned.return_value = False
+    dao.get_paths_to_scan.return_value = []
     with patch.object(AlfrescoRemoteWatcher, "__init__", return_value=None):
         watcher = AlfrescoRemoteWatcher(engine, dao)
     watcher.engine = engine
@@ -31,7 +34,18 @@ def _watcher():
     watcher.updated = MagicMock()
     watcher.initiate = MagicMock()
     watcher.empty_polls = 0
+    watcher._local_scan_dirs = []
+    watcher._local_scan_seen = set()
+    watcher._local_scan_deletions = []
+    watcher.first_pass_done = False
     return watcher
+
+
+def _walk_local(watcher, local, dao, start=ROOT):
+    """Drain the whole local sweep, which now queues folders instead of recursing."""
+    watcher._local_scan_dirs = [start]
+    while watcher._local_scan_dirs:
+        watcher._scan_local_directory(watcher._local_scan_dirs.pop(0), local, dao)
 
 
 def _pair(name, path, **overrides):
@@ -94,7 +108,10 @@ def test_handle_changes_ignores_local_scan_failure_and_finishes_poll():
     watcher = _watcher()
     watcher.engine.remote = MagicMock()
     watcher.engine.queue_manager.get_overall_size.return_value = 0
-    watcher.scan_remote = MagicMock()
+    watcher._provisioner = MagicMock(provisioned=True)
+    watcher._bootstrap_if_needed = MagicMock()
+    watcher._apply_unfiltered = MagicMock()
+    watcher._poll_device_sync = MagicMock()
     watcher._scan_local_changes = MagicMock(side_effect=OSError("unreadable"))
 
     watcher._handle_changes(first_pass=False)
@@ -153,13 +170,15 @@ def test_existing_remote_folder_is_recursed_into():
     original = AlfrescoRemoteWatcher._scan_remote_recursive
 
     with patch.object(watcher, "_scan_remote_recursive") as recurse:
-        recurse.side_effect = lambda pair, info: original(watcher, pair, info)
+        recurse.side_effect = lambda pair, info, **kw: original(
+            watcher, pair, info, **kw
+        )
         remote.client.nodes.iter_children.side_effect = [[node], []]
         watcher.dao.get_remote_children.side_effect = [[existing], []]
         watcher._scan_remote_recursive(parent, parent_info)
 
     assert recurse.call_count == 2
-    recurse.assert_any_call(existing, child_info)
+    recurse.assert_any_call(existing, child_info, force=False)
 
 
 def test_queued_folder_is_still_scanned_recursively():
@@ -173,7 +192,7 @@ def test_queued_folder_is_still_scanned_recursively():
     queued = _pair("queued", "/queued", pair_state="locally_modified")
     dao.get_local_children.side_effect = [[queued], []]
 
-    watcher._scan_local_recursive(ROOT, local, dao, set(), [])
+    _walk_local(watcher, local, dao)
 
     assert local.get_children_info.call_count == 2
     dao.update_local_state.assert_not_called()
@@ -190,7 +209,7 @@ def test_processing_folder_is_still_scanned_recursively():
     processing = _pair("processing", "/processing", processor=5)
     dao.get_local_children.side_effect = [[processing], []]
 
-    watcher._scan_local_recursive(ROOT, local, dao, set(), [])
+    _walk_local(watcher, local, dao)
 
     assert local.get_children_info.call_count == 2
     dao.update_local_state.assert_not_called()
@@ -210,7 +229,7 @@ def test_digest_failure_skips_update_and_continues_with_next_file():
     good_pair = _pair("good.txt", "/good.txt", local_digest="old-good")
     dao.get_local_children.return_value = [bad_pair, good_pair]
 
-    watcher._scan_local_recursive(ROOT, local, dao, set(), [])
+    _walk_local(watcher, local, dao)
 
     dao.update_local_state.assert_called_once_with(good_pair, good_info)
     assert good_pair.local_digest == "new-good"
@@ -228,7 +247,7 @@ def test_synchronized_folder_is_scanned_recursively():
     folder_pair = _pair("folder", "/folder")
     dao.get_local_children.side_effect = [[folder_pair], []]
 
-    watcher._scan_local_recursive(ROOT, local, dao, set(), [])
+    _walk_local(watcher, local, dao)
 
     dao.insert_local_state.assert_called_once_with(
         nested_info, PurePosixPath("/folder")
@@ -246,7 +265,7 @@ def test_new_folder_is_inserted_and_scanned_recursively():
     local.get_remote_id.return_value = None
     dao.get_local_children.return_value = []
 
-    watcher._scan_local_recursive(ROOT, local, dao, set(), [])
+    _walk_local(watcher, local, dao)
 
     assert dao.insert_local_state.call_count == 2
     dao.insert_local_state.assert_any_call(folder_info, ROOT)

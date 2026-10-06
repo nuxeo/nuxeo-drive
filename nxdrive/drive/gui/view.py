@@ -154,6 +154,10 @@ class EngineModel(QAbstractListModel):
         engine.newConflict.connect(self._relay_engine_events)
         engine.newError.connect(self._relay_engine_events)
         engine.syncCompleted.connect(self._relay_engine_events)
+        # A pass that ended with errors reports itself here rather than
+        # through syncCompleted, so without this the error list and its
+        # banner only appear once something else refreshes the UI.
+        engine.syncPartialCompleted.connect(self._relay_engine_events)
         engine.syncResumed.connect(self._relay_engine_events)
         engine.syncStarted.connect(self._relay_engine_events)
         engine.syncSuspended.connect(self._relay_engine_events)

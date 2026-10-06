@@ -20,6 +20,8 @@ from pathlib import Path
 from time import monotonic_ns, sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 
+from alfresco.exceptions import NotFoundError as AlfrescoNotFoundError
+
 from nxdrive.drive.client.local import FileInfo
 from nxdrive.drive.constants import (
     CONNECTION_ERROR,
@@ -373,7 +375,6 @@ class AlfrescoProcessor(_ProcessorBase):
                     self.remove_void_transfers(doc_pair)
                     continue
 
-                log.info(f"Executing processor on {doc_pair!r}({doc_pair.version})")
                 if not sync_handler:
                     log.info(f"Unhandled {doc_pair.pair_state=}")
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
@@ -393,6 +394,18 @@ class AlfrescoProcessor(_ProcessorBase):
             except NotFound:
                 log.warning("The document or its parent does not exist anymore")
                 self.remove_void_transfers(doc_pair)
+            except AlfrescoNotFoundError as exc:
+                # A node whose content property is missing answers 404 on every
+                # attempt, and the generic handler would retry it forever:
+                # _postpone_pair() pins error_count to 1, so push_error() never
+                # reaches its give-up threshold and the pair never leaves the
+                # syncing count.
+                log.error(
+                    f"Remote content unavailable for {doc_pair.local_name!r} "
+                    f"(node {doc_pair.remote_ref!r}), giving up: {exc}"
+                )
+                self.remove_void_transfers(doc_pair)
+                self.giveup_error(doc_pair, "REMOTE_NOT_FOUND", exception=exc)
             except (PairInterrupt, ParentNotSynced) as exc:
                 log.info(f"{type(exc).__name__}, wait 1s and requeue")
                 sleep(1)
@@ -922,6 +935,20 @@ class AlfrescoProcessor(_ProcessorBase):
         # so that the next remote scan doesn't see a spurious mismatch.
         if fs_item_info.digest:
             doc_pair.local_digest = fs_item_info.digest
+
+        # The watcher may have raised a conflict on this pair while the
+        # creation was in flight. ``update_remote_state`` is not version
+        # checked, so writing now would erase the conflict and leave the row
+        # claiming an ordinary local creation.
+        current = self.dao.get_state_from_id(doc_pair.id)
+        if current and current.pair_state == "conflicted":
+            log.info(
+                f"Keeping the conflict raised for {doc_pair.local_name!r} "
+                "while its creation was in flight"
+            )
+            self.remove_void_transfers(doc_pair)
+            return
+
         self.dao.update_remote_state(
             doc_pair,
             fs_item_info,

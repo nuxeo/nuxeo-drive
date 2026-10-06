@@ -6,14 +6,18 @@
 """Unit tests for nxdrive.alfresco.engine.watcher.remote_watcher."""
 
 from datetime import datetime, timezone
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from unittest.mock import MagicMock, patch
 
 import pytest
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NetworkError as AlfrescoNetworkError
 
-from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
+from nxdrive.alfresco.client.device_sync import CONF_BOOTSTRAPPED_FOR
+from nxdrive.alfresco.engine.watcher.remote_watcher import (
+    LOCAL_SCAN_CHUNK,
+    AlfrescoRemoteWatcher,
+)
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.objects import RemoteFileInfo
 
@@ -31,6 +35,9 @@ def _make_watcher():
     dao.get_config.return_value = None
     dao.get_state_from_local.return_value = None
     dao.get_normal_state_from_remote.return_value = None
+    # Nothing has been checkpointed yet, otherwise every folder looks scanned.
+    dao.is_path_scanned.return_value = False
+    dao.get_paths_to_scan.return_value = []
 
     with patch.object(AlfrescoRemoteWatcher, "__init__", lambda self, *a, **kw: None):
         w = AlfrescoRemoteWatcher(engine, dao)
@@ -42,6 +49,38 @@ def _make_watcher():
     w._interact = MagicMock()
     w.remoteScanFinished = MagicMock()
     w.remoteWatcherStopped = MagicMock()
+
+    # Device Sync state, as it looks once a subscription is live.
+    w._provisioner = MagicMock(
+        provisioned=True,
+        subscriber_id="subscriber-1",
+        subscription_id="subscription-1",
+        client_version="1.0.3",
+    )
+    w._root_node_id = "root-id"
+    w._unfiltered_nodes = set()
+    w._unfiltered_needs_scan = False
+    w._change_failures = {}
+    w._local_scan_dirs = []
+    w._local_scan_seen = set()
+    w._local_scan_deletions = []
+    w.first_pass_done = False
+    return w
+
+
+def _polling_watcher():
+    """A watcher whose poll cycle is stubbed out, for _handle_changes tests."""
+    w = _make_watcher()
+    w.engine.remote = MagicMock()
+    w.engine.queue_manager.get_overall_size.return_value = 0
+    w.updated = MagicMock()
+    w.initiate = MagicMock()
+    w.empty_polls = 0
+    # Both now report completion; the first pass only finishes when they do.
+    w._bootstrap_if_needed = MagicMock(return_value=True)
+    w._apply_unfiltered = MagicMock()
+    w._poll_device_sync = MagicMock(return_value=True)
+    w._scan_local_changes = MagicMock()
     return w
 
 
@@ -547,50 +586,80 @@ class TestScanRemoteRecursive:
 
 
 class TestHandleChanges:
-    def test_first_pass_calls_scan_remote(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(watcher, "scan_remote") as mock_scan:
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=True)
-        mock_scan.assert_called_once()
+    def test_first_pass_polls_device_sync(self):
+        watcher = _polling_watcher()
+        watcher._handle_changes(first_pass=True)
+        watcher._poll_device_sync.assert_called_once()
 
-    def test_subsequent_pass_calls_scan_remote(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(watcher, "scan_remote") as mock_scan:
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=False)
-        mock_scan.assert_called_once()
+    def test_subsequent_pass_polls_device_sync(self):
+        watcher = _polling_watcher()
+        watcher._handle_changes(first_pass=False)
+        watcher._poll_device_sync.assert_called_once()
+
+    def test_poll_seeds_then_widens_then_drains(self):
+        """The delta is only trusted once seeding and un-filtering have run."""
+        watcher = _polling_watcher()
+        order = []
+        watcher._bootstrap_if_needed.side_effect = lambda: order.append("bootstrap")
+        watcher._apply_unfiltered.side_effect = lambda: order.append("unfiltered")
+        watcher._poll_device_sync.side_effect = lambda: order.append("poll")
+
+        watcher._handle_changes(first_pass=True)
+
+        assert order == ["bootstrap", "unfiltered", "poll"]
 
 
 class TestScanLocalChanges:
-    def test_calls_scan_local_recursive(self):
+    def test_scans_the_root(self):
         watcher = _make_watcher()
         watcher.engine.local = MagicMock()
         watcher.engine.local.exists.return_value = True
 
-        with patch.object(watcher, "_scan_local_recursive") as mock_slr:
+        with patch.object(watcher, "_scan_local_directory", return_value=0) as mock_dir:
             with patch.object(watcher, "_process_pending_deletions"):
                 watcher._scan_local_changes()
 
-        mock_slr.assert_called_once()
+        mock_dir.assert_called_once()
 
     def test_missing_root_returns_early(self):
         watcher = _make_watcher()
         watcher.engine.local = MagicMock()
         watcher.engine.local.exists.return_value = False
-        with patch.object(watcher, "_scan_local_recursive") as mock_slr:
+        with patch.object(watcher, "_scan_local_directory") as mock_dir:
             watcher._scan_local_changes()
-        mock_slr.assert_not_called()
+        mock_dir.assert_not_called()
+
+    def test_chunk_budget_pauses_the_sweep(self):
+        """A big workspace must not monopolise the watcher thread."""
+        watcher = _make_watcher()
+        watcher.engine.local = MagicMock()
+        watcher.engine.local.exists.return_value = True
+        # Every directory yields a full chunk and queues one more folder.
+        watcher._local_scan_dirs = []
+
+        def _fake_dir(path, local, dao, /):
+            watcher._local_scan_dirs.append(PurePosixPath(f"/sub{len(path.parts)}"))
+            return LOCAL_SCAN_CHUNK
+
+        with patch.object(watcher, "_scan_local_directory", side_effect=_fake_dir):
+            with patch.object(watcher, "_process_pending_deletions") as mock_del:
+                watcher._scan_local_changes()
+
+        # Paused mid-sweep: deletions must wait for a complete walk.
+        assert watcher._local_scan_dirs
+        mock_del.assert_not_called()
+
+    def test_deletions_only_run_on_a_complete_sweep(self):
+        watcher = _make_watcher()
+        watcher.engine.local = MagicMock()
+        watcher.engine.local.exists.return_value = True
+
+        with patch.object(watcher, "_scan_local_directory", return_value=1):
+            with patch.object(watcher, "_process_pending_deletions") as mock_del:
+                watcher._scan_local_changes()
+
+        mock_del.assert_called_once()
+        assert watcher._local_scan_dirs == []
 
 
 class TestProcessPendingDeletions:
@@ -612,7 +681,7 @@ class TestProcessPendingDeletions:
         watcher.engine.delete_doc.assert_not_called()
 
 
-class TestScanLocalRecursive:
+class TestScanLocalDirectory:
     def _setup(self):
         watcher = _make_watcher()
         local = MagicMock()
@@ -629,9 +698,7 @@ class TestScanLocalRecursive:
         local.get_remote_id.return_value = None
         dao.get_local_children.return_value = []
 
-        seen = set()
-        pending = []
-        watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+        watcher._scan_local_directory(ROOT, local, dao)
 
         dao.insert_local_state.assert_called_once()
 
@@ -652,9 +719,7 @@ class TestScanLocalRecursive:
         )
         dao.get_local_children.return_value = [db_pair]
 
-        seen = set()
-        pending = []
-        watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+        watcher._scan_local_directory(ROOT, local, dao)
 
         dao.update_local_state.assert_called_once()
         assert db_pair.local_digest == "new_digest"
@@ -672,11 +737,24 @@ class TestScanLocalRecursive:
         dao.get_local_children.return_value = [db_pair]
         local.exists.return_value = False
 
-        seen = set()
-        pending = []
-        watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+        watcher._scan_local_directory(ROOT, local, dao)
 
-        assert db_pair in pending
+        assert db_pair in watcher._local_scan_deletions
+
+    def test_subfolder_is_queued_not_recursed(self):
+        """Sub-folders are deferred to the queue so the budget can apply."""
+        watcher, local, dao = self._setup()
+        child_info = MagicMock()
+        child_info.path = PurePosixPath("/root/sub")
+        child_info.folderish = True
+        local.get_children_info.return_value = [child_info]
+        local.is_ignored.return_value = False
+        local.get_remote_id.return_value = None
+        dao.get_local_children.return_value = []
+
+        watcher._scan_local_directory(ROOT, local, dao)
+
+        assert watcher._local_scan_dirs == [child_info.path]
 
     def test_ignored_file_skipped(self):
         watcher, local, dao = self._setup()
@@ -687,9 +765,7 @@ class TestScanLocalRecursive:
         local.is_ignored.return_value = True
         dao.get_local_children.return_value = []
 
-        seen = set()
-        pending = []
-        watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+        watcher._scan_local_directory(ROOT, local, dao)
 
         dao.insert_local_state.assert_not_called()
 
@@ -697,10 +773,8 @@ class TestScanLocalRecursive:
         watcher, local, dao = self._setup()
         local.get_children_info.side_effect = OSError("permission denied")
 
-        seen = set()
-        pending = []
-        # Should not raise
-        watcher._scan_local_recursive(ROOT, local, dao, seen, pending)
+        # Should not raise, and contributes nothing to the budget.
+        assert watcher._scan_local_directory(ROOT, local, dao) == 0
 
 
 # --- NEW TESTS BELOW ---
@@ -710,140 +784,130 @@ class TestHandleChangesExtended:
     """Additional _handle_changes coverage."""
 
     def test_first_pass_emits_initiate(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=True)
+        watcher = _polling_watcher()
+        watcher._handle_changes(first_pass=True)
         watcher.initiate.emit.assert_called_once()
         watcher.updated.emit.assert_not_called()
 
     def test_subsequent_pass_emits_updated(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=False)
+        watcher = _polling_watcher()
+        watcher._handle_changes(first_pass=False)
         watcher.updated.emit.assert_called_once()
         watcher.initiate.emit.assert_not_called()
 
     def test_auth_error_sets_invalid_credentials(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(
-            watcher, "scan_remote", side_effect=AlfrescoAuthError("expired")
-        ):
-            watcher._handle_changes(first_pass=True)
+        watcher = _polling_watcher()
+        watcher._poll_device_sync.side_effect = AlfrescoAuthError("expired")
+
+        watcher._handle_changes(first_pass=True)
+
         watcher.engine.set_invalid_credentials.assert_called_once()
+        # Once from the failure path, once from _notify_pass_done.
         watcher.updated.emit.assert_called_once()
+        watcher.initiate.emit.assert_called_once()
 
     def test_scan_error_does_not_set_invalid_credentials(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        with patch.object(
-            watcher, "scan_remote", side_effect=RuntimeError("unexpected")
-        ):
-            watcher._handle_changes(first_pass=False)
+        watcher = _polling_watcher()
+        watcher._poll_device_sync.side_effect = RuntimeError("unexpected")
+
+        watcher._handle_changes(first_pass=False)
+
         watcher.engine.set_invalid_credentials.assert_not_called()
-        watcher.updated.emit.assert_called_once()
+        # Failure path plus _notify_pass_done both emit on a later pass.
+        assert watcher.updated.emit.call_count == 2
 
-    def test_scan_failure_leaves_the_first_pass_undone(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
+    def test_poll_failure_starts_processors_but_holds_local_creations(self):
+        """Two separate concerns: workers must start, the seed must not count.
+
+        ``initiate`` wires up the queue manager, so skipping it strands the
+        engine with no workers. ``first_pass_done`` gates local creations, so
+        setting it before the remote view is complete duplicates documents
+        created server-side while Drive was stopped.
+        """
+        watcher = _polling_watcher()
         watcher.first_pass_done = False
+        watcher._poll_device_sync.side_effect = RuntimeError("unexpected")
 
-        with patch.object(
-            watcher, "scan_remote", side_effect=RuntimeError("unexpected")
-        ):
-            watcher._handle_changes(first_pass=True)
+        watcher._handle_changes(first_pass=True)
 
+        watcher.initiate.emit.assert_called_once()
         assert watcher.first_pass_done is False
-        watcher.initiate.emit.assert_not_called()
 
     def test_successful_first_pass_marks_it_done(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
+        watcher = _polling_watcher()
         watcher.first_pass_done = False
 
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=True)
+        watcher._handle_changes(first_pass=True)
 
         assert watcher.first_pass_done is True
+        watcher.initiate.emit.assert_called_once()
+
+    def test_failed_first_pass_is_retried_as_a_first_pass(self):
+        """Otherwise local creations stay blocked for the whole session."""
+        watcher = _polling_watcher()
+        watcher.first_pass_done = False
+        watcher._poll_device_sync.side_effect = [RuntimeError("boom"), True]
+
+        watcher._handle_changes(not watcher.first_pass_done)
+        assert watcher.first_pass_done is False
+
+        # The next cycle asks the same question and gets "still the first".
+        watcher._handle_changes(not watcher.first_pass_done)
+        assert watcher.first_pass_done is True
+
+    def test_an_incomplete_seed_does_not_finish_the_first_pass(self):
+        """Releasing local creations against a half-walked tree duplicates them."""
+        watcher = _polling_watcher()
+        watcher.first_pass_done = False
+        watcher._bootstrap_if_needed.return_value = False
+
+        watcher._handle_changes(first_pass=True)
+
+        assert watcher.first_pass_done is False
+        watcher.initiate.emit.assert_called_once()
+
+    def test_an_undrained_feed_does_not_finish_the_first_pass(self):
+        watcher = _polling_watcher()
+        watcher.first_pass_done = False
+        watcher._poll_device_sync.return_value = False
+
+        watcher._handle_changes(first_pass=True)
+
+        assert watcher.first_pass_done is False
 
     def test_no_remote_returns_early(self):
-        watcher = _make_watcher()
+        watcher = _polling_watcher()
         watcher.engine.remote = None
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
+
         watcher._handle_changes(first_pass=False)
-        # Should not have attempted scan
-        watcher.updated.emit.assert_not_called()
+
+        watcher._poll_device_sync.assert_not_called()
 
     def test_queue_size_increase_resets_empty_polls(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
+        watcher = _polling_watcher()
         watcher.engine.queue_manager.get_overall_size.side_effect = [0, 5]
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
         watcher.empty_polls = 10
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=False)
+        watcher._handle_changes(first_pass=False)
         assert watcher.empty_polls == 0
 
     def test_no_new_work_increments_empty_polls(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
+        watcher = _polling_watcher()
         watcher.empty_polls = 3
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=False)
+        watcher._handle_changes(first_pass=False)
         assert watcher.empty_polls == 4
 
     def test_rescan_requested(self):
-        watcher = _make_watcher()
-        watcher.engine.remote = MagicMock()
-        watcher.engine.queue_manager.get_overall_size.return_value = 0
-        watcher.updated = MagicMock()
-        watcher.initiate = MagicMock()
-        watcher.empty_polls = 0
-        # Simulate rescan config being set
+        watcher = _polling_watcher()
+        # An on-demand re-scan clears the seeding marker so the tree is walked
+        # again; the subscription itself stays valid.
         watcher.dao.get_config.side_effect = lambda key: (
             "true" if key == "remote_need_full_scan" else None
         )
-        with patch.object(watcher, "scan_remote"):
-            with patch.object(watcher, "_scan_local_changes"):
-                watcher._handle_changes(first_pass=False)
-        # Should have cleared the rescan flag
+
+        watcher._handle_changes(first_pass=False)
+
         watcher.dao.update_config.assert_any_call("remote_need_full_scan", None)
+        watcher.dao.update_config.assert_any_call(CONF_BOOTSTRAPPED_FOR, None)
 
 
 class TestScanRemoteRecursiveExtended:
@@ -969,10 +1033,10 @@ class TestScanRemoteRecursiveExtended:
         with patch.object(
             watcher,
             "_scan_remote_recursive",
-            wraps=lambda p, i: (
+            wraps=lambda p, i, **kw: (
                 None
                 if p is child_pair_from_db
-                else AlfrescoRemoteWatcher._scan_remote_recursive(watcher, p, i)
+                else AlfrescoRemoteWatcher._scan_remote_recursive(watcher, p, i, **kw)
             ),
         ):
             watcher._scan_remote_recursive(
@@ -1074,3 +1138,257 @@ class TestExecuteLoop:
                 watcher._execute()
 
         watcher.remoteWatcherStopped.emit.assert_called_once()
+
+
+class TestMatchOrCreateChild:
+    """Same name on both sides: documents conflict, folders merge.
+
+    A folder conflict is not actionable -- "keep local" or "keep remote"
+    cannot be answered without discarding the folder's children -- and the
+    processor already adopts a same-named remote folder, so flagging one here
+    only makes the conflict count depend on which side wins the race.
+    """
+
+    @staticmethod
+    def _unlinked_local_pair():
+        return MagicMock(id=7, remote_ref="", local_state="created")
+
+    @staticmethod
+    def _remote(folderish):
+        return MagicMock(
+            uid="remote-id", name="nested", folderish=folderish, parent_uid="p"
+        )
+
+    def _link(self, folderish):
+        watcher = _make_watcher()
+        existing = self._unlinked_local_pair()
+        watcher.dao.get_state_from_local.return_value = existing
+        watcher.dao.get_normal_state_from_remote.return_value = None
+
+        watcher._match_or_create_child(
+            self._remote(folderish),
+            Path("conflicts/nested"),
+            Path("conflicts"),
+            "/Company Home/conflicts",
+        )
+        return watcher, existing
+
+    def test_a_folder_is_linked_not_conflicted(self):
+        watcher, existing = self._link(folderish=True)
+
+        assert existing.remote_state != "created"
+        assert watcher.dao.update_remote_state.call_args.kwargs["versioned"] is False
+
+    def test_a_document_still_conflicts(self):
+        watcher, existing = self._link(folderish=False)
+
+        assert existing.remote_state == "created"
+        assert watcher.dao.update_remote_state.call_args.kwargs["versioned"] is True
+
+    def test_a_merged_folder_claims_the_remote_id(self):
+        """Only a conflict must leave the xattr alone."""
+        watcher, _ = self._link(folderish=True)
+
+        watcher.engine.local.set_remote_id.assert_called_once()
+
+    def test_a_conflicting_document_does_not_claim_the_remote_id(self):
+        watcher, _ = self._link(folderish=False)
+
+        watcher.engine.local.set_remote_id.assert_not_called()
+
+
+class TestNewFolderPriority:
+    """A newly found folder is swept before the rest of the backlog.
+
+    The sweep only examines LOCAL_SCAN_CHUNK entries per cycle, so appending
+    a new folder holds its contents back until the whole tree has been walked
+    -- minutes on a large workspace, which is what QA saw as a slow upload.
+    """
+
+    @staticmethod
+    def _child(path, folderish=True):
+        info = MagicMock()
+        info.path = PurePosixPath(path)
+        info.folderish = folderish
+        return info
+
+    def _scan(self, *, known):
+        watcher = _make_watcher()
+        local = MagicMock()
+        dao = MagicMock()
+        local.get_children_info.return_value = [self._child("/root/fresh")]
+        local.is_ignored.return_value = False
+        local.get_remote_id.return_value = None
+        if known:
+            pair = MagicMock(local_name="fresh", pair_state="synchronized", processor=0)
+            dao.get_local_children.return_value = [pair]
+        else:
+            dao.get_local_children.return_value = []
+
+        watcher._local_scan_dirs = [PurePosixPath("/root/backlog")]
+        watcher._scan_local_directory(ROOT, local, dao)
+        return watcher._local_scan_dirs
+
+    def test_a_new_folder_is_scanned_before_the_backlog(self):
+        assert self._scan(known=False)[0] == PurePosixPath("/root/fresh")
+
+    def test_an_already_known_folder_waits_its_turn(self):
+        assert self._scan(known=True)[-1] == PurePosixPath("/root/fresh")
+
+
+class TestIncompleteSweep:
+    """Deletion is decided by what the sweep did NOT see.
+
+    A directory we failed to list contributes none of its children's refs, so
+    anything moved into it looks deleted and would be removed locally.
+    """
+
+    def _sweep(self, *, listing_fails):
+        watcher = _make_watcher()
+        local = MagicMock()
+        dao = MagicMock()
+        local.exists.return_value = True
+        if listing_fails:
+            local.get_children_info.side_effect = OSError("permission denied")
+        else:
+            local.get_children_info.return_value = []
+        dao.get_local_children.return_value = []
+        watcher.engine.local = local
+        watcher.dao = dao
+        watcher._process_pending_deletions = MagicMock()
+
+        watcher._local_scan_dirs = []
+        watcher._scan_local_changes()
+        return watcher
+
+    def test_an_unreadable_directory_blocks_deletion_processing(self):
+        watcher = self._sweep(listing_fails=True)
+
+        watcher._process_pending_deletions.assert_not_called()
+
+    def test_a_clean_sweep_still_processes_deletions(self):
+        watcher = self._sweep(listing_fails=False)
+
+        watcher._process_pending_deletions.assert_called_once()
+
+    def test_the_flag_resets_for_the_next_sweep(self):
+        """A one-off error must not disable deletions forever."""
+        watcher = self._sweep(listing_fails=True)
+        assert watcher._local_scan_incomplete is True
+
+        watcher.engine.local.get_children_info.side_effect = None
+        watcher.engine.local.get_children_info.return_value = []
+        watcher._local_scan_dirs = []
+        watcher._scan_local_changes()
+
+        assert watcher._local_scan_incomplete is False
+        watcher._process_pending_deletions.assert_called_once()
+
+
+class TestForcedRescan:
+    """Checkpoints make a failed seed cheap to resume, but an explicit rescan
+    is rebuilding rows that were just deleted -- it has to walk anyway."""
+
+    def _watcher_with_checkpoint(self):
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+        remote.client.nodes.iter_children.return_value = []
+        watcher.dao.get_remote_children.return_value = []
+        watcher.dao.is_filter.return_value = False
+        # The folder was already walked by an unfinished seed.
+        watcher.dao.is_path_scanned.return_value = True
+        return watcher
+
+    def test_a_checkpointed_folder_is_skipped_by_default(self):
+        """Resume support must survive the fix."""
+        watcher = self._watcher_with_checkpoint()
+
+        watcher._scan_remote_recursive(
+            _make_doc_pair(remote_ref="parent"), _make_remote_info(uid="parent")
+        )
+
+        watcher.engine.remote.client.nodes.iter_children.assert_not_called()
+
+    def test_a_forced_rescan_lists_a_checkpointed_folder(self):
+        watcher = self._watcher_with_checkpoint()
+
+        watcher._scan_remote_recursive(
+            _make_doc_pair(remote_ref="parent"),
+            _make_remote_info(uid="parent"),
+            force=True,
+        )
+
+        watcher.engine.remote.client.nodes.iter_children.assert_called_once()
+
+    def test_force_reaches_checkpointed_children(self):
+        """A checkpointed child would otherwise short-circuit mid-subtree."""
+        watcher = self._watcher_with_checkpoint()
+        child_pair = _make_doc_pair(remote_ref="child")
+        child_info = _make_remote_info(uid="child", name="sub", folderish=True)
+        watcher.engine.remote._node_to_remote_file_info.return_value = child_info
+        watcher.engine.remote.client.nodes.iter_children.side_effect = [
+            [MagicMock()],
+            [],
+        ]
+        watcher.dao.get_remote_children.side_effect = [[child_pair], []]
+
+        with patch.object(
+            watcher, "_scan_remote_recursive", wraps=watcher._scan_remote_recursive
+        ) as spy:
+            AlfrescoRemoteWatcher._scan_remote_recursive(
+                watcher,
+                _make_doc_pair(remote_ref="parent"),
+                _make_remote_info(uid="parent"),
+                force=True,
+            )
+
+        assert spy.call_args.kwargs["force"] is True
+
+    def test_restoring_an_unfiltered_folder_forces_the_walk(self):
+        """add_filter flagged every descendant deleted; they must come back."""
+        watcher = _make_watcher()
+        remote = MagicMock()
+        watcher.engine.remote = remote
+        info = _make_remote_info(uid="node-1", name="demo", folderish=True)
+        remote.get_node.return_value = MagicMock()
+        remote._node_to_remote_file_info.return_value = info
+        watcher._is_filtered_path = MagicMock(return_value=False)
+        watcher._resolve_parent = MagicMock(
+            return_value=_make_doc_pair(remote_ref="parent", remote_parent_path="")
+        )
+        watcher._reconcile_child = MagicMock(return_value=_make_doc_pair())
+        watcher._scan_remote_recursive = MagicMock(return_value=True)
+
+        watcher._resolve_unfiltered_node("node-1")
+
+        assert watcher._scan_remote_recursive.call_args.kwargs["force"] is True
+
+    def _tree_scan(self, *, from_state):
+        watcher = _make_watcher()
+        remote = MagicMock()
+        remote._node_to_remote_file_info.return_value = _make_remote_info(
+            uid="root-node", folderish=True
+        )
+        remote.get_node.return_value = MagicMock()
+        watcher.engine.remote = remote
+        watcher.engine.download_dir = PurePosixPath("/")
+        watcher.dao.get_state_from_local.return_value = _make_doc_pair(
+            remote_ref="root-node"
+        )
+
+        with patch.object(watcher, "_scan_remote_recursive") as recurse:
+            recurse.return_value = True
+            watcher.scan_remote(from_state=from_state)
+        return recurse
+
+    def test_a_subtree_rescan_is_forced(self):
+        """rollback_delete() removes the children before asking for them back."""
+        recurse = self._tree_scan(from_state=_make_doc_pair(remote_ref="sub"))
+
+        assert recurse.call_args.kwargs["force"] is True
+
+    def test_the_bootstrap_walk_keeps_its_checkpoints(self):
+        recurse = self._tree_scan(from_state=None)
+
+        assert recurse.call_args.kwargs["force"] is False

@@ -796,6 +796,45 @@ class TestSynchronizeLocallyCreated:
 
         proc.remote.stream_file.assert_called_once()
 
+    def test_a_conflict_raised_mid_upload_is_not_overwritten(self, proc) -> None:
+        """The watcher can flag the pair while the upload is in flight.
+
+        ``update_remote_state`` is not version checked, so writing after the
+        fact would erase the conflict and leave an ordinary local creation.
+        """
+        pair, parent = self._file_pair_and_parent()
+        pair.remote_ref = ""
+        proc.dao.get_state_from_local.return_value = parent
+        proc.dao.get_filters.return_value = []
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+        proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
+        proc.remote.stream_file.return_value.uid = "new-file-id"
+        proc.dao.get_normal_state_from_remote.return_value = None
+        proc.dao.get_state_from_id.return_value = Mock(pair_state="conflicted")
+
+        with patch.object(proc, "_conflicting_remote_twin", return_value=None):
+            proc._synchronize_locally_created(pair)
+
+        proc.dao.update_remote_state.assert_not_called()
+        proc.dao.synchronize_state.assert_not_called()
+
+    def test_an_unconflicted_pair_is_still_written(self, proc) -> None:
+        pair, parent = self._file_pair_and_parent()
+        pair.remote_ref = ""
+        proc.dao.get_state_from_local.return_value = parent
+        proc.dao.get_filters.return_value = []
+        proc.remote.get_fs_info.return_value.path = "/Company Home/Shared"
+        proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
+        proc.remote.stream_file.return_value.uid = "new-file-id"
+        proc.dao.get_normal_state_from_remote.return_value = None
+        proc.dao.get_state_from_id.return_value = Mock(pair_state="locally_created")
+
+        with patch.object(proc, "_conflicting_remote_twin", return_value=None):
+            proc._synchronize_locally_created(pair)
+
+        proc.dao.update_remote_state.assert_called_once()
+        proc.dao.synchronize_state.assert_called_once_with(pair)
+
     def test_resolved_pair_is_never_re_conflicted(self, proc) -> None:
         """ "Use local" must upload, not bounce back into conflict.
 
