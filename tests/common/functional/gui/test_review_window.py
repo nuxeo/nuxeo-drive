@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """End-to-end tests of the Direct Transfer selection review window.
 
 Unlike the unit tests, these drive a *real* ``FoldersDialog`` so that the whole
