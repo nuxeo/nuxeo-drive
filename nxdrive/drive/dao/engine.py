@@ -1526,9 +1526,10 @@ class EngineDAO(BaseDAO):
                 "remote_can_create_child, last_remote_modifier, "
                 "remote_digest, folderish, last_remote_modifier, "
                 "local_path, local_parent_path, remote_state, "
-                "local_state, pair_state, local_name, creation_date) "
+                "local_state, pair_state, local_name, creation_date, "
+                "remote_version, remote_locked) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-                "'created', 'unknown', ?, ?, ?)",
+                "'created', 'unknown', ?, ?, ?, ?, ?)",
                 (
                     info.uid,
                     info.parent_uid,
@@ -1548,6 +1549,8 @@ class EngineDAO(BaseDAO):
                     pair_state,
                     info.name,
                     info.creation_time,
+                    info.version_label,
+                    int(info.is_locked),
                 ),
             )
             row_id: int = c.lastrowid
@@ -1596,6 +1599,24 @@ class EngineDAO(BaseDAO):
             )
             row.last_error = error
             row.error_count += incr
+
+    def set_last_error(self, row: DocPair, error: str, /, *, details: str = "") -> None:
+        """Record why a pair is stuck, without counting it as a failure.
+
+        Unlike :meth:`increase_error` this leaves ``error_count`` alone, so a
+        conflicted row keeps its reason while staying in the Conflicts list
+        instead of being promoted into Errors.
+        """
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE States"
+                "   SET last_error = ?,"
+                "       last_error_details = ?"
+                " WHERE id = ?",
+                (error, details, row.id),
+            )
+            row.last_error = error
 
     def reset_error(self, row: DocPair, /, *, last_error: str = None) -> None:
         with self.lock:
@@ -1864,6 +1885,8 @@ class EngineDAO(BaseDAO):
                 "       remote_can_update = ?,"
                 "       remote_can_create_child = ?,"
                 "       last_remote_modifier = ?,"
+                "       remote_version = ?,"
+                "       remote_locked = ?,"
                 "       local_state = ?,"
                 "       remote_state = ?,"
                 "       pair_state = ?"
@@ -1891,6 +1914,8 @@ class EngineDAO(BaseDAO):
                         info.can_update,
                         info.can_create_child,
                         info.last_contributor,
+                        info.version_label,
+                        int(info.is_locked),
                         row.local_state,
                         row.remote_state,
                         row.pair_state,

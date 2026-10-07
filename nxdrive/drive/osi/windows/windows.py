@@ -3,7 +3,7 @@ import subprocess
 import sys
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import win32api
 from win32com.client import Dispatch
@@ -270,3 +270,16 @@ class WindowsIntegration(AbstractOSIntegration):
     def get_extension_listener(self) -> WindowsExtensionListener:
         assert self._manager
         return WindowsExtensionListener(self._manager)
+
+    # -- Open-file detection -------------------------------------------------
+
+    def is_file_open(self, path: Path, /) -> Optional[bool]:
+        """Not implemented yet on Windows; see ``DarwinIntegration``.
+
+        Returning ``None`` keeps callers on their existing behaviour instead of
+        letting them assume the file is closed.
+        """
+        return None
+
+    def has_file_open_detection(self) -> bool:
+        return False

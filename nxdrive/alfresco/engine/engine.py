@@ -44,6 +44,10 @@ __all__ = ("AlfrescoEngine",)
 
 log = getLogger(__name__)
 
+#: DAO config key recording that the open-file detection permission prompt has
+#: already been shown, so a refusal is not re-asked on every start.
+OPEN_FILE_PERMISSION_ASKED = "open_file_permission_asked"
+
 
 class AlfrescoEngine(Engine):
     """Sync engine for Alfresco servers.
@@ -180,7 +184,35 @@ class AlfrescoEngine(Engine):
         """
         if not Feature.synchronization and self.dao.get_config("filters_configured"):
             self._cleanup_after_sync_disabled()
+        elif Feature.synchronization:
+            self._request_open_file_permission()
         super().start()
+
+    def _request_open_file_permission(self) -> None:
+        """Prompt once for the permission the open-file check needs.
+
+        Conflict detection defers a download while the user has the file open
+        locally, which on macOS needs Accessibility. The prompt is shown at
+        most once per installation: a refusal must not nag on every start, and
+        detection still works partially without it.
+        """
+        if self.dao.get_config(OPEN_FILE_PERMISSION_ASKED):
+            return
+
+        osi = self.manager.osi
+        if not osi.has_file_open_detection():
+            return
+
+        try:
+            granted = osi.request_file_open_permission()
+        except Exception:
+            log.warning(
+                "Could not request open-file detection permission", exc_info=True
+            )
+            return
+
+        self.dao.update_config(OPEN_FILE_PERMISSION_ASKED, "1")
+        log.info(f"Open-file detection permission granted: {granted}")
 
     def _cleanup_after_sync_disabled(self) -> None:
         """Wipe DB-level sync state after the user disables sync.

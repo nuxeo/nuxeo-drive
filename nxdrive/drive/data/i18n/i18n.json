@@ -64,6 +64,8 @@
     "CONFLICTS_AND_ERRORS": "Conflicts and errors",
     "CONFLICTS_SYSTRAY": "%1 conflict(s)",
     "CONFLICT_ON_FILE": "The file \"%1\" has a conflict",
+    "CONFLICT_REASON_FILE_OPEN_LOCALLY": "This file is open on your computer. Close it so the server version can be downloaded.",
+    "CONFLICT_REASON_LOCKED_ON_SERVER": "File is locked on server. Cannot sync.",
     "CONFLICT_RETRY": "Retry",
     "CONFLICT_USE_DUPLICATE": "Duplicate files",
     "CONFLICT_USE_LOCAL": "Use local",

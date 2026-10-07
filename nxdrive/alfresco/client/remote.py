@@ -520,9 +520,11 @@ class AlfrescoRemote:
             can_delete=True,
             can_update=node.is_file,
             can_create_child=node.is_folder,
-            lock_owner=None,
+            lock_owner=node.lock_owner,
             lock_created=None,
             can_scroll_descendants=False,
+            version_label=node.version_label,
+            is_locked=node.is_locked,
         )
 
     @staticmethod
@@ -569,6 +571,10 @@ class AlfrescoRemote:
             lock_owner=None,
             lock_created=None,
             can_scroll_descendants=False,
+            # Empty until the Sync Service emits ``fileVersion``; the watcher
+            # falls back to a node fetch rather than treating it as "no version".
+            version_label=change.file_version,
+            is_locked=change.is_locked,
         )
 
     # -- Adapter methods (Processor compatibility) ---------------------------

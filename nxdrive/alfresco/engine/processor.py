@@ -58,6 +58,23 @@ PARTIAL_COMPARE_SIZE = 10 * 1024 * 1024
 #: Attempts allowed when reading remote content for that comparison.
 PARTIAL_COMPARE_ATTEMPTS = 3
 
+#: ``last_error`` written on a pair the server has checked out. Kept in sync
+#: with the ``CONFLICT_REASON_LOCKED_ON_SERVER`` key in ``i18n.json``.
+LOCKED_ON_SERVER = "LOCKED_ON_SERVER"
+
+#: ``last_error`` written on a download held back because the user has the file
+#: open. Kept in sync with ``CONFLICT_REASON_FILE_OPEN_LOCALLY`` in ``i18n.json``.
+FILE_OPEN_LOCALLY = "FILE_OPEN_LOCALLY"
+
+#: Seconds before retrying a download whose local file is currently open.
+#: Shorter than a poll cycle so the download lands promptly once it is closed.
+OPEN_FILE_RETRY = 10
+
+#: Deferrals allowed before the download is raised as a conflict instead. Kept
+#: below the Errors-list threshold (``error_count > 3``) so a file the user is
+#: simply working in never shows up as an error.
+MAX_OPEN_FILE_DEFERRALS = 3
+
 
 def _fmt_remote_ts(ts: Any) -> str:
     """Normalise a remote modification timestamp to ``YYYY-MM-DD HH:MM:SS``.
@@ -126,41 +143,106 @@ class AlfrescoProcessor(_ProcessorBase):
         self.dao.update_local_state(doc_pair, local_info, versioned=False, queue=False)
 
     def _remote_has_drifted(self, doc_pair: DocPair, /) -> bool:
-        """Return ``True`` when the server-side node has been modified
-        since ``doc_pair.last_remote_updated``.
+        """Return ``True`` when the server-side node's *content* has been
+        modified since ``doc_pair.last_remote_updated``.
 
-        Alfresco doesn't expose a content digest, so we compare the
-        server's ``modifiedAt`` timestamp against the value recorded on
-        the pair when the watcher last saw it.  Mirrors Nuxeo's
-        pre-upload freshness check in
-        ``NuxeoProcessor._handle_doc_pair_sync()`` (which uses digest
-        comparison instead).  Returns ``False`` if the remote can't be
-        reached — the caller falls through and the normal error path
-        handles connectivity issues.
+        The version label is the authoritative signal because it only advances
+        when content is written; the ``modifiedAt`` timestamp also moves on
+        metadata-only edits (rename, tag, aspect) and would report a conflict
+        for a file nobody re-saved.  The timestamp remains the fallback for
+        nodes without the ``cm:versionable`` aspect, which have no label.
+
+        Returns ``False`` if the remote can't be reached — the caller falls
+        through and the normal error path handles connectivity issues.
         """
         if not doc_pair.remote_ref:
             return False
-        try:
-            remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
-        except NotFound:
-            # Remote is gone; let the normal handler decide what to do.
-            return False
-        except Exception:
-            log.debug(
-                f"Freshness check failed for {doc_pair!r}; proceeding",
-                exc_info=True,
-            )
-            return False
-        if remote_info is None:
-            return False
-        remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
-        db_ts = str(doc_pair.last_remote_updated or "")[:19]
         # Folder renames on the server also count as drift, but folder
         # renames are handled by the watcher path already; scope this
         # check to files.
         if doc_pair.folderish:
             return False
+
+        remote_info = self._safe_remote_info(doc_pair)
+        if remote_info is None:
+            return False
+
+        remote_version = remote_info.version_label
+        db_version = doc_pair.remote_version or ""
+        if remote_version and db_version:
+            return remote_version != db_version
+
+        remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
+        db_ts = str(doc_pair.last_remote_updated or "")[:19]
         return bool(remote_ts) and remote_ts != db_ts
+
+    def _safe_remote_info(self, doc_pair: DocPair, /) -> Optional[RemoteFileInfo]:
+        """Fetch the node's current state, or ``None`` when unreachable."""
+        try:
+            return self.remote.get_fs_info(doc_pair.remote_ref)
+        except NotFound:
+            # Remote is gone; let the normal handler decide what to do.
+            return None
+        except Exception:
+            log.debug(
+                f"Could not read remote state for {doc_pair!r}; proceeding",
+                exc_info=True,
+            )
+            return None
+
+    def _mark_locked_on_server(
+        self, doc_pair: DocPair, owner: Optional[str], /
+    ) -> None:
+        """Flag a pair the server has checked out, so the user can see why.
+
+        ``_force_sync`` clears ``last_error``, so the reason is written after
+        the state flip, and without touching ``error_count`` so the row stays
+        in the Conflicts list rather than moving to Errors.
+        """
+        log.info(
+            f"Remote node is locked, deferring {doc_pair.local_name!r} "
+            f"(owner={owner!r})"
+        )
+        self._mark_conflicted(doc_pair)
+        self.dao.set_last_error(doc_pair, LOCKED_ON_SERVER, details=owner or "")
+
+    def _defer_open_file(self, doc_pair: DocPair, /) -> None:
+        """Hold back a download while the user has the file open.
+
+        The retry count is persisted rather than kept in memory because a pair
+        can be picked up by a different processor thread each round, and
+        ``_postpone_pair`` pins ``error_count`` to 1 — so an unbounded defer
+        would never reach the queue's give-up threshold and the pair would stay
+        in the syncing count forever. Once the bound is hit the download is
+        raised as a conflict instead, which converges without overwriting a
+        file the user is still editing.
+        """
+        deferrals = (doc_pair.error_count or 0) + 1
+        if deferrals > MAX_OPEN_FILE_DEFERRALS:
+            log.info(
+                f"{doc_pair.local_name!r} is still open after {deferrals} "
+                "attempts, raising a conflict rather than overwriting it"
+            )
+            self._mark_conflicted(doc_pair)
+            self.dao.set_last_error(doc_pair, FILE_OPEN_LOCALLY)
+            return
+
+        self.dao.increase_error(doc_pair, FILE_OPEN_LOCALLY)
+        self._postpone_pair(doc_pair, "File open locally", interval=OPEN_FILE_RETRY)
+
+    def _local_file_in_use(self, doc_pair: DocPair, /) -> bool:
+        """Return whether the user currently has the local file open.
+
+        Only consulted for download candidates, so the per-file cost of the
+        OS probe is bounded.  An unsupported platform answers ``None``, which
+        is treated as "not in use" so behaviour is unchanged there.
+        """
+        if doc_pair.folderish:
+            return False
+        osi = self.engine.manager.osi
+        if not osi.has_file_open_detection():
+            return False
+        return osi.is_file_open(self.local.abspath(doc_pair.local_path)) is True
 
     def _mark_conflicted(self, doc_pair: DocPair, /) -> None:
         """Atomically flip a pair to ``pair_state='conflicted'`` and fire
@@ -489,22 +571,34 @@ class AlfrescoProcessor(_ProcessorBase):
             log.info(f"Upload is paused for {doc_pair!r}")
             return
 
-        # Pre-upload freshness check: for any ``locally_*`` pair with a
-        # remote counterpart, ask the server whether the node has
-        # changed since we last saw it.  If it has, this is a genuine
-        # both-sides-modified conflict; flip the pair to ``conflicted``
-        # so the systray surfaces it and abort the upload instead of
-        # silently overwriting remote changes.  Mirrors Nuxeo's L172
-        # pre-check (which uses digest comparison instead of timestamp).
-        if doc_pair.pair_state in (
-            "locally_modified",
-            "locally_moved",
-        ) and self._remote_has_drifted(doc_pair):
-            log.warning(
-                f"Pre-upload freshness check: remote drifted for "
-                f"{doc_pair.local_name!r}, marking as conflicted"
-            )
-            self._mark_conflicted(doc_pair)
+        # Pre-upload checks: for any ``locally_*`` pair with a remote
+        # counterpart, ask the server what state the node is in.  A lock means
+        # somebody is editing it server-side, so pushing would either be
+        # rejected or clobber their work; a drifted version means both sides
+        # changed.  Either way the upload is abandoned and the row is surfaced
+        # in the systray instead of silently overwriting remote changes.
+        # Mirrors Nuxeo's L172 pre-check (which uses digest comparison).
+        if doc_pair.pair_state in ("locally_modified", "locally_moved"):
+            remote_info = self._safe_remote_info(doc_pair)
+            if remote_info is not None and remote_info.is_locked:
+                self._mark_locked_on_server(doc_pair, remote_info.lock_owner)
+                return
+            if self._remote_has_drifted(doc_pair):
+                log.warning(
+                    f"Pre-upload freshness check: remote drifted for "
+                    f"{doc_pair.local_name!r}, marking as conflicted"
+                )
+                self._mark_conflicted(doc_pair)
+                return
+
+        # A download would overwrite whatever the user is typing right now, and
+        # their save would then race ours.  Wait for the file to be closed; the
+        # local watcher then flags the edit and the pair becomes a genuine
+        # two-sided conflict instead of silent data loss.
+        if doc_pair.pair_state == "remotely_modified" and self._local_file_in_use(
+            doc_pair
+        ):
+            self._defer_open_file(doc_pair)
             return
 
         self.pairSyncStarted.emit(self._current_metrics)
