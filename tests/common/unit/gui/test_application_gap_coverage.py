@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Focused coverage tests for small Application GUI branches."""
 
 from pathlib import Path

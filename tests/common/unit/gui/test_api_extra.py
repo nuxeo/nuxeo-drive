@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Deterministic unit coverage for the shared GUI API.
 
 The product-specific API tests exercise the main Nuxeo flows.  These tests

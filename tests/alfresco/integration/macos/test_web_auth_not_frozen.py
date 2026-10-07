@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """macOS-only integration test: web-auth flow does not freeze the UI.
 
 Mirrors :mod:`tests.nuxeo.integration.macos.test_web_auth_not_frozen`

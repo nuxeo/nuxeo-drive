@@ -1,5 +1,10 @@
 #!/bin/bash
 #
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
+#
 # Usage: bash deploy-nuxeo-drive-mac.sh VERSION
 #
 # Deploy script for Nuxeo Drive releases (not alpha, not beta, just official releases).

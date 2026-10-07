@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 # Usage: powershell ".\deploy-nuxeo-drive-windows.ps1" VERSION
 #
 # Deploy script for Nuxeo Drive releases (not alpha, not beta, just official releases).

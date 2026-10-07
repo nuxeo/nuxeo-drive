@@ -1,3 +1,8 @@
+;
+; © 2012-2026 Hyland.
+; All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+;
+
 ; Create the Windows installer for add-ons.
 #define MyAppName "Nuxeo Drive Addons"
 #define MyAppParent "Nuxeo Drive"

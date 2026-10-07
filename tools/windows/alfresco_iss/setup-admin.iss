@@ -1,4 +1,9 @@
-﻿; System-wide installation requiring admin rights.
+﻿;
+; © 2012-2026 Hyland.
+; All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+;
+
+; System-wide installation requiring admin rights.
 
 ; Limitations compared to the normal (user) setup:
 ;    - Drive does not start automatically after the installation in silent mode.

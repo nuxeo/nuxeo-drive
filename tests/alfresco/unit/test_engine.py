@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Unit tests for nxdrive.alfresco.engine.engine — targets uncovered lines."""
 
 from pathlib import Path

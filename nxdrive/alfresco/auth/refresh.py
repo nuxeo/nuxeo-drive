@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Refresh-aware OAuth2 auth handler for Alfresco Content Services.
 
 The vendor :class:`alfresco.auth.OAuth2Auth`, when constructed via

@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """The Direct Transfer selection review window.
 
 Lists every local path queued for a Direct Transfer, as a tree, and allows the

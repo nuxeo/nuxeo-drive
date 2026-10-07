@@ -1,8 +1,9 @@
-"""
-(C) Copyright 2025 Hyland Software, Inc. and its affiliates. All rights reserved.
-All Hyland product names are registered or unregistered trademarks of Hyland Software,
-Inc. or its affiliates. (http://nuxeo.com/).
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
 
+"""
 Usage: python merge.py FOLDER [FILE]
 
 Merge JUnit reports from FOLDER into FILE.

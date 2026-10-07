@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Regression tests for the Device Sync review findings on PR #6486.
 
 Each test pins one failure mode that previously went unnoticed because the

@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 import json
 import os
 import re
@@ -6,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple
 
-from .qt.imports import QTranslator, Property, Signal, Slot
+from .qt.imports import Property, QTranslator, Signal, Slot
 
 __all__ = ("Translator",)
 

@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
 
 # Checks AppDir for maximum compatibility with AppImage best practices.
 # This might evolve into a more formal specification one day.

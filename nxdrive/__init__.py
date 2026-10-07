@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 Nuxeo Drive - Synchronization client for Nuxeo.
 https://doc.nuxeo.com/nxdoc/nuxeo-drive/

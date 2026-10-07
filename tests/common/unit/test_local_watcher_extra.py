@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Focused branch tests for the local filesystem watcher.
 
 The legacy local watcher test module exercises broad happy paths.  These tests

@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Base class for remote watchers.
 
 Provides the shared polling loop (``_execute``), common signals
