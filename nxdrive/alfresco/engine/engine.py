@@ -20,7 +20,12 @@ from nxdrive.alfresco.client.device_sync import (
     DeviceSyncProvisioner,
 )
 from nxdrive.alfresco.client.remote import AlfrescoRemote
-from nxdrive.alfresco.engine.processor import AlfrescoProcessor
+from nxdrive.alfresco.content_compare import content_matches
+from nxdrive.alfresco.engine.processor import (
+    FILE_OPEN_LOCALLY,
+    LOCKED_ON_SERVER,
+    AlfrescoProcessor,
+)
 from nxdrive.alfresco.engine.watcher.remote_watcher import (
     DEVICE_OS,
     AlfrescoRemoteWatcher,
@@ -32,7 +37,7 @@ from nxdrive.drive.constants import ROOT
 from nxdrive.drive.engine.engine import Engine
 from nxdrive.drive.exceptions import RemoteUnauthorized
 from nxdrive.drive.feature import Feature
-from nxdrive.drive.objects import Binder, EngineDef
+from nxdrive.drive.objects import Binder, DocPair, EngineDef
 from nxdrive.drive.options import Options
 from nxdrive.drive.qt.imports import Signal, Slot
 from nxdrive.drive.utils import set_path_readonly, unset_path_readonly
@@ -557,15 +562,24 @@ class AlfrescoEngine(Engine):
             log.debug("Alfresco conflict resolver: empty pair, skipping")
             return
 
-        # Created on both sides: ``last_remote_updated`` was written from
-        # this very node when the pair was linked, so the freshness check
-        # below would always report "unchanged" and cancel a real conflict.
-        created_both_sides = (
-            pair.local_state == "created" and pair.remote_state == "created"
-        )
+        # The freshness check needs a baseline from an earlier successful sync.
+        # A pair that has never synchronised had ``last_remote_updated`` written
+        # from this very node, so the comparison can only ever say "unchanged"
+        # and would cancel a real conflict. Enumerating state pairs is not
+        # enough — a remote-first creation lands as ``("unknown", "created")``.
+        never_synced = not pair.last_sync_date
+
+        # Conflicts the engine raised deliberately carry their reason in
+        # ``last_error``; auto-resolving them reinstates the data loss they
+        # exist to prevent.
+        reasoned = pair.last_error in (FILE_OPEN_LOCALLY, LOCKED_ON_SERVER)
+
+        if not pair.folderish and pair.remote_ref and never_synced:
+            self._resolve_unsynced_conflict(pair, row_id, emit=emit)
+            return
 
         # File path: timestamp-based freshness check.
-        if not pair.folderish and pair.remote_ref and not created_both_sides:
+        if not pair.folderish and pair.remote_ref and not reasoned:
             remote_info = None
             try:
                 remote_info = self.remote.get_fs_info(pair.remote_ref)
@@ -605,18 +619,55 @@ class AlfrescoEngine(Engine):
                 return
 
         # Cannot auto-resolve — surface the conflict to the user.
-        if emit:
-            log.warning(
-                f"Alfresco conflict resolver: surfacing conflict for "
-                f"{pair.local_name!r}"
+        self._surface_conflict(pair, row_id, emit=emit)
+
+    def _resolve_unsynced_conflict(
+        self, pair: DocPair, row_id: int, /, *, emit: bool = True
+    ) -> None:
+        """Decide a conflict on a pair that has never synchronised.
+
+        Such a pair has no version or timestamp baseline — both were written
+        from the fetch that created it — so metadata cannot say whether the two
+        sides actually differ. Compare the bytes instead: identical content is
+        not a conflict, it is the same file reached from both ends.
+
+        Anything other than a definite match is surfaced to the user, so an
+        unreadable file or a server error can never silently discard an edit.
+        """
+        local_path = self.local.abspath(pair.local_path)
+        if not local_path.is_file():
+            self._surface_conflict(pair, row_id, emit=emit)
+            return
+
+        matches = content_matches(self.remote, local_path, pair.remote_ref)
+        if matches:
+            log.info(
+                f"Alfresco conflict resolver: {pair.local_name!r} is identical "
+                "on both sides, auto-resolving"
             )
-            # Stop any processor still working this path, else an in-flight
-            # upload completes and silently overwrites the remote.
-            self.queue_manager.interrupt_processors_on(
-                pair.local_path, exact_match=True
-            )
-            self.newConflict.emit(row_id)
-            self.manager.osi.send_sync_status(pair, self.local.abspath(pair.local_path))
+            self.dao.synchronize_state(pair)
+            return
+
+        log.info(
+            f"Alfresco conflict resolver: {pair.local_name!r} has never synced "
+            f"and content differs (matches={matches!r}), surfacing"
+        )
+        self._surface_conflict(pair, row_id, emit=emit)
+
+    def _surface_conflict(
+        self, pair: DocPair, row_id: int, /, *, emit: bool = True
+    ) -> None:
+        """Hand a conflict to the user via the systray."""
+        if not emit:
+            return
+        log.warning(
+            f"Alfresco conflict resolver: surfacing conflict for {pair.local_name!r}"
+        )
+        # Stop any processor still working this path, else an in-flight
+        # upload completes and silently overwrites the remote.
+        self.queue_manager.interrupt_processors_on(pair.local_path, exact_match=True)
+        self.newConflict.emit(row_id)
+        self.manager.osi.send_sync_status(pair, self.local.abspath(pair.local_path))
 
     # -- Overrides for engine-generic features (disabled in Phase 1) ---------
 

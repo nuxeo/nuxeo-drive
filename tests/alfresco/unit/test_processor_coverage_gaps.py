@@ -245,6 +245,7 @@ def test_local_folder_create_recovers_parent_from_xattr(processor):
     pair.local_parent_path = Path("sync")
     pair.local_name = "new-folder"
     pair.folderish = True
+    pair.version = 1
     parent = MagicMock()
     parent.remote_ref = "parent-id"
     parent.remote_can_create_child = True
@@ -257,6 +258,9 @@ def test_local_folder_create_recovers_parent_from_xattr(processor):
     processor.remote.get_fs_info.return_value = MagicMock(path="/Company Home")
     remote_info = MagicMock(uid="new-folder-id", digest=None)
     processor.remote.make_folder.return_value = remote_info
+    processor.dao.get_state_from_id.return_value = MagicMock(
+        version=1, pair_state="locally_created"
+    )
 
     processor._synchronize_locally_created(pair)
 

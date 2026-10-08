@@ -6,17 +6,17 @@ items (remotely_created, locally_created, etc.) using the
 ``AlfrescoRemote`` adapter methods.
 """
 
-import hashlib
 import shutil
 import sqlite3
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns, sleep
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 from alfresco.exceptions import NotFoundError as AlfrescoNotFoundError
 
+from nxdrive.alfresco.content_compare import content_matches
 from nxdrive.drive.client.local import FileInfo
 from nxdrive.drive.constants import (
     CONNECTION_ERROR,
@@ -49,14 +49,6 @@ if TYPE_CHECKING:
 __all__ = ("AlfrescoProcessor",)
 
 log = getLogger(__name__)
-
-#: Bytes hashed from the head *and* from the tail when comparing a local
-#: file against a same-named remote node.  Files up to twice this size are
-#: compared in full.
-PARTIAL_COMPARE_SIZE = 10 * 1024 * 1024
-
-#: Attempts allowed when reading remote content for that comparison.
-PARTIAL_COMPARE_ATTEMPTS = 3
 
 #: ``last_error`` written on a pair the server has checked out. Kept in sync
 #: with the ``CONFLICT_REASON_LOCKED_ON_SERVER`` key in ``i18n.json``.
@@ -142,7 +134,9 @@ class AlfrescoProcessor(_ProcessorBase):
     def _refresh_local_state(self, doc_pair: DocPair, local_info: FileInfo, /) -> None:
         self.dao.update_local_state(doc_pair, local_info, versioned=False, queue=False)
 
-    def _remote_has_drifted(self, doc_pair: DocPair, /) -> bool:
+    def _remote_has_drifted(
+        self, doc_pair: DocPair, /, *, remote_info: RemoteFileInfo = None
+    ) -> bool:
         """Return ``True`` when the server-side node's *content* has been
         modified since ``doc_pair.last_remote_updated``.
 
@@ -151,6 +145,9 @@ class AlfrescoProcessor(_ProcessorBase):
         metadata-only edits (rename, tag, aspect) and would report a conflict
         for a file nobody re-saved.  The timestamp remains the fallback for
         nodes without the ``cm:versionable`` aspect, which have no label.
+
+        Pass *remote_info* to reuse a response the caller already fetched, so
+        both checks read the same snapshot instead of two.
 
         Returns ``False`` if the remote can't be reached — the caller falls
         through and the normal error path handles connectivity issues.
@@ -163,7 +160,8 @@ class AlfrescoProcessor(_ProcessorBase):
         if doc_pair.folderish:
             return False
 
-        remote_info = self._safe_remote_info(doc_pair)
+        if remote_info is None:
+            remote_info = self._safe_remote_info(doc_pair)
         if remote_info is None:
             return False
 
@@ -259,44 +257,6 @@ class AlfrescoProcessor(_ProcessorBase):
         )
         self.dao._force_sync(doc_pair, "modified", "modified", "conflicted")
 
-    @staticmethod
-    def _local_head_tail_digest(
-        path: Path, size: int, /, *, head_only: bool = False
-    ) -> str:
-        limit = PARTIAL_COMPARE_SIZE
-        h = hashlib.md5(usedforsecurity=False)
-        with path.open("rb") as f:
-            if head_only:
-                h.update(f.read(limit))
-            elif size <= 2 * limit:
-                for chunk in iter(lambda: f.read(limit), b""):
-                    h.update(chunk)
-            else:
-                h.update(f.read(limit))
-                f.seek(size - limit)
-                h.update(f.read(limit))
-        return h.hexdigest()
-
-    def _remote_head_tail_digest(self, node_id: str, size: int, /) -> Tuple[str, bool]:
-        """Return the digest and whether only the head window was hashed.
-
-        A server ignoring ``Range`` cannot serve the tail cheaply, so the
-        comparison degrades to head-only; the caller must then hash the
-        local side the same way or every large file would look different.
-        """
-        limit = PARTIAL_COMPARE_SIZE
-        h = hashlib.md5(usedforsecurity=False)
-        if size <= 2 * limit:
-            h.update(self.remote.get_content_range(node_id, 0, size) or b"")
-            return h.hexdigest(), False
-
-        h.update(self.remote.get_content_range(node_id, 0, limit) or b"")
-        tail = self.remote.get_content_range(node_id, size - limit, limit)
-        if tail is None:
-            return h.hexdigest(), True
-        h.update(tail)
-        return h.hexdigest(), False
-
     def _conflicting_remote_twin(
         self, doc_pair: DocPair, parent_ref: str, /
     ) -> Optional[Any]:
@@ -330,57 +290,17 @@ class AlfrescoProcessor(_ProcessorBase):
             if self.local.get_remote_id(doc_pair.local_path) == twin.id:
                 return None
 
-        local_path = self.local.abspath(doc_pair.local_path)
-        try:
-            local_size = local_path.stat().st_size
-        except OSError:
-            log.warning(
-                f"Could not stat {local_path!r}, proceeding with upload",
-                exc_info=True,
-            )
-            return None
         remote_size = twin.content.size_in_bytes if twin.content else -1
-        if remote_size != local_size:
-            log.info(
-                f"Remote {name!r} ({twin.id}) already exists with a different "
-                f"size (remote={remote_size}, local={local_size})"
-            )
-            return twin
-
-        remote_digest = ""
-        head_only = False
-        for attempt in range(1, PARTIAL_COMPARE_ATTEMPTS + 1):
-            try:
-                remote_digest, head_only = self._remote_head_tail_digest(
-                    twin.id, remote_size
-                )
-                break
-            except Exception:
-                if attempt == PARTIAL_COMPARE_ATTEMPTS:
-                    log.warning(
-                        f"Could not read remote content of {name!r} ({twin.id}) "
-                        f"after {attempt} attempts, proceeding with upload",
-                        exc_info=True,
-                    )
-                    return None
-                sleep(1)
-
-        if head_only:
-            log.info(
-                f"Comparing only the first {PARTIAL_COMPARE_SIZE} bytes of "
-                f"{name!r} ({twin.id}): the server does not honour Range"
-            )
-
-        local_digest = self._local_head_tail_digest(
-            local_path, local_size, head_only=head_only
+        matches = content_matches(
+            self.remote,
+            self.local.abspath(doc_pair.local_path),
+            twin.id,
+            remote_size=remote_size,
         )
-        if local_digest == remote_digest:
+        # Unknown resolves to "upload anyway": a transient read failure must
+        # not block synchronisation.
+        if matches is None or matches:
             return None
-
-        log.info(
-            f"Remote {name!r} ({twin.id}) already exists with different content "
-            f"(remote={remote_digest}, local={local_digest})"
-        )
         return twin
 
     def _refresh_remote(
@@ -389,8 +309,17 @@ class AlfrescoProcessor(_ProcessorBase):
         if remote_info is None:
             remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
         if remote_info:
+            # ``force_update`` skips the "not dirty" shortcut, which returns
+            # before recording the version and timestamp. Alfresco sends no
+            # content hash, so that shortcut always triggers and the baseline
+            # would never move -- the next local edit then sees the server as
+            # drifted and raises a conflict that does not exist.
             self.dao.update_remote_state(
-                doc_pair, remote_info, versioned=False, queue=False
+                doc_pair,
+                remote_info,
+                versioned=False,
+                queue=False,
+                force_update=True,
             )
 
     def _handle_readonly(self, doc_pair: DocPair, /) -> None:
@@ -583,7 +512,7 @@ class AlfrescoProcessor(_ProcessorBase):
             if remote_info is not None and remote_info.is_locked:
                 self._mark_locked_on_server(doc_pair, remote_info.lock_owner)
                 return
-            if self._remote_has_drifted(doc_pair):
+            if self._remote_has_drifted(doc_pair, remote_info=remote_info):
                 log.warning(
                     f"Pre-upload freshness check: remote drifted for "
                     f"{doc_pair.local_name!r}, marking as conflicted"
@@ -847,8 +776,21 @@ class AlfrescoProcessor(_ProcessorBase):
         with suppress(OSError):
             shutil.rmtree(tmp_file.parent)
 
+        # Fetched before stamping the file: a "Use remote" resolution downloads
+        # whatever the server holds now, which can be newer than the revision
+        # that raised the conflict, and ``last_remote_updated`` still points at
+        # that older one.
+        remote_info = None
+        with suppress(Exception):
+            remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
+
         self.local.change_file_date(
-            updated_info.filepath, mtime=doc_pair.last_remote_updated
+            updated_info.filepath,
+            mtime=(
+                remote_info.last_modification_time
+                if remote_info
+                else doc_pair.last_remote_updated
+            ),
         )
         doc_pair.local_digest = updated_info.get_digest()
         self.dao.update_last_transfer(doc_pair.id, "download")
@@ -860,7 +802,7 @@ class AlfrescoProcessor(_ProcessorBase):
         # next remote poll doesn't spuriously re-mark the pair as
         # ``remotely_modified``.
         with suppress(Exception):
-            self._refresh_remote(doc_pair)
+            self._refresh_remote(doc_pair, remote_info)
 
     def _synchronize_remotely_deleted(self, doc_pair: DocPair, /) -> None:
         remote_id = self.local.get_remote_id(doc_pair.local_path)
@@ -1025,25 +967,40 @@ class AlfrescoProcessor(_ProcessorBase):
         if fs_item_info.digest:
             doc_pair.local_digest = fs_item_info.digest
 
-        # The watcher may have raised a conflict on this pair while the
-        # creation was in flight. ``update_remote_state`` is not version
-        # checked, so writing now would erase the conflict and leave the row
-        # claiming an ordinary local creation.
+        # The row may have been re-decided while the creation was in flight (a
+        # watcher link, a conflict, a user resolution). ``update_remote_state``
+        # has no optimistic lock, so writing our snapshot now would resurrect a
+        # state that is already dead and the pair would be uploaded again.
         current = self.dao.get_state_from_id(doc_pair.id)
-        if current and current.pair_state == "conflicted":
+        if current and current.version != doc_pair.version:
             log.info(
-                f"Keeping the conflict raised for {doc_pair.local_name!r} "
-                "while its creation was in flight"
+                f"{doc_pair.local_name!r} was re-decided while its creation was "
+                f"in flight (now {current.pair_state!r}); keeping the newer state"
             )
+            if current.pair_state != "conflicted":
+                # The upload did happen, so the newer row still needs the
+                # version/timestamp baseline it produced.
+                self.dao.update_remote_state(
+                    current,
+                    fs_item_info,
+                    remote_parent_path=remote_parent_path,
+                    versioned=False,
+                    queue=False,
+                    force_update=True,
+                )
             self.remove_void_transfers(doc_pair)
             return
 
+        # ``force_update`` skips the "not dirty" shortcut, which would return
+        # before recording the version the upload just created and leave the
+        # next change feed entry looking like a remote edit.
         self.dao.update_remote_state(
             doc_pair,
             fs_item_info,
             remote_parent_path=remote_parent_path,
             versioned=False,
             queue=False,
+            force_update=True,
         )
         self.dao.synchronize_state(doc_pair)
 
@@ -1078,7 +1035,9 @@ class AlfrescoProcessor(_ProcessorBase):
                     engine_uid=self.engine.uid,
                 )
                 self.dao.update_last_transfer(doc_pair.id, "upload")
-                self.dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
+                self.dao.update_remote_state(
+                    doc_pair, fs_item_info, versioned=False, force_update=True
+                )
             else:
                 log.info(
                     f"Skip update of remote document {doc_pair.local_name!r} "
@@ -1088,7 +1047,9 @@ class AlfrescoProcessor(_ProcessorBase):
                 return
         if fs_item_info is None:
             fs_item_info = self.remote.get_fs_info(doc_pair.remote_ref)
-            self.dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
+            self.dao.update_remote_state(
+                doc_pair, fs_item_info, versioned=False, force_update=True
+            )
         self.dao.synchronize_state(doc_pair)
 
     def _synchronize_locally_resolved(self, doc_pair: DocPair, /) -> None:

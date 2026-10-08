@@ -30,6 +30,7 @@ from nxdrive.alfresco.client.device_sync import (
     DEVICE_SYNC_CLIENT_VERSION,
     DeviceSyncProvisioner,
 )
+from nxdrive.alfresco.content_compare import content_matches
 from nxdrive.alfresco.engine.processor import LOCKED_ON_SERVER
 from nxdrive.alfresco.sync_filters import is_top_folder_excluded
 from nxdrive.drive.constants import MAC, ROOT, WINDOWS
@@ -495,39 +496,62 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self._fill_version_and_lock(child_info)
         return not child_info.is_locked
 
+    def _content_differs(
+        self, child_pair: DocPair, child_info: RemoteFileInfo, /
+    ) -> bool:
+        """Compare the bytes when there is no metadata baseline to compare.
+
+        Unknown resolves to ``True`` so the pair is reconciled rather than
+        silently assumed identical.
+        """
+        local_path = self.engine.local.abspath(child_pair.local_path)
+        if not local_path.is_file():
+            return True
+        return not content_matches(self.engine.remote, local_path, child_info.uid)
+
     def _content_changed(
         self, child_pair: DocPair, child_info: RemoteFileInfo, /
     ) -> bool:
         """Return whether the node's *content* changed since we last saw it.
 
-        The version label is the authoritative signal: it only advances when
-        content is written, whereas the modification time also moves on
-        metadata-only edits (rename, tag, aspect) and would raise a false
-        conflict. The timestamp is still used as a cheap pre-filter — it never
-        misses a real change — so a node fetch only happens for nodes that
-        actually moved. Nodes without ``cm:versionable`` have no version label,
-        so those fall back to the timestamp verdict.
+        The version label is authoritative: it only advances when content is
+        written, whereas the modification time also moves on metadata-only
+        edits (rename, tag, aspect) and would raise a false conflict. A version
+        already in hand therefore decides outright.
+
+        Without one, the timestamp decides whether fetching a version is worth
+        the call — it is truncated to whole seconds, so it can only be trusted
+        to say "nothing moved", never "this is a content change".
+
+        A pair with no baseline at all has never synchronised: both columns were
+        written from the fetch that created it, so only the bytes can answer.
         """
         if child_info.folderish:
             return False
-        if not self._timestamp_moved(child_pair, child_info):
+
+        db_version = child_pair.remote_version or ""
+        if child_info.version_label and db_version:
+            changed = child_info.version_label != db_version
+            if not changed:
+                log.debug(
+                    f"Ignoring metadata-only change for {child_info.name!r}: "
+                    f"version still {db_version!r}"
+                )
+            return changed
+
+        has_baseline = bool(db_version or child_pair.last_remote_updated)
+        if has_baseline and not self._timestamp_moved(child_pair, child_info):
             return False
 
         if not child_info.version_label:
             self._fill_version_and_lock(child_info)
+        if child_info.version_label and db_version:
+            return child_info.version_label != db_version
 
-        remote_version = child_info.version_label
-        db_version = child_pair.remote_version or ""
-        if remote_version and db_version:
-            if remote_version == db_version:
-                log.debug(
-                    f"Ignoring metadata-only change for {child_info.name!r}: "
-                    f"version still {remote_version!r}"
-                )
-                return False
-            return True
+        if not has_baseline:
+            return self._content_differs(child_pair, child_info)
 
-        # First sight of this pair, or a non-versionable node.
+        # Non-versionable node: the timestamp verdict is all there is.
         return True
 
     def _reconcile_child(
@@ -579,64 +603,60 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self._release_lock_conflict(child_pair)
             return self.dao.get_state_from_id(child_pair.id, from_write=True)
 
-        content_changed = self._content_changed(child_pair, child_info)
-        if content_changed:
-            # Pair is already flagged as conflicted: don't touch
-            # remote state, don't re-queue.  ``update_remote_state``
-            # would recompute ``pair_state`` from PAIR_STATES and
-            # (because Alfresco digests are ``None``) the "similar"
-            # short-circuit would demote the row back to
-            # ``locally_modified`` — undoing the conflict marking
-            # and hiding the row from the systray Conflicts panel.
-            if child_pair.pair_state == "conflicted":
-                log.debug(
-                    f"Skipping update for {child_info.name!r}: "
-                    "pair is already conflicted (awaiting user)"
-                )
-            # Skip if the pair is currently being processed by the
-            # Processor (e.g. an upload is in progress).  Forcing
-            # remotely_modified mid-upload causes a redundant
-            # download cycle and can create ghost queue items.
-            elif child_pair.pair_state in (
-                "locally_created",
-                "locally_modified",
-            ):
-                log.debug(
-                    f"Skipping force_remote for {child_info.name!r}: "
-                    f"pair is {child_pair.pair_state!r} (processor active)"
-                )
-                self.dao.update_remote_state(
-                    child_pair,
-                    child_info,
-                    remote_parent_path=remote_parent_path,
-                )
-            else:
-                log.info(
-                    f"Content change detected for {child_info.name!r}: "
-                    f"old={child_pair.last_remote_updated!r} "
-                    f"new={child_info.last_modification_time!r}"
-                )
-                # Step 1: update metadata (esp. last_remote_updated)
-                # without bumping version, so force_remote can match
-                # the current version with its optimistic lock.
-                self.dao.update_remote_state(
-                    child_pair,
-                    child_info,
-                    remote_parent_path=remote_parent_path,
-                    force_update=True,
-                    versioned=False,
-                )
-                # Step 2: set pair to "remotely_modified" and queue.
-                # update_remote_state's no-change block resets
-                # remote_state to "synchronized" (because
-                # None in (local_digest, None)), so we must
-                # override it with force_remote.
-                self.dao.force_remote(child_pair)
-        elif child_pair.pair_state == "conflicted":
+        # A conflicted pair is waiting on the user. ``update_remote_state``
+        # would recompute ``pair_state`` from PAIR_STATES and — because
+        # Alfresco digests are ``None`` — demote the row back to
+        # ``locally_modified``, hiding it from the Conflicts panel.
+        if child_pair.pair_state == "conflicted":
             log.debug(
                 f"Skipping update for {child_info.name!r}: "
                 "pair is already conflicted (awaiting user)"
             )
+            return child_pair
+
+        # The processor owns this pair. Refresh the naming metadata so a remote
+        # rename still lands, but keep the version/timestamp baseline: the
+        # pre-upload drift check compares against it, and overwriting it here
+        # makes the server look unchanged against itself.
+        if child_pair.pair_state in ("locally_created", "locally_modified"):
+            log.debug(
+                f"Keeping the sync baseline for {child_info.name!r}: "
+                f"pair is {child_pair.pair_state!r} (processor active)"
+            )
+            self.dao.update_remote_state(
+                child_pair,
+                child_info,
+                remote_parent_path=remote_parent_path,
+                no_baseline=True,
+            )
+            return child_pair
+
+        if self._content_changed(child_pair, child_info):
+            log.info(
+                f"Content change detected for {child_info.name!r}: "
+                f"old={child_pair.last_remote_updated!r} "
+                f"new={child_info.last_modification_time!r}"
+            )
+            # Step 1: update metadata (esp. last_remote_updated)
+            # without bumping version, so force_remote can match
+            # the current version with its optimistic lock.
+            self.dao.update_remote_state(
+                child_pair,
+                child_info,
+                remote_parent_path=remote_parent_path,
+                force_update=True,
+                versioned=False,
+            )
+            # Alfresco serves no content hash, so ``remote_digest`` still holds
+            # what we last uploaded; the processor would read it as "the local
+            # copy is current" and skip the download.
+            self.dao.clear_remote_digest(child_pair)
+            # Step 2: set pair to "remotely_modified" and queue.
+            # update_remote_state's no-change block resets
+            # remote_state to "synchronized" (because
+            # None in (local_digest, None)), so we must
+            # override it with force_remote.
+            self.dao.force_remote(child_pair)
         else:
             self.dao.update_remote_state(
                 child_pair,

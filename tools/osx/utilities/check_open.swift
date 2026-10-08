@@ -45,6 +45,10 @@ if firstArgument == "--check-permission" || firstArgument == "--request-permissi
 let targetPath = URL(fileURLWithPath: firstArgument).standardizedFileURL.path
 let targetURL = URL(fileURLWithPath: targetPath)
 let filename = targetURL.lastPathComponent
+// Name of the containing folder, used to disambiguate a basename match: two
+// different documents can share a filename, and a title carrying only the
+// basename is not proof that *this* path is the one open.
+let parentFolder = targetURL.deletingLastPathComponent().lastPathComponent
 
 // Blacklist apps whose window/tab titles represent commands, folders, or URLs
 let titleInspectionBlacklist: Set<String> = [
@@ -66,6 +70,20 @@ func titleMatches(title: String, token: String) -> Bool {
     guard !token.isEmpty && title.localizedCaseInsensitiveContains(token) else { return false }
     let pattern = "(^|[\\s/●*•—–\\-\\[\\](])" + NSRegularExpression.escapedPattern(for: token) + "([\\s—–\\-\\[\\])]|$)"
     return title.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil
+}
+
+/// Whether a window/tab title identifies *this* file rather than another one
+/// that merely shares its name.
+///
+/// The full path is conclusive. A bare basename is not: `/other/report.docx`
+/// open elsewhere would otherwise flag `/sync/report.docx`. Requiring the
+/// containing folder to appear as well is what most editors render
+/// (`report.docx — folder`), and a wrong guess here costs the user a false
+/// conflict.
+func titleIdentifiesTarget(_ title: String) -> Bool {
+    if title.contains(targetPath) { return true }
+    guard titleMatches(title: title, token: filename) else { return false }
+    return !parentFolder.isEmpty && title.localizedCaseInsensitiveContains(parentFolder)
 }
 
 func findTabTitles(in element: AXUIElement, maxDepth: Int = 3) -> [String] {
@@ -167,14 +185,14 @@ func isGUIOpen(target: String, filename: String) -> Bool {
             var titleRef: CFTypeRef?
             if AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleRef) == .success,
                let windowTitle = titleRef as? String {
-                if windowTitle.contains(target) || titleMatches(title: windowTitle, token: filename) {
+                if titleIdentifiesTarget(windowTitle) {
                     return true
                 }
             }
 
             // Tier 4: Background Tabs (VS Code, NotepadNext inactive tabs)
             for tabTitle in findTabTitles(in: window) {
-                if titleMatches(title: tabTitle, token: filename) {
+                if titleIdentifiesTarget(tabTitle) {
                     return true
                 }
             }

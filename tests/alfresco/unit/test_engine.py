@@ -512,6 +512,8 @@ class TestConflictResolver:
         pair.remote_ref = "node-123"
         pair.local_state = "created"
         pair.remote_state = "created"
+        # Never synchronised: this is what makes the timestamp meaningless.
+        pair.last_sync_date = None
         pair.last_remote_updated = "2024-01-01 00:00:00"
         pair.local_name = "file.txt"
         pair.local_path = "/test"

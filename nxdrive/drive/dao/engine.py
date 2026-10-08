@@ -1659,6 +1659,20 @@ class EngineDAO(BaseDAO):
     def force_remote(self, row: DocPair, /) -> bool:
         return self._force_sync(row, "synchronized", "modified", "remotely_modified")
 
+    def clear_remote_digest(self, row: DocPair, /) -> None:
+        """Forget the digest recorded for the server copy of *row*.
+
+        A server that exposes no content hash leaves ``remote_digest`` holding
+        whatever *we* last uploaded. Once the server content changes that value
+        is simply wrong, and ``update_remote_state`` never overwrites it because
+        the change carries no digest to replace it with. Leaving it in place
+        makes the download check believe the local copy is already current.
+        """
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute("UPDATE States SET remote_digest = NULL WHERE id = ?", (row.id,))
+        row.remote_digest = None
+
     def force_remote_creation(self, row: DocPair, /) -> bool:
         return self._force_sync(row, "unknown", "created", "remotely_created")
 
@@ -1824,6 +1838,7 @@ class EngineDAO(BaseDAO):
         queue: bool = True,
         force_update: bool = False,
         no_digest: bool = False,
+        no_baseline: bool = False,
     ) -> bool:
         row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
@@ -1873,20 +1888,29 @@ class EngineDAO(BaseDAO):
 
         with self.lock:
             c = self._get_write_connection().cursor()
+            # ``last_remote_updated``/``remote_version`` are the baseline the
+            # pre-upload drift check compares against. Overwriting them while a
+            # local change is pending makes the server look unchanged against
+            # itself, and the upload then clobbers a concurrent remote edit.
+            baseline = (
+                ""
+                if no_baseline
+                else "       last_remote_updated = ?,"
+                "       remote_version = ?,"
+                "       remote_locked = ?,"
+            )
             query = (
                 "UPDATE States"
                 "   SET remote_ref = ?,"
                 "       remote_parent_ref = ?,"
                 "       remote_parent_path = ?,"
                 "       remote_name = ?,"
-                "       last_remote_updated = ?,"
+                f"{baseline}"
                 "       remote_can_rename = ?,"
                 "       remote_can_delete = ?,"
                 "       remote_can_update = ?,"
                 "       remote_can_create_child = ?,"
                 "       last_remote_modifier = ?,"
-                "       remote_version = ?,"
-                "       remote_locked = ?,"
                 "       local_state = ?,"
                 "       remote_state = ?,"
                 "       pair_state = ?"
@@ -1900,6 +1924,15 @@ class EngineDAO(BaseDAO):
                 log.debug(f"Increasing version to {row.version + 1} for pair {row!r}")
 
             query += " WHERE id = ?"
+            baseline_values = (
+                ()
+                if no_baseline
+                else (
+                    info.last_modification_time,
+                    info.version_label,
+                    int(info.is_locked),
+                )
+            )
             try:
                 c.execute(
                     query,
@@ -1908,14 +1941,12 @@ class EngineDAO(BaseDAO):
                         info.parent_uid,
                         remote_parent_path,
                         info.name,
-                        info.last_modification_time,
+                        *baseline_values,
                         info.can_rename,
                         info.can_delete,
                         info.can_update,
                         info.can_create_child,
                         info.last_contributor,
-                        info.version_label,
-                        int(info.is_locked),
                         row.local_state,
                         row.remote_state,
                         row.pair_state,
