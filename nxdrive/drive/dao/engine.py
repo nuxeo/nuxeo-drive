@@ -1635,7 +1635,20 @@ class EngineDAO(BaseDAO):
             row.last_error = None
             row.error_count = 0
 
-    def _force_sync(self, row: DocPair, local: str, remote: str, pair: str, /) -> bool:
+    def _force_sync(
+        self,
+        row: DocPair,
+        local: str,
+        remote: str,
+        pair: str,
+        /,
+        *,
+        last_error: str = None,
+        last_error_details: str = None,
+    ) -> bool:
+        # The reason is written in the same statement as the state flip because
+        # this also fires ``newConflict``: a resolver reacting to that signal
+        # must never observe the conflict without the reason that justifies it.
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(
@@ -1643,16 +1656,26 @@ class EngineDAO(BaseDAO):
                 "   SET local_state = ?,"
                 "       remote_state = ?,"
                 "       pair_state = ?,"
-                "       last_error = NULL,"
+                "       last_error = ?,"
+                "       last_error_details = ?,"
                 "       last_sync_error_date = NULL,"
                 "       error_count = 0"
                 " WHERE id = ?"
                 "   AND version = ?",
-                (local, remote, pair, row.id, row.version),
+                (
+                    local,
+                    remote,
+                    pair,
+                    last_error,
+                    last_error_details,
+                    row.id,
+                    row.version,
+                ),
             )
             self._queue_pair_state(row.id, row.folderish, pair)
             if c.rowcount == 1:
                 self._items_count += 1
+                row.last_error = last_error
                 return True
         return False
 

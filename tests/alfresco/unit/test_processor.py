@@ -243,7 +243,12 @@ class TestMarkConflicted:
         pair.remote_ref = "abc"
         proc._mark_conflicted(pair)
         proc.dao._force_sync.assert_called_once_with(
-            pair, "modified", "modified", "conflicted"
+            pair,
+            "modified",
+            "modified",
+            "conflicted",
+            last_error=None,
+            last_error_details=None,
         )
 
 
@@ -763,7 +768,12 @@ class TestSynchronizeLocallyCreated:
 
         proc.remote.stream_file.assert_not_called()
         proc.dao._force_sync.assert_called_once_with(
-            pair, "modified", "modified", "conflicted"
+            pair,
+            "modified",
+            "modified",
+            "conflicted",
+            last_error=None,
+            last_error_details=None,
         )
 
     def test_conflicted_pair_is_bound_to_the_twin(self, proc) -> None:
@@ -1572,7 +1582,12 @@ class TestMarkConflictedExtra:
         pair.remote_ref = "node-123"
         proc._mark_conflicted(pair)
         proc.dao._force_sync.assert_called_once_with(
-            pair, "modified", "modified", "conflicted"
+            pair,
+            "modified",
+            "modified",
+            "conflicted",
+            last_error=None,
+            last_error_details=None,
         )
 
 
@@ -1905,7 +1920,12 @@ class TestExecuteEdgeCases:
         proc._handle_doc_pair_sync = Mock(side_effect=RemoteConflict("conflict"))
         proc._execute()
         proc.dao._force_sync.assert_called_once_with(
-            item, "modified", "modified", "conflicted"
+            item,
+            "modified",
+            "modified",
+            "conflicted",
+            last_error=None,
+            last_error_details=None,
         )
 
     def test_download_paused_sets_transfer_doc(self, proc):

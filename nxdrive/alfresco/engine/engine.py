@@ -562,6 +562,17 @@ class AlfrescoEngine(Engine):
             log.debug("Alfresco conflict resolver: empty pair, skipping")
             return
 
+        # Conflicts the engine raised deliberately carry their reason in
+        # ``last_error``; auto-resolving them reinstates the data loss they
+        # exist to prevent. Checked first, so no later branch can decide one.
+        if pair.last_error in (FILE_OPEN_LOCALLY, LOCKED_ON_SERVER):
+            log.debug(
+                f"Alfresco conflict resolver: {pair.local_name!r} is parked as "
+                f"{pair.last_error!r}, leaving it to the user"
+            )
+            self._surface_conflict(pair, row_id, emit=emit)
+            return
+
         # The freshness check needs a baseline from an earlier successful sync.
         # A pair that has never synchronised had ``last_remote_updated`` written
         # from this very node, so the comparison can only ever say "unchanged"
@@ -569,17 +580,12 @@ class AlfrescoEngine(Engine):
         # enough — a remote-first creation lands as ``("unknown", "created")``.
         never_synced = not pair.last_sync_date
 
-        # Conflicts the engine raised deliberately carry their reason in
-        # ``last_error``; auto-resolving them reinstates the data loss they
-        # exist to prevent.
-        reasoned = pair.last_error in (FILE_OPEN_LOCALLY, LOCKED_ON_SERVER)
-
         if not pair.folderish and pair.remote_ref and never_synced:
             self._resolve_unsynced_conflict(pair, row_id, emit=emit)
             return
 
         # File path: timestamp-based freshness check.
-        if not pair.folderish and pair.remote_ref and not reasoned:
+        if not pair.folderish and pair.remote_ref:
             remote_info = None
             try:
                 remote_info = self.remote.get_fs_info(pair.remote_ref)

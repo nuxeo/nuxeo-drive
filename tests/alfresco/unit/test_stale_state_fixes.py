@@ -338,6 +338,26 @@ class TestDownloadBaseline:
 
         proc.remote.get_fs_info.assert_called_once_with("node-1")
 
+    def test_the_revision_is_read_before_the_bytes_are_fetched(self):
+        """A revision landing mid-download must not become the baseline.
+
+        If it did, the next poll would compare the stored version against that
+        same revision, see no change, and never fetch the bytes we skipped.
+        """
+        order = []
+        proc = self._proc(_info(version_label="4.0"))
+        proc.remote.get_fs_info.side_effect = lambda *a: (
+            order.append("read-revision") or _info(version_label="4.0")
+        )
+        proc._download_content.side_effect = lambda *a: (
+            order.append("download") or Path("/tmp/dl/file.txt")
+        )
+
+        with patch(f"{PROCESSOR}.shutil"):
+            proc._update_remotely(self._pair(), False)
+
+        assert order == ["read-revision", "download"]
+
     def test_an_unreachable_server_falls_back_to_the_stored_timestamp(self):
         proc = self._proc(None)
         proc.remote.get_fs_info.side_effect = OSError("boom")

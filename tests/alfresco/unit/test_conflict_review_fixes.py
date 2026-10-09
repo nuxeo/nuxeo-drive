@@ -203,6 +203,39 @@ class TestConflictResolverReasoned:
         engine.dao._force_sync.assert_not_called()
         engine.newConflict.emit.assert_called_once_with(1)
 
+    @pytest.mark.parametrize("reason", (FILE_OPEN_LOCALLY, LOCKED_ON_SERVER))
+    def test_a_reasoned_pair_that_never_synced_is_not_content_resolved(self, reason):
+        """The reason must win over the never-synced byte comparison.
+
+        Otherwise a pair we parked on purpose gets silently synchronised the
+        moment its sampled content happens to match.
+        """
+        engine = _engine()
+        pair = _pair(last_error=reason, last_sync_date=None)
+        engine.dao.get_state_from_id.return_value = pair
+        engine.local.abspath.return_value = MagicMock(is_file=lambda: True)
+
+        with patch(
+            "nxdrive.alfresco.engine.engine.content_matches", return_value=True
+        ) as matches:
+            engine.conflict_resolver(1)
+
+        matches.assert_not_called()
+        engine.dao.synchronize_state.assert_not_called()
+        engine.newConflict.emit.assert_called_once_with(1)
+
+    @pytest.mark.parametrize("reason", (FILE_OPEN_LOCALLY, LOCKED_ON_SERVER))
+    def test_a_reasoned_folder_is_not_auto_resolved_by_its_xattr(self, reason):
+        engine = _engine()
+        pair = _pair(last_error=reason, folderish=True)
+        engine.dao.get_state_from_id.return_value = pair
+        engine.local.get_remote_id.return_value = pair.remote_ref
+
+        engine.conflict_resolver(1)
+
+        engine.dao.synchronize_state.assert_not_called()
+        engine.newConflict.emit.assert_called_once_with(1)
+
     def test_synced_pair_with_unchanged_remote_still_resets(self):
         """The legitimate spurious-conflict path must keep working."""
         engine = _engine()
@@ -429,8 +462,10 @@ class TestDeferOpenFile:
 
         proc._defer_open_file(pair)
 
-        proc._mark_conflicted.assert_called_once_with(pair)
-        proc.dao.set_last_error.assert_called_once_with(pair, FILE_OPEN_LOCALLY)
+        # The reason travels with the flip, so a resolver woken by the signal
+        # cannot see the conflict without it.
+        proc._mark_conflicted.assert_called_once_with(pair, reason=FILE_OPEN_LOCALLY)
+        proc.dao.set_last_error.assert_not_called()
         proc._postpone_pair.assert_not_called()
         proc.dao.increase_error.assert_not_called()
 

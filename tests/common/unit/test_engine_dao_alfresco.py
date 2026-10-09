@@ -179,3 +179,50 @@ class TestClearRemoteDigest:
         assert refreshed.remote_version == "1.3"
         assert refreshed.remote_ref == "node-1"
         assert refreshed.pair_state == pair.pair_state
+
+
+class TestForceSyncReason:
+    """``_force_sync`` also fires ``newConflict``.
+
+    A resolver woken by that signal must never find the conflict without the
+    reason that justifies it, so the two have to land in one statement.
+    """
+
+    def _row(self, dao, row_id):
+        cursor = dao._get_read_connection().cursor()
+        return cursor.execute(
+            "SELECT pair_state, last_error, last_error_details, error_count "
+            "FROM States WHERE id = ?",
+            (row_id,),
+        ).fetchone()
+
+    def test_the_reason_lands_with_the_state_flip(self, dao):
+        pair = _insert(dao)
+
+        assert dao._force_sync(
+            pair,
+            "modified",
+            "modified",
+            "conflicted",
+            last_error="LOCKED_ON_SERVER",
+            last_error_details="admin",
+        )
+
+        state, error, details, count = self._row(dao, pair.id)
+        assert state == "conflicted"
+        assert error == "LOCKED_ON_SERVER"
+        assert details == "admin"
+        # Still a conflict, not an error.
+        assert count == 0
+        assert pair.last_error == "LOCKED_ON_SERVER"
+
+    def test_omitting_the_reason_clears_it_as_before(self, dao):
+        """The Nuxeo engine never passes one and must keep the old behaviour."""
+        pair = _insert(dao)
+        dao.set_last_error(pair, "SOMETHING_OLD", details="stale")
+
+        assert dao._force_sync(pair, "synchronized", "modified", "remotely_modified")
+
+        _, error, details, _ = self._row(dao, pair.id)
+        assert error is None
+        assert details is None

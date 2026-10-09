@@ -201,8 +201,7 @@ class AlfrescoProcessor(_ProcessorBase):
             f"Remote node is locked, deferring {doc_pair.local_name!r} "
             f"(owner={owner!r})"
         )
-        self._mark_conflicted(doc_pair)
-        self.dao.set_last_error(doc_pair, LOCKED_ON_SERVER, details=owner or "")
+        self._mark_conflicted(doc_pair, reason=LOCKED_ON_SERVER, details=owner or "")
 
     def _defer_open_file(self, doc_pair: DocPair, /) -> None:
         """Hold back a download while the user has the file open.
@@ -221,8 +220,7 @@ class AlfrescoProcessor(_ProcessorBase):
                 f"{doc_pair.local_name!r} is still open after {deferrals} "
                 "attempts, raising a conflict rather than overwriting it"
             )
-            self._mark_conflicted(doc_pair)
-            self.dao.set_last_error(doc_pair, FILE_OPEN_LOCALLY)
+            self._mark_conflicted(doc_pair, reason=FILE_OPEN_LOCALLY)
             return
 
         self.dao.increase_error(doc_pair, FILE_OPEN_LOCALLY)
@@ -242,7 +240,9 @@ class AlfrescoProcessor(_ProcessorBase):
             return False
         return osi.is_file_open(self.local.abspath(doc_pair.local_path)) is True
 
-    def _mark_conflicted(self, doc_pair: DocPair, /) -> None:
+    def _mark_conflicted(
+        self, doc_pair: DocPair, /, *, reason: str = None, details: str = None
+    ) -> None:
         """Atomically flip a pair to ``pair_state='conflicted'`` and fire
         the ``newConflict`` signal via ``_queue_pair_state``.
 
@@ -250,12 +250,22 @@ class AlfrescoProcessor(_ProcessorBase):
         also set to ``modified`` — otherwise the next
         ``update_remote_state`` call would recompute ``pair_state`` from
         ``PAIR_STATES`` and undo the conflict marking.
+
+        *reason* travels in the same statement so a resolver woken by the
+        signal cannot see the conflict before knowing why it was raised.
         """
         log.info(
             f"Marking pair as conflicted: {doc_pair.local_name!r} "
             f"(remote={doc_pair.remote_ref!r})"
         )
-        self.dao._force_sync(doc_pair, "modified", "modified", "conflicted")
+        self.dao._force_sync(
+            doc_pair,
+            "modified",
+            "modified",
+            "conflicted",
+            last_error=reason,
+            last_error_details=details,
+        )
 
     def _conflicting_remote_twin(
         self, doc_pair: DocPair, parent_ref: str, /
@@ -763,6 +773,13 @@ class AlfrescoProcessor(_ProcessorBase):
         else:
             new_os_path = os_path
         log.info(f"Updating content of local file {os_path!r}")
+        # Read before the transfer: a revision landing mid-download would
+        # otherwise become the baseline while the bytes on disk are the older
+        # one, and the next poll would compare equal and never fetch it.
+        remote_info = None
+        with suppress(Exception):
+            remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
+
         tmp_file = self._download_content(doc_pair, new_os_path)
 
         remote_id = self.local.get_remote_id(doc_pair.local_path)
@@ -775,14 +792,6 @@ class AlfrescoProcessor(_ProcessorBase):
 
         with suppress(OSError):
             shutil.rmtree(tmp_file.parent)
-
-        # Fetched before stamping the file: a "Use remote" resolution downloads
-        # whatever the server holds now, which can be newer than the revision
-        # that raised the conflict, and ``last_remote_updated`` still points at
-        # that older one.
-        remote_info = None
-        with suppress(Exception):
-            remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
 
         self.local.change_file_date(
             updated_info.filepath,
