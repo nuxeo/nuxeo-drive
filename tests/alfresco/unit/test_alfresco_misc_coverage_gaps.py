@@ -60,6 +60,7 @@ def test_sync_disabled_cleanup_is_best_effort(failure_target):
 def test_conflict_resolver_surfaces_file_when_remote_lookup_fails():
     engine = _engine()
     pair = MagicMock()
+    pair.pair_state = "conflicted"
     pair.folderish = False
     pair.remote_ref = "document-id"
     pair.local_name = "document.txt"
@@ -67,7 +68,7 @@ def test_conflict_resolver_surfaces_file_when_remote_lookup_fails():
     engine.dao.get_state_from_id.return_value = pair
     engine.remote.get_fs_info.side_effect = OSError("offline")
 
-    engine.conflict_resolver(41)
+    engine._decide_conflict(41)
 
     engine.newConflict.emit.assert_called_once_with(41)
     engine.manager.osi.send_sync_status.assert_called_once_with(
@@ -78,6 +79,7 @@ def test_conflict_resolver_surfaces_file_when_remote_lookup_fails():
 def test_conflict_resolver_surfaces_folder_when_xattr_lookup_fails():
     engine = _engine()
     pair = MagicMock()
+    pair.pair_state = "conflicted"
     pair.folderish = True
     pair.remote_ref = "folder-id"
     pair.local_name = "folder"
@@ -85,7 +87,7 @@ def test_conflict_resolver_surfaces_folder_when_xattr_lookup_fails():
     engine.dao.get_state_from_id.return_value = pair
     engine.local.get_remote_id.side_effect = OSError("unsupported xattr")
 
-    engine.conflict_resolver(42)
+    engine._decide_conflict(42)
 
     engine.newConflict.emit.assert_called_once_with(42)
     engine.dao.synchronize_state.assert_not_called()

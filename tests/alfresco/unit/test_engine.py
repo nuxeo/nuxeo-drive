@@ -441,6 +441,7 @@ class TestConflictResolver:
     def test_file_remote_unchanged_resets(self):
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = False
         pair.remote_ref = "node-123"
         pair.last_remote_updated = "2024-01-01 00:00:00"
@@ -452,12 +453,13 @@ class TestConflictResolver:
         remote_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
         engine.remote.get_fs_info.return_value = remote_info
 
-        engine.conflict_resolver(42)
+        engine._decide_conflict(42)
         engine.dao._force_sync.assert_called_once()
 
     def test_file_remote_drifted_emits_conflict(self):
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = False
         pair.remote_ref = "node-123"
         pair.last_remote_updated = "2024-01-01 00:00:00"
@@ -470,12 +472,13 @@ class TestConflictResolver:
         remote_info.last_modification_time.strftime.return_value = "2024-06-15 12:30:00"
         engine.remote.get_fs_info.return_value = remote_info
 
-        engine.conflict_resolver(42)
+        engine._decide_conflict(42)
         engine.newConflict.emit.assert_called_once_with(42)
 
     def test_folder_matching_uid_resolves(self):
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = True
         pair.remote_ref = "folder-abc"
         pair.local_path = "/test-folder"
@@ -483,12 +486,13 @@ class TestConflictResolver:
         engine.dao.get_state_from_id.return_value = pair
         engine.local.get_remote_id.return_value = "folder-abc"
 
-        engine.conflict_resolver(42)
+        engine._decide_conflict(42)
         engine.dao.synchronize_state.assert_called_once_with(pair)
 
     def test_folder_mismatched_uid_emits_conflict(self):
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = True
         pair.remote_ref = "folder-abc"
         pair.local_path = "/test-folder"
@@ -496,7 +500,7 @@ class TestConflictResolver:
         engine.dao.get_state_from_id.return_value = pair
         engine.local.get_remote_id.return_value = "different-id"
 
-        engine.conflict_resolver(42)
+        engine._decide_conflict(42)
         engine.newConflict.emit.assert_called_once_with(42)
 
     def test_created_both_sides_ignores_freshness_check(self):
@@ -508,6 +512,7 @@ class TestConflictResolver:
         """
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = False
         pair.remote_ref = "node-123"
         pair.local_state = "created"
@@ -524,7 +529,7 @@ class TestConflictResolver:
         remote_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
         engine.remote.get_fs_info.return_value = remote_info
 
-        engine.conflict_resolver(42)
+        engine._decide_conflict(42)
 
         engine.dao._force_sync.assert_not_called()
         engine.newConflict.emit.assert_called_once_with(42)
@@ -533,6 +538,7 @@ class TestConflictResolver:
         """An in-flight upload must be stopped before the conflict is shown."""
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = True
         pair.remote_ref = "folder-abc"
         pair.local_path = "/test-folder"
@@ -540,7 +546,7 @@ class TestConflictResolver:
         engine.dao.get_state_from_id.return_value = pair
         engine.local.get_remote_id.return_value = "different-id"
 
-        engine.conflict_resolver(42)
+        engine._decide_conflict(42)
 
         engine.queue_manager.interrupt_processors_on.assert_called_once_with(
             pair.local_path, exact_match=True

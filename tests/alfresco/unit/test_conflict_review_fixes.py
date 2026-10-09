@@ -15,6 +15,7 @@ discarded a user edit:
 """
 
 from pathlib import Path
+from threading import Lock
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -22,9 +23,11 @@ import pytest
 from nxdrive.alfresco.content_compare import PARTIAL_COMPARE_ATTEMPTS, content_matches
 from nxdrive.alfresco.engine.engine import AlfrescoEngine
 from nxdrive.alfresco.engine.processor import (
+    DIFFERENT_CONTENT,
     FILE_OPEN_LOCALLY,
     LOCKED_ON_SERVER,
     MAX_OPEN_FILE_DEFERRALS,
+    REMOTE_DRIFTED,
     AlfrescoProcessor,
 )
 from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
@@ -47,6 +50,9 @@ def _engine():
     engine.manager = MagicMock()
     engine.queue_manager = MagicMock()
     engine.newConflict = MagicMock()
+    # Normally set in __init__, which is bypassed here.
+    engine._deferred_conflicts = []
+    engine._deferred_conflicts_lock = Lock()
     return engine
 
 
@@ -118,7 +124,7 @@ class TestConflictResolverNeverSynced:
         engine.local.abspath.return_value = MagicMock(is_file=lambda: True)
 
         with patch("nxdrive.alfresco.engine.engine.content_matches", return_value=True):
-            engine.conflict_resolver(1)
+            engine._decide_conflict(1)
 
         engine.dao.synchronize_state.assert_called_once_with(pair)
         engine.newConflict.emit.assert_not_called()
@@ -134,7 +140,7 @@ class TestConflictResolverNeverSynced:
         with patch(
             "nxdrive.alfresco.engine.engine.content_matches", return_value=False
         ):
-            engine.conflict_resolver(1)
+            engine._decide_conflict(1)
 
         engine.newConflict.emit.assert_called_once_with(1)
         engine.dao.synchronize_state.assert_not_called()
@@ -148,7 +154,7 @@ class TestConflictResolverNeverSynced:
         engine.local.abspath.return_value = MagicMock(is_file=lambda: True)
 
         with patch("nxdrive.alfresco.engine.engine.content_matches", return_value=None):
-            engine.conflict_resolver(1)
+            engine._decide_conflict(1)
 
         engine.newConflict.emit.assert_called_once_with(1)
         engine.dao.synchronize_state.assert_not_called()
@@ -160,7 +166,7 @@ class TestConflictResolverNeverSynced:
         engine.local.abspath.return_value = MagicMock(is_file=lambda: False)
 
         with patch("nxdrive.alfresco.engine.engine.content_matches") as matches:
-            engine.conflict_resolver(1)
+            engine._decide_conflict(1)
 
         matches.assert_not_called()
         engine.newConflict.emit.assert_called_once_with(1)
@@ -181,7 +187,7 @@ class TestConflictResolverNeverSynced:
         with patch(
             "nxdrive.alfresco.engine.engine.content_matches", return_value=False
         ):
-            engine.conflict_resolver(1)
+            engine._decide_conflict(1)
 
         engine.remote.get_fs_info.assert_not_called()
         engine.dao._force_sync.assert_not_called()
@@ -249,7 +255,7 @@ class TestConflictResolverReasoned:
             "nxdrive.alfresco.engine.processor._fmt_remote_ts",
             return_value="2026-10-06 09:19:59",
         ):
-            engine.conflict_resolver(1)
+            engine._decide_conflict(1)
 
         engine.dao._force_sync.assert_called_once_with(
             pair, "modified", "synchronized", "locally_modified"
@@ -277,6 +283,74 @@ class TestConflictResolverReasoned:
         engine.queue_manager.interrupt_processors_on.assert_called_once_with(
             pair.local_path, exact_match=True
         )
+
+
+class TestConflictResolverStaysOffTheGuiThread:
+    """``conflict_resolver`` is a ``newConflict`` slot, so it runs on the GUI
+    thread. One server round trip per conflicting file froze the window for
+    16 s across 50 files, and again on every restart."""
+
+    @pytest.mark.parametrize(
+        "reason",
+        (FILE_OPEN_LOCALLY, LOCKED_ON_SERVER, DIFFERENT_CONTENT, REMOTE_DRIFTED),
+    )
+    def test_a_reasoned_conflict_costs_nothing(self, reason):
+        engine = _engine()
+        engine.dao.get_state_from_id.return_value = _pair(last_error=reason)
+
+        engine.conflict_resolver(1)
+
+        engine.remote.get_fs_info.assert_not_called()
+        engine.remote.get_node.assert_not_called()
+        assert engine._deferred_conflicts == []
+
+    def test_anything_else_is_parked_instead_of_decided(self):
+        engine = _engine()
+        engine.dao.get_state_from_id.return_value = _pair(last_error=None)
+
+        engine.conflict_resolver(1)
+
+        engine.remote.get_fs_info.assert_not_called()
+        engine.dao.synchronize_state.assert_not_called()
+        engine.dao._force_sync.assert_not_called()
+        assert engine._deferred_conflicts == [1]
+
+    def test_the_same_pair_is_not_parked_twice(self):
+        engine = _engine()
+        engine.dao.get_state_from_id.return_value = _pair(last_error=None)
+
+        engine.conflict_resolver(1)
+        engine.conflict_resolver(1)
+
+        assert engine._deferred_conflicts == [1]
+
+    def test_draining_decides_each_parked_pair_once(self):
+        engine = _engine()
+        engine._deferred_conflicts = [1, 2, 3]
+        engine._decide_conflict = MagicMock()
+
+        engine.resolve_deferred_conflicts()
+
+        assert engine._decide_conflict.call_count == 3
+        assert engine._deferred_conflicts == []
+
+    def test_one_bad_pair_does_not_strand_the_rest(self):
+        engine = _engine()
+        engine._deferred_conflicts = [1, 2, 3]
+        engine._decide_conflict = MagicMock(side_effect=[OSError("boom"), None, None])
+
+        engine.resolve_deferred_conflicts()
+
+        assert engine._decide_conflict.call_count == 3
+
+    def test_a_pair_resolved_before_the_drain_is_skipped(self):
+        engine = _engine()
+        engine.dao.get_state_from_id.return_value = _pair(pair_state="synchronized")
+
+        engine._decide_conflict(1)
+
+        engine.remote.get_fs_info.assert_not_called()
+        engine.dao.synchronize_state.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

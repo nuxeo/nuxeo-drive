@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.alfresco.engine.processor import AlfrescoProcessor
+from nxdrive.alfresco.engine.processor import DIFFERENT_CONTENT, AlfrescoProcessor
 from nxdrive.drive.constants import UNACCESSIBLE_HASH, TransferStatus
 from nxdrive.drive.exceptions import PairInterrupt
 
@@ -767,12 +767,14 @@ class TestSynchronizeLocallyCreated:
             proc._synchronize_locally_created(pair)
 
         proc.remote.stream_file.assert_not_called()
+        # The reason lets the resolver surface this without asking the server
+        # to compare the content all over again.
         proc.dao._force_sync.assert_called_once_with(
             pair,
             "modified",
             "modified",
             "conflicted",
-            last_error=None,
+            last_error=DIFFERENT_CONTENT,
             last_error_details=None,
         )
 

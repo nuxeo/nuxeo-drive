@@ -853,6 +853,13 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         except Exception:
             log.warning("Error during lock-conflict sweep", exc_info=True)
 
+        # Runs here rather than in the ``newConflict`` slot: that slot is on
+        # the GUI thread, and one round trip per conflicting file freezes it.
+        try:
+            self.engine.resolve_deferred_conflicts()
+        except Exception:
+            log.warning("Error while deciding deferred conflicts", exc_info=True)
+
         # Track whether the poll found any new work
         qm_after = self.engine.queue_manager.get_overall_size()
         if qm_after > qm_before:

@@ -66,6 +66,8 @@
     "CONFLICT_ON_FILE": "The file \"%1\" has a conflict",
     "CONFLICT_REASON_FILE_OPEN_LOCALLY": "This file is open on your computer. Close it so the server version can be downloaded.",
     "CONFLICT_REASON_LOCKED_ON_SERVER": "File is locked on server. Cannot sync.",
+    "CONFLICT_REASON_DIFFERENT_CONTENT": "This file was created on your computer and on the server with different content. Choose which one to keep.",
+    "CONFLICT_REASON_REMOTE_DRIFTED": "Someone changed this file on the server while you were editing it. Choose which version to keep.",
     "CONFLICT_RETRY": "Retry",
     "CONFLICT_USE_DUPLICATE": "Duplicate files",
     "CONFLICT_USE_LOCAL": "Use local",

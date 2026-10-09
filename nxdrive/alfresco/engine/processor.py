@@ -58,6 +58,14 @@ LOCKED_ON_SERVER = "LOCKED_ON_SERVER"
 #: open. Kept in sync with ``CONFLICT_REASON_FILE_OPEN_LOCALLY`` in ``i18n.json``.
 FILE_OPEN_LOCALLY = "FILE_OPEN_LOCALLY"
 
+#: ``last_error`` written when the same name was created on both sides holding
+#: different content. Kept in sync with ``CONFLICT_REASON_DIFFERENT_CONTENT``.
+DIFFERENT_CONTENT = "DIFFERENT_CONTENT"
+
+#: ``last_error`` written when the server moved on while a local edit was
+#: pending. Kept in sync with ``CONFLICT_REASON_REMOTE_DRIFTED``.
+REMOTE_DRIFTED = "REMOTE_DRIFTED"
+
 #: Seconds before retrying a download whose local file is currently open.
 #: Shorter than a poll cycle so the download lands promptly once it is closed.
 OPEN_FILE_RETRY = 10
@@ -527,7 +535,7 @@ class AlfrescoProcessor(_ProcessorBase):
                     f"Pre-upload freshness check: remote drifted for "
                     f"{doc_pair.local_name!r}, marking as conflicted"
                 )
-                self._mark_conflicted(doc_pair)
+                self._mark_conflicted(doc_pair, reason=REMOTE_DRIFTED)
                 return
 
         # A download would overwrite whatever the user is typing right now, and
@@ -911,7 +919,7 @@ class AlfrescoProcessor(_ProcessorBase):
                 doc_pair.remote_can_delete = twin_info.can_delete
                 doc_pair.remote_can_update = twin_info.can_update
                 doc_pair.remote_can_create_child = twin_info.can_create_child
-                self._mark_conflicted(doc_pair)
+                self._mark_conflicted(doc_pair, reason=DIFFERENT_CONTENT)
                 return
 
         filter_path = ""

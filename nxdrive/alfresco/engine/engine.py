@@ -10,7 +10,8 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 """
 
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, Type
+from threading import Lock
+from typing import TYPE_CHECKING, Any, List, Type
 from urllib.parse import urlsplit
 
 from alfresco.exceptions import AuthenticationError
@@ -22,8 +23,10 @@ from nxdrive.alfresco.client.device_sync import (
 from nxdrive.alfresco.client.remote import AlfrescoRemote
 from nxdrive.alfresco.content_compare import content_matches
 from nxdrive.alfresco.engine.processor import (
+    DIFFERENT_CONTENT,
     FILE_OPEN_LOCALLY,
     LOCKED_ON_SERVER,
+    REMOTE_DRIFTED,
     AlfrescoProcessor,
 )
 from nxdrive.alfresco.engine.watcher.remote_watcher import (
@@ -52,6 +55,15 @@ log = getLogger(__name__)
 #: DAO config key recording that the open-file detection permission prompt has
 #: already been shown, so a refusal is not re-asked on every start.
 OPEN_FILE_PERMISSION_ASKED = "open_file_permission_asked"
+
+#: Conflicts the engine raised deliberately. The reason already states the
+#: verdict, so the resolver surfaces them without asking the server again.
+REASONED_CONFLICTS = (
+    FILE_OPEN_LOCALLY,
+    LOCKED_ON_SERVER,
+    DIFFERENT_CONTENT,
+    REMOTE_DRIFTED,
+)
 
 
 class AlfrescoEngine(Engine):
@@ -86,6 +98,11 @@ class AlfrescoEngine(Engine):
         # Must be set before super().__init__() because the base class
         # calls self.bind() which triggers init_remote() which reads this.
         self._alfresco_ticket: str = ""
+
+        # ``newConflict`` is delivered on the GUI thread, so any decision that
+        # needs the server is parked here for the remote watcher to make.
+        self._deferred_conflicts: List[int] = []
+        self._deferred_conflicts_lock = Lock()
 
         super().__init__(
             manager,
@@ -536,7 +553,58 @@ class AlfrescoEngine(Engine):
             self.syncCompleted.emit()
 
     def conflict_resolver(self, row_id: int, /, *, emit: bool = True) -> None:
-        """Alfresco-specific conflict resolver.
+        """Decide a conflict without ever touching the network here.
+
+        This runs as a ``newConflict`` slot and from ``Engine.start()``, both
+        on the GUI thread. Anything that has to ask the server is parked for
+        :meth:`resolve_deferred_conflicts`, which the remote watcher calls on
+        its own thread — otherwise a burst of conflicts freezes the window for
+        one round trip per file.
+        """
+        pair = self.dao.get_state_from_id(row_id)
+        if not pair:
+            log.debug("Alfresco conflict resolver: empty pair, skipping")
+            return
+
+        # Conflicts the engine raised deliberately carry their reason in
+        # ``last_error``; auto-resolving them reinstates the data loss they
+        # exist to prevent. Checked first, so no later branch can decide one.
+        if pair.last_error in REASONED_CONFLICTS:
+            log.debug(
+                f"Alfresco conflict resolver: {pair.local_name!r} is parked as "
+                f"{pair.last_error!r}, leaving it to the user"
+            )
+            self._surface_conflict(pair, row_id, emit=emit)
+            return
+
+        self._defer_conflict(row_id)
+
+    def _defer_conflict(self, row_id: int, /) -> None:
+        with self._deferred_conflicts_lock:
+            if row_id not in self._deferred_conflicts:
+                self._deferred_conflicts.append(row_id)
+
+    def resolve_deferred_conflicts(self) -> None:
+        """Decide the conflicts :meth:`conflict_resolver` could not judge cheaply.
+
+        Called from the remote watcher's thread, so the server calls here never
+        reach the GUI thread.
+        """
+        with self._deferred_conflicts_lock:
+            pending, self._deferred_conflicts = self._deferred_conflicts, []
+
+        if not pending:
+            return
+
+        log.debug(f"Deciding {len(pending)} deferred conflict(s)")
+        for row_id in pending:
+            try:
+                self._decide_conflict(row_id)
+            except Exception:
+                log.warning(f"Could not decide conflict {row_id}", exc_info=True)
+
+    def _decide_conflict(self, row_id: int, /) -> None:
+        """Alfresco-specific conflict decision. Performs network calls.
 
         Alfresco doesn't expose a content digest, so the base resolver's
         digest-based auto-resolve (``local_digest == remote_digest``)
@@ -558,19 +626,7 @@ class AlfrescoEngine(Engine):
         ``same_digests`` check is unsafe when both digests are ``None``.
         """
         pair = self.dao.get_state_from_id(row_id)
-        if not pair:
-            log.debug("Alfresco conflict resolver: empty pair, skipping")
-            return
-
-        # Conflicts the engine raised deliberately carry their reason in
-        # ``last_error``; auto-resolving them reinstates the data loss they
-        # exist to prevent. Checked first, so no later branch can decide one.
-        if pair.last_error in (FILE_OPEN_LOCALLY, LOCKED_ON_SERVER):
-            log.debug(
-                f"Alfresco conflict resolver: {pair.local_name!r} is parked as "
-                f"{pair.last_error!r}, leaving it to the user"
-            )
-            self._surface_conflict(pair, row_id, emit=emit)
+        if not pair or pair.pair_state != "conflicted":
             return
 
         # The freshness check needs a baseline from an earlier successful sync.
@@ -581,7 +637,7 @@ class AlfrescoEngine(Engine):
         never_synced = not pair.last_sync_date
 
         if not pair.folderish and pair.remote_ref and never_synced:
-            self._resolve_unsynced_conflict(pair, row_id, emit=emit)
+            self._resolve_unsynced_conflict(pair, row_id)
             return
 
         # File path: timestamp-based freshness check.
@@ -625,7 +681,7 @@ class AlfrescoEngine(Engine):
                 return
 
         # Cannot auto-resolve — surface the conflict to the user.
-        self._surface_conflict(pair, row_id, emit=emit)
+        self._surface_conflict(pair, row_id)
 
     def _resolve_unsynced_conflict(
         self, pair: DocPair, row_id: int, /, *, emit: bool = True
