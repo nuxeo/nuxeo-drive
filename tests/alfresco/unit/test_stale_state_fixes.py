@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from nxdrive.alfresco.client.remote import AlfrescoRemote
-from nxdrive.alfresco.engine.processor import AlfrescoProcessor
+from nxdrive.alfresco.engine.processor import LOCKED_ON_SERVER, AlfrescoProcessor
 from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
 
 PROCESSOR = "nxdrive.alfresco.engine.processor"
@@ -145,6 +145,20 @@ class TestCreationRaceGuard:
         proc.dao.update_remote_state.assert_not_called()
         proc.dao.synchronize_state.assert_not_called()
 
+    def test_a_conflict_is_honoured_even_when_the_version_did_not_move(self):
+        """``_mark_conflicted`` goes through ``_force_sync``, which does not
+        bump ``version`` — so the version check alone would miss it."""
+        proc = _processor()
+        pair = _pair(version=7)
+        proc.dao.get_state_from_id.return_value = _pair(
+            version=7, pair_state="conflicted"
+        )
+
+        proc._synchronize_locally_created(pair)
+
+        proc.dao.update_remote_state.assert_not_called()
+        proc.dao.synchronize_state.assert_not_called()
+
 
 class TestUploadBaseline:
     def test_creation_records_the_version_it_produced(self):
@@ -176,6 +190,68 @@ class TestUploadBaseline:
 
         proc.remote.stream_update.assert_not_called()
         assert proc.dao.update_remote_state.call_args.kwargs["force_update"] is True
+
+
+# ---------------------------------------------------------------------------
+# A lock conflict must not be cleared without the server confirming it
+# ---------------------------------------------------------------------------
+
+
+class TestLockReleaseNeedsConfirmation:
+    """The feed never reports lock state, so its ``is_locked=False`` default
+    is indistinguishable from a real "not locked" answer."""
+
+    @staticmethod
+    def _watcher():
+        watcher = _watcher()
+        # The shared builder stubs this out; these tests exercise the real one.
+        del watcher._lock_was_released
+        return watcher
+
+    def _parked(self):
+        return _pair(pair_state="conflicted", last_error=LOCKED_ON_SERVER)
+
+    def test_a_failed_lookup_keeps_the_conflict(self):
+        watcher = self._watcher()
+        watcher.engine.remote.get_node.side_effect = OSError("offline")
+
+        assert (
+            watcher._lock_was_released(self._parked(), _info(is_locked=False)) is False
+        )
+
+    def test_a_confirmed_release_clears_it(self):
+        watcher = self._watcher()
+        watcher.engine.remote.get_node.return_value = MagicMock(
+            is_locked=False, version_label="1.1", lock_owner=None
+        )
+
+        assert watcher._lock_was_released(self._parked(), _info()) is True
+
+    def test_a_node_still_locked_keeps_the_conflict(self):
+        watcher = self._watcher()
+        watcher.engine.remote.get_node.return_value = MagicMock(
+            is_locked=True, version_label="1.1", lock_owner="admin"
+        )
+
+        assert watcher._lock_was_released(self._parked(), _info()) is False
+
+    def test_the_server_is_always_asked_even_with_a_version_in_hand(self):
+        """A version label says nothing about the lock."""
+        watcher = self._watcher()
+        watcher.engine.remote.get_node.return_value = MagicMock(
+            is_locked=True, version_label="2.0", lock_owner="admin"
+        )
+
+        watcher._lock_was_released(self._parked(), _info(version_label="2.0"))
+
+        watcher.engine.remote.get_node.assert_called_once_with("node-1")
+
+    def test_only_lock_parked_pairs_qualify(self):
+        watcher = self._watcher()
+        other = _pair(pair_state="conflicted", last_error="DIFFERENT_CONTENT")
+
+        assert watcher._lock_was_released(other, _info()) is False
+        watcher.engine.remote.get_node.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

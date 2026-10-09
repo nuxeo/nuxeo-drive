@@ -643,7 +643,7 @@ class AlfrescoEngine(Engine):
             self._resolve_unsynced_conflict(pair, row_id, emit=emit)
             return
 
-        # File path: timestamp-based freshness check.
+        # File path: is the server still on the revision we last recorded?
         if not pair.folderish and pair.remote_ref:
             remote_info = None
             try:
@@ -655,11 +655,7 @@ class AlfrescoEngine(Engine):
                     exc_info=True,
                 )
             if remote_info is not None:
-                from nxdrive.alfresco.engine.processor import _fmt_remote_ts
-
-                remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
-                db_ts = str(pair.last_remote_updated or "")[:19]
-                if remote_ts and remote_ts == db_ts:
+                if self._remote_is_unchanged(pair, remote_info):
                     log.debug(
                         f"Alfresco conflict resolver: remote unchanged for "
                         f"{pair.local_name!r}, resetting to locally_modified"
@@ -685,6 +681,26 @@ class AlfrescoEngine(Engine):
 
         # Cannot auto-resolve — surface the conflict to the user.
         self._surface_conflict(pair, row_id, emit=emit)
+
+    @staticmethod
+    def _remote_is_unchanged(pair: DocPair, remote_info: Any, /) -> bool:
+        """Whether the server still holds the revision we last recorded.
+
+        The version label decides whenever both sides have one: it only moves
+        when content is written. The timestamp is the fallback, and it is
+        truncated to whole seconds, so an edit landing in the same second as
+        our baseline would otherwise read as "nothing changed" and the retry
+        would overwrite it.
+        """
+        db_version = pair.remote_version or ""
+        if remote_info.version_label and db_version:
+            return bool(remote_info.version_label == db_version)
+
+        from nxdrive.alfresco.engine.processor import _fmt_remote_ts
+
+        remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
+        db_ts = str(pair.last_remote_updated or "")[:19]
+        return bool(remote_ts) and remote_ts == db_ts
 
     def _resolve_unsynced_conflict(
         self, pair: DocPair, row_id: int, /, *, emit: bool = True

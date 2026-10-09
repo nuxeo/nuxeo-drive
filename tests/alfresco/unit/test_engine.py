@@ -445,10 +445,13 @@ class TestConflictResolver:
         pair.folderish = False
         pair.remote_ref = "node-123"
         pair.last_remote_updated = "2024-01-01 00:00:00"
+        # No version on either side, so the timestamp fallback is what decides.
+        pair.remote_version = ""
         pair.local_name = "file.txt"
         engine.dao.get_state_from_id.return_value = pair
 
         remote_info = MagicMock()
+        remote_info.version_label = ""
         remote_info.last_modification_time = MagicMock()
         remote_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
         engine.remote.get_fs_info.return_value = remote_info

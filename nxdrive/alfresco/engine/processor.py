@@ -988,13 +988,16 @@ class AlfrescoProcessor(_ProcessorBase):
         # watcher link, a conflict, a user resolution). ``update_remote_state``
         # has no optimistic lock, so writing our snapshot now would resurrect a
         # state that is already dead and the pair would be uploaded again.
+        # A conflict is checked on its own because ``_mark_conflicted`` goes
+        # through ``_force_sync``, which does not bump ``version``.
         current = self.dao.get_state_from_id(doc_pair.id)
-        if current and current.version != doc_pair.version:
+        conflicted = bool(current and current.pair_state == "conflicted")
+        if current and (conflicted or current.version != doc_pair.version):
             log.info(
                 f"{doc_pair.local_name!r} was re-decided while its creation was "
                 f"in flight (now {current.pair_state!r}); keeping the newer state"
             )
-            if current.pair_state != "conflicted":
+            if not conflicted:
                 # The upload did happen, so the newer row still needs the
                 # version/timestamp baseline it produced.
                 self.dao.update_remote_state(

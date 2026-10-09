@@ -245,10 +245,12 @@ class TestConflictResolverReasoned:
     def test_synced_pair_with_unchanged_remote_still_resets(self):
         """The legitimate spurious-conflict path must keep working."""
         engine = _engine()
-        pair = _pair(last_remote_updated="2026-10-06 09:19:59.999000+00:00")
+        pair = _pair(
+            remote_version="", last_remote_updated="2026-10-06 09:19:59.999000+00:00"
+        )
         engine.dao.get_state_from_id.return_value = pair
         engine.remote.get_fs_info.return_value = _info(
-            last_modification_time="2026-10-06 09:19:59"
+            version_label="", last_modification_time="2026-10-06 09:19:59"
         )
 
         with patch(
@@ -261,6 +263,63 @@ class TestConflictResolverReasoned:
             pair, "modified", "synchronized", "locally_modified"
         )
         engine.newConflict.emit.assert_not_called()
+
+
+class TestResolverUsesTheVersionFirst:
+    """The timestamp is truncated to whole seconds.
+
+    An edit landing in the same second as our baseline would read as "nothing
+    changed", and the retry would overwrite it.
+    """
+
+    def test_a_moved_version_is_a_conflict_even_at_the_same_second(self):
+        engine = _engine()
+        pair = _pair(
+            remote_version="1.0", last_remote_updated="2026-10-06 09:19:59.000+00:00"
+        )
+        engine.dao.get_state_from_id.return_value = pair
+        engine.remote.get_fs_info.return_value = _info(version_label="1.1")
+
+        with patch(
+            "nxdrive.alfresco.engine.processor._fmt_remote_ts",
+            return_value="2026-10-06 09:19:59",
+        ):
+            engine._decide_conflict(1)
+
+        engine.dao._force_sync.assert_not_called()
+        engine.newConflict.emit.assert_called_once_with(1)
+
+    def test_the_same_version_resolves_without_consulting_the_clock(self):
+        engine = _engine()
+        pair = _pair(remote_version="1.1", last_remote_updated=None)
+        engine.dao.get_state_from_id.return_value = pair
+        engine.remote.get_fs_info.return_value = _info(version_label="1.1")
+
+        engine._decide_conflict(1)
+
+        engine.dao._force_sync.assert_called_once_with(
+            pair, "modified", "synchronized", "locally_modified"
+        )
+
+    @pytest.mark.parametrize(
+        "db_version, served_version", (("", "1.1"), ("1.0", ""), ("", ""))
+    )
+    def test_a_missing_label_falls_back_to_the_clock(self, db_version, served_version):
+        engine = _engine()
+        pair = _pair(
+            remote_version=db_version,
+            last_remote_updated="2026-10-06 09:19:59.999000+00:00",
+        )
+        engine.dao.get_state_from_id.return_value = pair
+        engine.remote.get_fs_info.return_value = _info(version_label=served_version)
+
+        with patch(
+            "nxdrive.alfresco.engine.processor._fmt_remote_ts",
+            return_value="2026-10-06 09:19:59",
+        ):
+            engine._decide_conflict(1)
+
+        engine.dao._force_sync.assert_called_once()
 
     def test_emit_false_does_not_notify(self):
         engine = _engine()

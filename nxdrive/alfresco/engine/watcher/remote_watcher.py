@@ -412,14 +412,14 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         db_ts_str = str(child_pair.last_remote_updated or "")[:19]
         return bool(remote_ts_str) and remote_ts_str != db_ts_str
 
-    def _fill_version_and_lock(self, child_info: RemoteFileInfo, /) -> None:
+    def _fill_version_and_lock(self, child_info: RemoteFileInfo, /) -> bool:
         """Fetch the version label and lock state the change feed omitted.
 
         The Device Sync feed does not yet carry ``fileVersion``/``locked``, so
         they have to come from the node API. Mutating *child_info* means the
         values reach the DB through the ``update_remote_state`` call that
-        follows. Failure leaves the fields empty and the caller falls back to
-        the timestamp comparison.
+        follows. Returns whether the fetch succeeded, because the feed defaults
+        (``""`` and ``False``) are indistinguishable from a real answer.
         """
         try:
             node = self.engine.remote.get_node(child_info.uid)
@@ -428,11 +428,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 f"Could not read version/lock for {child_info.name!r}",
                 exc_info=True,
             )
-            return
+            return False
         child_info.version_label = node.version_label
         child_info.is_locked = node.is_locked
         if node.lock_owner:
             child_info.lock_owner = node.lock_owner
+        return True
 
     def _release_lock_conflict(self, pair: DocPair, /) -> None:
         """Hand a no-longer-locked pair back to the processor."""
@@ -492,8 +493,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             return False
         if child_pair.last_error != LOCKED_ON_SERVER:
             return False
-        if not child_info.version_label:
-            self._fill_version_and_lock(child_info)
+        # The feed never reports lock state, so its ``False`` default would read
+        # as "released" and clear the conflict without the server ever saying so.
+        if not self._fill_version_and_lock(child_info):
+            return False
         return not child_info.is_locked
 
     def _content_differs(
