@@ -812,14 +812,14 @@ class AlfrescoProcessor(_ProcessorBase):
         doc_pair.local_digest = updated_info.get_digest()
         self.dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
-        # After downloading fresh remote content, our stored
-        # ``remote_digest`` may be stale (e.g. after a "Use remote"
-        # conflict resolution where the server was modified between
-        # our last poll and the download).  Refresh it now so the
-        # next remote poll doesn't spuriously re-mark the pair as
-        # ``remotely_modified``.
-        with suppress(Exception):
-            self._refresh_remote(doc_pair, remote_info)
+        # Only the pre-transfer snapshot may become the baseline. Fetching one
+        # now would record a revision that landed mid-download while the bytes
+        # on disk are the older one, and the next poll would compare equal and
+        # never fetch it. Without a snapshot the old baseline stands, so that
+        # poll sees a difference and downloads again.
+        if remote_info:
+            with suppress(Exception):
+                self._refresh_remote(doc_pair, remote_info)
 
     def _synchronize_remotely_deleted(self, doc_pair: DocPair, /) -> None:
         remote_id = self.local.get_remote_id(doc_pair.local_path)

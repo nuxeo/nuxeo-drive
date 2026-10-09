@@ -1600,24 +1600,6 @@ class EngineDAO(BaseDAO):
             row.last_error = error
             row.error_count += incr
 
-    def set_last_error(self, row: DocPair, error: str, /, *, details: str = "") -> None:
-        """Record why a pair is stuck, without counting it as a failure.
-
-        Unlike :meth:`increase_error` this leaves ``error_count`` alone, so a
-        conflicted row keeps its reason while staying in the Conflicts list
-        instead of being promoted into Errors.
-        """
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute(
-                "UPDATE States"
-                "   SET last_error = ?,"
-                "       last_error_details = ?"
-                " WHERE id = ?",
-                (error, details, row.id),
-            )
-            row.last_error = error
-
     def reset_error(self, row: DocPair, /, *, last_error: str = None) -> None:
         with self.lock:
             c = self._get_write_connection().cursor()

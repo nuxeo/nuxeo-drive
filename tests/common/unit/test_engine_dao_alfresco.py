@@ -4,8 +4,8 @@ Two things must hold for the Nuxeo engine to stay unaffected:
 
 * ``update_remote_state`` keeps its old behaviour unless ``no_baseline`` is
   explicitly asked for;
-* ``set_last_error`` records a reason without inflating ``error_count``, so the
-  row stays in the Conflicts list instead of moving to Errors.
+* ``_force_sync`` clears the conflict reason unless one is passed, so the Nuxeo
+  engine, which never passes one, behaves exactly as before.
 """
 
 from datetime import datetime, timezone
@@ -130,19 +130,6 @@ class TestUpdateRemoteStateBaseline:
         assert dao.get_state_from_id(pair.id).remote_name == "renamed.txt"
 
 
-class TestSetLastError:
-    def test_a_reason_is_recorded_without_counting_an_error(self, dao):
-        pair = _insert(dao)
-
-        dao.set_last_error(pair, "LOCKED_ON_SERVER", details="admin")
-
-        refreshed = dao.get_state_from_id(pair.id)
-        assert refreshed.last_error == "LOCKED_ON_SERVER"
-        assert refreshed.last_error_details == "admin"
-        # An inflated count would move the row from Conflicts to Errors.
-        assert refreshed.error_count == 0
-
-
 class TestClearRemoteDigest:
     """A digest we can no longer vouch for must not pass as the server's."""
 
@@ -219,7 +206,10 @@ class TestForceSyncReason:
     def test_omitting_the_reason_clears_it_as_before(self, dao):
         """The Nuxeo engine never passes one and must keep the old behaviour."""
         pair = _insert(dao)
-        dao.set_last_error(pair, "SOMETHING_OLD", details="stale")
+        dao._get_write_connection().cursor().execute(
+            "UPDATE States SET last_error = ?, last_error_details = ? WHERE id = ?",
+            ("SOMETHING_OLD", "stale", pair.id),
+        )
 
         assert dao._force_sync(pair, "synchronized", "modified", "remotely_modified")
 

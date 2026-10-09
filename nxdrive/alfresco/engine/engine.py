@@ -11,7 +11,7 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 
 from logging import getLogger
 from threading import Lock
-from typing import TYPE_CHECKING, Any, List, Type
+from typing import TYPE_CHECKING, Any, Dict, Type
 from urllib.parse import urlsplit
 
 from alfresco.exceptions import AuthenticationError
@@ -101,7 +101,7 @@ class AlfrescoEngine(Engine):
 
         # ``newConflict`` is delivered on the GUI thread, so any decision that
         # needs the server is parked here for the remote watcher to make.
-        self._deferred_conflicts: List[int] = []
+        self._deferred_conflicts: Dict[int, bool] = {}
         self._deferred_conflicts_lock = Lock()
 
         super().__init__(
@@ -577,12 +577,15 @@ class AlfrescoEngine(Engine):
             self._surface_conflict(pair, row_id, emit=emit)
             return
 
-        self._defer_conflict(row_id)
+        self._defer_conflict(row_id, emit)
 
-    def _defer_conflict(self, row_id: int, /) -> None:
+    def _defer_conflict(self, row_id: int, emit: bool, /) -> None:
+        # ``Engine.start()`` re-checks every existing conflict with
+        # ``emit=False``; losing that would pop a notification for each one.
         with self._deferred_conflicts_lock:
-            if row_id not in self._deferred_conflicts:
-                self._deferred_conflicts.append(row_id)
+            self._deferred_conflicts[row_id] = (
+                self._deferred_conflicts.get(row_id, True) and emit
+            )
 
     def resolve_deferred_conflicts(self) -> None:
         """Decide the conflicts :meth:`conflict_resolver` could not judge cheaply.
@@ -591,19 +594,19 @@ class AlfrescoEngine(Engine):
         reach the GUI thread.
         """
         with self._deferred_conflicts_lock:
-            pending, self._deferred_conflicts = self._deferred_conflicts, []
+            pending, self._deferred_conflicts = self._deferred_conflicts, {}
 
         if not pending:
             return
 
         log.debug(f"Deciding {len(pending)} deferred conflict(s)")
-        for row_id in pending:
+        for row_id, emit in pending.items():
             try:
-                self._decide_conflict(row_id)
+                self._decide_conflict(row_id, emit=emit)
             except Exception:
                 log.warning(f"Could not decide conflict {row_id}", exc_info=True)
 
-    def _decide_conflict(self, row_id: int, /) -> None:
+    def _decide_conflict(self, row_id: int, /, *, emit: bool = True) -> None:
         """Alfresco-specific conflict decision. Performs network calls.
 
         Alfresco doesn't expose a content digest, so the base resolver's
@@ -637,7 +640,7 @@ class AlfrescoEngine(Engine):
         never_synced = not pair.last_sync_date
 
         if not pair.folderish and pair.remote_ref and never_synced:
-            self._resolve_unsynced_conflict(pair, row_id)
+            self._resolve_unsynced_conflict(pair, row_id, emit=emit)
             return
 
         # File path: timestamp-based freshness check.
@@ -681,7 +684,7 @@ class AlfrescoEngine(Engine):
                 return
 
         # Cannot auto-resolve — surface the conflict to the user.
-        self._surface_conflict(pair, row_id)
+        self._surface_conflict(pair, row_id, emit=emit)
 
     def _resolve_unsynced_conflict(
         self, pair: DocPair, row_id: int, /, *, emit: bool = True

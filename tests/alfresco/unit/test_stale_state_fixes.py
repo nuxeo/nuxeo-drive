@@ -370,3 +370,20 @@ class TestDownloadBaseline:
             == "2026-10-08 10:21:34"
         )
         proc.dao.update_remote_state.assert_not_called()
+
+    def test_a_failed_pre_read_never_falls_back_to_a_post_read(self):
+        """Fetching after the transfer is what the pre-read exists to avoid.
+
+        A revision landing mid-download would be saved as the baseline while
+        the bytes on disk are the older one, and the next poll would compare
+        equal and never fetch it. Leaving the old baseline alone makes that
+        poll see a difference and download again.
+        """
+        proc = self._proc(None)
+        proc.remote.get_fs_info.side_effect = OSError("boom")
+
+        with patch(f"{PROCESSOR}.shutil"):
+            proc._update_remotely(self._pair(), False)
+
+        proc.remote.get_fs_info.assert_called_once_with("node-1")
+        proc.dao.update_remote_state.assert_not_called()

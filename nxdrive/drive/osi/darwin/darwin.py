@@ -537,12 +537,3 @@ class DarwinIntegration(AbstractOSIntegration):
                 "only use the kernel check"
             )
         return granted == "GRANTED"
-
-    def has_accessibility_permission(self) -> bool:
-        """Return whether Accessibility is granted, without prompting."""
-        return (
-            self._run_check_open(
-                "--check-permission", timeout=CHECK_OPEN_PERMISSION_TIMEOUT
-            )
-            == "GRANTED"
-        )

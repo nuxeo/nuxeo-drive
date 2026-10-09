@@ -51,7 +51,7 @@ def _engine():
     engine.queue_manager = MagicMock()
     engine.newConflict = MagicMock()
     # Normally set in __init__, which is bypassed here.
-    engine._deferred_conflicts = []
+    engine._deferred_conflicts = {}
     engine._deferred_conflicts_lock = Lock()
     return engine
 
@@ -302,7 +302,7 @@ class TestConflictResolverStaysOffTheGuiThread:
 
         engine.remote.get_fs_info.assert_not_called()
         engine.remote.get_node.assert_not_called()
-        assert engine._deferred_conflicts == []
+        assert engine._deferred_conflicts == {}
 
     def test_anything_else_is_parked_instead_of_decided(self):
         engine = _engine()
@@ -313,7 +313,7 @@ class TestConflictResolverStaysOffTheGuiThread:
         engine.remote.get_fs_info.assert_not_called()
         engine.dao.synchronize_state.assert_not_called()
         engine.dao._force_sync.assert_not_called()
-        assert engine._deferred_conflicts == [1]
+        assert engine._deferred_conflicts == {1: True}
 
     def test_the_same_pair_is_not_parked_twice(self):
         engine = _engine()
@@ -322,21 +322,53 @@ class TestConflictResolverStaysOffTheGuiThread:
         engine.conflict_resolver(1)
         engine.conflict_resolver(1)
 
-        assert engine._deferred_conflicts == [1]
+        assert engine._deferred_conflicts == {1: True}
+
+    def test_a_silent_request_is_remembered_as_silent(self):
+        """``Engine.start()`` re-checks old conflicts with ``emit=False``.
+
+        Losing that would pop a notification for every conflict still open
+        from the previous session.
+        """
+        engine = _engine()
+        engine.dao.get_state_from_id.return_value = _pair(last_error=None)
+
+        engine.conflict_resolver(1, emit=False)
+
+        assert engine._deferred_conflicts == {1: False}
+
+    def test_silence_wins_when_a_pair_is_parked_both_ways(self):
+        engine = _engine()
+        engine.dao.get_state_from_id.return_value = _pair(last_error=None)
+
+        engine.conflict_resolver(1)
+        engine.conflict_resolver(1, emit=False)
+
+        assert engine._deferred_conflicts == {1: False}
+
+    def test_the_flag_reaches_the_decision(self):
+        engine = _engine()
+        engine._deferred_conflicts = {1: False, 2: True}
+        engine._decide_conflict = MagicMock()
+
+        engine.resolve_deferred_conflicts()
+
+        assert engine._decide_conflict.call_args_list[0].kwargs["emit"] is False
+        assert engine._decide_conflict.call_args_list[1].kwargs["emit"] is True
 
     def test_draining_decides_each_parked_pair_once(self):
         engine = _engine()
-        engine._deferred_conflicts = [1, 2, 3]
+        engine._deferred_conflicts = {1: True, 2: True, 3: True}
         engine._decide_conflict = MagicMock()
 
         engine.resolve_deferred_conflicts()
 
         assert engine._decide_conflict.call_count == 3
-        assert engine._deferred_conflicts == []
+        assert engine._deferred_conflicts == {}
 
     def test_one_bad_pair_does_not_strand_the_rest(self):
         engine = _engine()
-        engine._deferred_conflicts = [1, 2, 3]
+        engine._deferred_conflicts = {1: True, 2: True, 3: True}
         engine._decide_conflict = MagicMock(side_effect=[OSError("boom"), None, None])
 
         engine.resolve_deferred_conflicts()
