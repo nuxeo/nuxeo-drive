@@ -436,13 +436,29 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         return True
 
     def _release_lock_conflict(self, pair: DocPair, /) -> None:
-        """Hand a no-longer-locked pair back to the processor."""
+        """Hand a no-longer-locked pair back to the processor.
+
+        Conditional on the pair still being lock-deferred: the re-check reads
+        the row, then makes a network call, and the user can resolve the
+        conflict in that gap.
+        """
+        released = self.dao.force_sync_if_conflicted(
+            pair,
+            "modified",
+            "synchronized",
+            "locally_modified",
+            last_error=LOCKED_ON_SERVER,
+        )
+        if not released:
+            log.debug(
+                f"Not releasing {pair.local_name!r}: it is no longer the "
+                "lock-deferred conflict we read"
+            )
+            return
         log.info(
             f"Server lock released on {pair.local_name!r}; retrying the "
             "deferred upload"
         )
-        # _force_sync clears last_error, so the lock reason goes with it.
-        self.dao._force_sync(pair, "modified", "synchronized", "locally_modified")
 
     def _sweep_lock_conflicts(self) -> None:
         """Re-check pairs parked because the server node was locked.
@@ -522,9 +538,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         edits (rename, tag, aspect) and would raise a false conflict. A version
         already in hand therefore decides outright.
 
-        Without one, the timestamp decides whether fetching a version is worth
-        the call — it is truncated to whole seconds, so it can only be trusted
-        to say "nothing moved", never "this is a content change".
+        A stored version can only be answered by another version, so when the
+        feed omits one it is fetched. The timestamp cannot stand in for it: it
+        is truncated to whole seconds, so an edit landing in the same second as
+        the one on record would read as unchanged and be missed for good.
 
         A pair with no baseline at all has never synchronised: both columns were
         written from the fetch that created it, so only the bytes can answer.
@@ -542,20 +559,28 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 )
             return changed
 
-        has_baseline = bool(db_version or child_pair.last_remote_updated)
-        if has_baseline and not self._timestamp_moved(child_pair, child_info):
-            return False
-
-        if not child_info.version_label:
-            self._fill_version_and_lock(child_info)
-        if child_info.version_label and db_version:
+        if db_version:
+            # A lookup we could not make is reported as changed: a needless
+            # download is recoverable, a missed one is not.
+            if not self._fill_version_and_lock(child_info):
+                return True
             return child_info.version_label != db_version
 
-        if not has_baseline:
-            return self._content_differs(child_pair, child_info)
+        if child_pair.last_remote_updated:
+            return self._timestamp_moved(child_pair, child_info)
 
-        # Non-versionable node: the timestamp verdict is all there is.
-        return True
+        return self._content_differs(child_pair, child_info)
+
+    @staticmethod
+    def _keep_known_version(child_pair: DocPair, child_info: RemoteFileInfo, /) -> None:
+        """Stop an empty feed value from erasing the version baseline.
+
+        The change feed omits ``fileVersion`` and ``update_remote_state``
+        writes ``remote_version`` unconditionally, so passing the feed value
+        straight through would discard the only reliable content signal we have.
+        """
+        if not child_info.version_label and child_pair.remote_version:
+            child_info.version_label = child_pair.remote_version
 
     def _reconcile_child(
         self,
@@ -592,6 +617,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             "parent_remotely_deleted",
         ):
             log.info(f"Restoring {child_info.name!r} from {child_pair.pair_state!r}")
+            self._keep_known_version(child_pair, child_info)
             self.dao.update_remote_state(
                 child_pair,
                 child_info,
@@ -640,6 +666,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 f"old={child_pair.last_remote_updated!r} "
                 f"new={child_info.last_modification_time!r}"
             )
+            self._keep_known_version(child_pair, child_info)
             # Step 1: update metadata (esp. last_remote_updated)
             # without bumping version, so force_remote can match
             # the current version with its optimistic lock.
@@ -661,6 +688,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             # override it with force_remote.
             self.dao.force_remote(child_pair)
         else:
+            self._keep_known_version(child_pair, child_info)
             self.dao.update_remote_state(
                 child_pair,
                 child_info,

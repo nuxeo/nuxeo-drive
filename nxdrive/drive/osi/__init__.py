@@ -105,11 +105,20 @@ class AbstractOSIntegration(QObject):
         """Return whether :meth:`is_file_open` can give a real answer here."""
         return False
 
+    def has_file_open_permission(self) -> bool:
+        """Return whether the permission :meth:`is_file_open` needs is granted.
+
+        Read without prompting, so it can be called on every start. Platforms
+        that need no permission are granted as soon as detection exists.
+        """
+        return self.has_file_open_detection()
+
     def request_file_open_permission(self) -> bool:
         """Ask the user for any permission :meth:`is_file_open` needs.
 
-        Returns whether detection is usable afterwards. No-op where the
-        platform needs no permission.
+        The answer is not available by the time this returns on platforms
+        whose prompt is asynchronous; use :meth:`has_file_open_permission` to
+        read the outcome. No-op where the platform needs no permission.
         """
         return self.has_file_open_detection()
 

@@ -801,9 +801,11 @@ class AlfrescoProcessor(_ProcessorBase):
         with suppress(OSError):
             shutil.rmtree(tmp_file.parent)
 
+        # change_file_date() parses with the exact "%Y-%m-%d %H:%M:%S" format,
+        # so the server's timezone-aware datetime has to be normalised first.
         self.local.change_file_date(
             updated_info.filepath,
-            mtime=(
+            mtime=_fmt_remote_ts(
                 remote_info.last_modification_time
                 if remote_info
                 else doc_pair.last_remote_updated

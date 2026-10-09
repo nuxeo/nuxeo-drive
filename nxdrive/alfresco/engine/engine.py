@@ -113,6 +113,8 @@ class AlfrescoEngine(Engine):
             local_cls=local_cls,
         )
 
+        manager.featureUpdate.connect(self._on_feature_update)
+
     # -- Filter selection tracking -------------------------------------------
 
     def add_filter(self, path: str, /, *, node_id: str = "") -> None:
@@ -207,34 +209,67 @@ class AlfrescoEngine(Engine):
         if not Feature.synchronization and self.dao.get_config("filters_configured"):
             self._cleanup_after_sync_disabled()
         elif Feature.synchronization:
-            self._request_open_file_permission()
+            self._check_open_file_permission()
         super().start()
 
-    def _request_open_file_permission(self) -> None:
-        """Prompt once for the permission the open-file check needs.
+    @Slot(str, bool)
+    def _on_feature_update(self, name: str, value: bool, /) -> None:
+        """Re-ask for the open-file permission when sync is switched on.
+
+        Switching the feature on is the moment the user expects to be asked,
+        and it is an explicit action — so a prompt dismissed earlier is worth
+        showing again, which a plain start never does.
+        """
+        if name == "synchronization" and value:
+            self._check_open_file_permission(prompt_again=True)
+
+    def _check_open_file_permission(self, *, prompt_again: bool = False) -> None:
+        """Make sure the open-file check has the permission it needs.
+
+        Runs on the thread pool: the probe spawns a helper process, and this is
+        reached from the GUI thread when the feature is toggled.
+        """
+        if not self.manager.osi.has_file_open_detection():
+            return
+
+        from nxdrive.drive.engine.workers import Runner
+
+        runner = Runner(self._check_open_file_permission_async, prompt_again)
+        if self._threadpool:
+            self._threadpool.start(runner)
+        else:
+            self._check_open_file_permission_async(prompt_again)
+
+    def _check_open_file_permission_async(self, prompt_again: bool, /) -> None:
+        """Read the permission, and prompt for it if that is still useful.
 
         Conflict detection defers a download while the user has the file open
-        locally, which on macOS needs Accessibility. The prompt is shown at
-        most once per installation: a refusal must not nag on every start, and
-        detection still works partially without it.
+        locally, which on macOS needs Accessibility. The grant can be made or
+        withdrawn outside the application at any time, so it is read on every
+        start rather than remembered. The prompt itself is shown at most once
+        unless the user asks for sync again, because a refusal must not nag.
         """
-        if self.dao.get_config(OPEN_FILE_PERMISSION_ASKED):
-            return
-
         osi = self.manager.osi
-        if not osi.has_file_open_detection():
-            return
-
         try:
-            granted = osi.request_file_open_permission()
+            if osi.has_file_open_permission():
+                log.debug("Open-file detection has the permission it needs")
+                return
+
+            if self.dao.get_config(OPEN_FILE_PERMISSION_ASKED) and not prompt_again:
+                log.info(
+                    "Open-file detection is running without its permission; "
+                    "only the kernel check is available"
+                )
+                return
+
+            self.dao.update_config(OPEN_FILE_PERMISSION_ASKED, "1")
+            # The system dialog outlives this call, so the answer is read on a
+            # later check rather than from the return value.
+            osi.request_file_open_permission()
         except Exception:
             log.warning(
-                "Could not request open-file detection permission", exc_info=True
+                "Could not check the open-file detection permission", exc_info=True
             )
-            return
-
-        self.dao.update_config(OPEN_FILE_PERMISSION_ASKED, "1")
-        log.info(f"Open-file detection permission granted: {granted}")
 
     def _cleanup_after_sync_disabled(self) -> None:
         """Wipe DB-level sync state after the user disables sync.

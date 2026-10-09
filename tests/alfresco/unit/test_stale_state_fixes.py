@@ -255,6 +255,92 @@ class TestLockReleaseNeedsConfirmation:
 
 
 # ---------------------------------------------------------------------------
+# Releasing a lock must not overwrite a decision the user already made
+# ---------------------------------------------------------------------------
+
+
+class TestLockReleaseIsConditional:
+    """The re-check reads the row, calls the server, then writes it back.
+
+    The user can resolve the conflict in that gap, and ``_force_sync`` does not
+    bump ``version``, so its optimistic lock would not notice.
+    """
+
+    def test_the_release_is_guarded_by_the_lock_reason(self):
+        watcher = _watcher()
+        pair = _pair(pair_state="conflicted", last_error=LOCKED_ON_SERVER)
+
+        watcher._release_lock_conflict(pair)
+
+        watcher.dao._force_sync.assert_not_called()
+        kwargs = watcher.dao.force_sync_if_conflicted.call_args.kwargs
+        assert kwargs["last_error"] == LOCKED_ON_SERVER
+
+    def test_a_row_the_user_already_resolved_is_left_alone(self):
+        watcher = _watcher()
+        watcher.dao.force_sync_if_conflicted.return_value = False
+
+        watcher._release_lock_conflict(_pair(pair_state="locally_resolved"))
+
+        watcher.dao.force_sync_if_conflicted.assert_called_once()
+        watcher.dao._force_sync.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# A download must not crash on the server's timestamp format
+# ---------------------------------------------------------------------------
+
+
+class TestDownloadKeepsTheRemoteTimestamp:
+    """``change_file_date`` only parses ``YYYY-MM-DD HH:MM:SS``.
+
+    The server hands back a timezone-aware ``datetime``; passing it straight
+    through raised after the bytes had landed but before the DB caught up,
+    leaving the pair to download the same file on every poll.
+    """
+
+    def _proc_for_download(self, remote_info):
+        proc = _processor()
+        proc.remote.get_fs_info.return_value = remote_info
+        proc._download_content = MagicMock(return_value=Path("/tmp/dl/file.txt"))
+        proc._refresh_local_state = MagicMock()
+        proc._refresh_remote = MagicMock()
+        proc.local.abspath.return_value = Path("/sync/file.txt")
+        proc.local.get_remote_id.return_value = "node-1"
+        proc.local.move.return_value = MagicMock(
+            filepath=Path("/sync/file.txt"), get_digest=MagicMock(return_value="abc")
+        )
+        return proc
+
+    def test_a_datetime_is_normalised_before_it_reaches_the_filesystem(self):
+        from datetime import datetime, timezone
+
+        stamp = datetime(2026, 10, 9, 7, 21, 51, 123456, tzinfo=timezone.utc)
+        proc = self._proc_for_download(MagicMock(last_modification_time=stamp))
+
+        proc._update_remotely(_pair(remote_name="file.txt"), False)
+
+        assert (
+            proc.local.change_file_date.call_args.kwargs["mtime"]
+            == "2026-10-09 07:21:51"
+        )
+
+    def test_the_db_fallback_still_works_without_a_snapshot(self):
+        proc = self._proc_for_download(None)
+        proc.remote.get_fs_info.side_effect = OSError("offline")
+
+        proc._update_remotely(
+            _pair(remote_name="file.txt", last_remote_updated="2026-10-06 09:19:59"),
+            False,
+        )
+
+        assert (
+            proc.local.change_file_date.call_args.kwargs["mtime"]
+            == "2026-10-06 09:19:59"
+        )
+
+
+# ---------------------------------------------------------------------------
 # A digest we can no longer vouch for must not block a download
 # ---------------------------------------------------------------------------
 

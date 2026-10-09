@@ -494,11 +494,42 @@ class TestContentChangedOrdering:
 
         def _fill(child_info, /):
             child_info.version_label = "1.0"
+            return True
 
         watcher._fill_version_and_lock = MagicMock(side_effect=_fill)
 
         # The feed had no version, but the fetched one matches the baseline.
         assert watcher._content_changed(_pair(remote_version="1.0"), info) is False
+
+    def test_a_stored_version_is_never_decided_by_the_timestamp(self):
+        """An edit inside the stored second must not read as "unchanged"."""
+        watcher = _watcher()
+        watcher._timestamp_moved = MagicMock(return_value=False)
+
+        def _fill(child_info, /):
+            child_info.version_label = "1.1"
+            return True
+
+        watcher._fill_version_and_lock = MagicMock(side_effect=_fill)
+
+        changed = watcher._content_changed(
+            _pair(remote_version="1.0"), _info(version_label="")
+        )
+
+        assert changed is True
+        watcher._fill_version_and_lock.assert_called_once()
+        watcher._timestamp_moved.assert_not_called()
+
+    def test_a_failed_version_lookup_counts_as_changed(self):
+        """A needless download is recoverable; a missed one is not."""
+        watcher = _watcher()
+        watcher._fill_version_and_lock = MagicMock(return_value=False)
+
+        changed = watcher._content_changed(
+            _pair(remote_version="1.0"), _info(version_label="")
+        )
+
+        assert changed is True
 
     def test_non_versionable_node_trusts_the_timestamp(self):
         watcher = _watcher()
@@ -529,6 +560,52 @@ class TestContentChangedOrdering:
         pair = _pair(remote_version="", last_remote_updated=None)
 
         assert watcher._content_changed(pair, _info(version_label="")) is False
+
+
+class TestVersionBaselineIsNeverErased:
+    """The feed omits ``fileVersion``; writing it through loses the baseline."""
+
+    def test_an_empty_feed_value_keeps_the_stored_version(self):
+        watcher = _watcher()
+        pair = _pair(remote_version="1.3")
+        info = _info(version_label="")
+
+        watcher._keep_known_version(pair, info)
+
+        assert info.version_label == "1.3"
+
+    def test_a_real_feed_value_wins(self):
+        watcher = _watcher()
+        pair = _pair(remote_version="1.3")
+        info = _info(version_label="1.4")
+
+        watcher._keep_known_version(pair, info)
+
+        assert info.version_label == "1.4"
+
+    def test_nothing_to_keep_leaves_the_value_empty(self):
+        watcher = _watcher()
+        pair = _pair(remote_version="")
+        info = _info(version_label="")
+
+        watcher._keep_known_version(pair, info)
+
+        assert info.version_label == ""
+
+    @pytest.mark.parametrize("changed", (True, False))
+    def test_reconcile_never_writes_an_empty_version(self, changed):
+        watcher = _watcher()
+        watcher._lock_was_released = MagicMock(return_value=False)
+        watcher._content_changed = MagicMock(return_value=changed)
+        pair = _pair(
+            pair_state="synchronized", remote_state="synchronized", remote_version="1.3"
+        )
+        info = _info(version_label="")
+
+        watcher._reconcile_child(pair, info, "/remote", Path("/sync"))
+
+        watcher.dao.update_remote_state.assert_called_once()
+        assert info.version_label == "1.3"
 
 
 class TestContentDiffers:
@@ -675,8 +752,12 @@ class TestSweepLockConflicts:
 
         watcher._sweep_lock_conflicts()
 
-        watcher.dao._force_sync.assert_called_once_with(
-            pair, "modified", "synchronized", "locally_modified"
+        watcher.dao.force_sync_if_conflicted.assert_called_once_with(
+            pair,
+            "modified",
+            "synchronized",
+            "locally_modified",
+            last_error=LOCKED_ON_SERVER,
         )
 
     def test_a_server_error_does_not_abort_the_sweep(self):
@@ -691,8 +772,12 @@ class TestSweepLockConflicts:
 
         watcher._sweep_lock_conflicts()
 
-        watcher.dao._force_sync.assert_called_once_with(
-            second, "modified", "synchronized", "locally_modified"
+        watcher.dao.force_sync_if_conflicted.assert_called_once_with(
+            second,
+            "modified",
+            "synchronized",
+            "locally_modified",
+            last_error=LOCKED_ON_SERVER,
         )
 
 

@@ -1661,6 +1661,48 @@ class EngineDAO(BaseDAO):
                 return True
         return False
 
+    def force_sync_if_conflicted(
+        self,
+        row: DocPair,
+        local: str,
+        remote: str,
+        pair: str,
+        /,
+        *,
+        last_error: str,
+    ) -> bool:
+        """Flip a conflicted pair, but only while it still carries *last_error*.
+
+        ``_force_sync`` never bumps ``version``, so its optimistic lock cannot
+        separate two concurrent flips: a background re-check that read the row
+        before the user resolved the conflict would still match and silently
+        undo their choice. Requiring the reason as well makes the re-check a
+        no-op once anything else has touched the row.
+        """
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE States"
+                "   SET local_state = ?,"
+                "       remote_state = ?,"
+                "       pair_state = ?,"
+                "       last_error = NULL,"
+                "       last_error_details = NULL,"
+                "       last_sync_error_date = NULL,"
+                "       error_count = 0"
+                " WHERE id = ?"
+                "   AND version = ?"
+                "   AND pair_state = 'conflicted'"
+                "   AND last_error = ?",
+                (local, remote, pair, row.id, row.version, last_error),
+            )
+            if c.rowcount != 1:
+                return False
+            self._queue_pair_state(row.id, row.folderish, pair)
+            self._items_count += 1
+            row.last_error = None
+            return True
+
     def force_remote(self, row: DocPair, /) -> bool:
         return self._force_sync(row, "synchronized", "modified", "remotely_modified")
 

@@ -519,12 +519,28 @@ class DarwinIntegration(AbstractOSIntegration):
             return False
         return None
 
+    def has_file_open_permission(self) -> bool:
+        """Read the current Accessibility grant without prompting.
+
+        The grant can be given or revoked in System Settings at any time, and
+        macOS tells a command-line helper nothing about it, so the only way to
+        know is to ask again.
+        """
+        granted = self._run_check_open(
+            "--check-permission", timeout=CHECK_OPEN_PERMISSION_TIMEOUT
+        )
+        return granted == "GRANTED"
+
     def request_file_open_permission(self) -> bool:
         """Show the macOS Accessibility prompt if it has not been granted.
 
         Only the window/tab inspection tiers need Accessibility; the kernel
         check works without it, so a refusal degrades detection rather than
         disabling it.
+
+        The system dialog is answered long after the helper has exited, so a
+        ``False`` here means "not granted *yet*", not "refused" — the real
+        outcome is read later by :meth:`has_file_open_permission`.
         """
         granted = self._run_check_open(
             "--request-permission", timeout=CHECK_OPEN_PERMISSION_TIMEOUT
@@ -533,7 +549,7 @@ class DarwinIntegration(AbstractOSIntegration):
             return False
         if granted != "GRANTED":
             log.info(
-                "Accessibility permission not granted; open-file detection will "
-                "only use the kernel check"
+                "Accessibility permission not granted yet; open-file detection "
+                "will use the kernel check until it is"
             )
         return granted == "GRANTED"

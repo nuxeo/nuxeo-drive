@@ -216,3 +216,79 @@ class TestForceSyncReason:
         _, error, details, _ = self._row(dao, pair.id)
         assert error is None
         assert details is None
+
+
+class TestForceSyncIfConflicted:
+    """``_force_sync`` never bumps ``version``, so its lock cannot separate
+    two concurrent flips. The reason has to be part of the condition.
+    """
+
+    def _conflicted(self, dao, *, reason="LOCKED_ON_SERVER"):
+        pair = _insert(dao)
+        dao._force_sync(pair, "modified", "modified", "conflicted", last_error=reason)
+        return dao.get_state_from_id(pair.id)
+
+    def _state(self, dao, row_id):
+        row = dao.get_state_from_id(row_id)
+        return row.pair_state, row.last_error
+
+    def test_a_matching_row_is_released(self, dao):
+        pair = self._conflicted(dao)
+
+        released = dao.force_sync_if_conflicted(
+            pair,
+            "modified",
+            "synchronized",
+            "locally_modified",
+            last_error="LOCKED_ON_SERVER",
+        )
+
+        assert released is True
+        assert self._state(dao, pair.id) == ("locally_modified", None)
+        assert pair.last_error is None
+
+    def test_a_different_reason_is_refused(self, dao):
+        pair = self._conflicted(dao, reason="DIFFERENT_CONTENT")
+
+        released = dao.force_sync_if_conflicted(
+            pair,
+            "modified",
+            "synchronized",
+            "locally_modified",
+            last_error="LOCKED_ON_SERVER",
+        )
+
+        assert released is False
+        assert self._state(dao, pair.id) == ("conflicted", "DIFFERENT_CONTENT")
+
+    def test_a_row_resolved_in_the_meantime_is_refused(self, dao):
+        """What the lock sweep races against: the user clicking "use mine"."""
+        pair = self._conflicted(dao)
+        dao.force_local(dao.get_state_from_id(pair.id))
+
+        released = dao.force_sync_if_conflicted(
+            pair,
+            "modified",
+            "synchronized",
+            "locally_modified",
+            last_error="LOCKED_ON_SERVER",
+        )
+
+        assert released is False
+        assert self._state(dao, pair.id)[0] == "locally_resolved"
+
+    def test_a_stale_version_is_still_refused(self, dao):
+        pair = self._conflicted(dao)
+        stale = dao.get_state_from_id(pair.id)
+        stale.version += 1
+
+        assert (
+            dao.force_sync_if_conflicted(
+                stale,
+                "modified",
+                "synchronized",
+                "locally_modified",
+                last_error="LOCKED_ON_SERVER",
+            )
+            is False
+        )

@@ -34,6 +34,25 @@ The kernel check always runs. The three window/title tiers run only when
 Accessibility permission has been granted, so a refusal degrades detection
 rather than disabling it.
 
+## How Drive handles the permission
+
+`--request-permission` returns as soon as the system dialog is shown, long
+before the user answers it, so its result cannot be trusted as the outcome.
+The grant is also made and withdrawn in System Settings, which tells a
+command-line helper nothing.
+
+Drive therefore never remembers the answer:
+
+* `--check-permission` is run on every engine start, so a grant made outside
+  the application is picked up on the next launch;
+* `--request-permission` is shown at most once, recorded in the DAO config key
+  `open_file_permission_asked`, so a refusal does not nag on every start;
+* switching the Synchronization feature on shows the prompt again, because an
+  explicit user action is worth re-asking for.
+
+All of this runs on the engine thread pool — the probe spawns a process, and
+the feature toggle arrives on the GUI thread.
+
 ## Building
 
 ```bash
@@ -89,6 +108,6 @@ fatal.
 | Symptom in the log | Meaning |
 |---|---|
 | `Open-file detection disabled: ... is missing` | The helper was not found. Run the build script. |
-| `Accessibility permission not granted; open-file detection will only use the kernel check` | Expected when permission is refused. Kernel detection still works. |
+| `Accessibility permission not granted yet; open-file detection will use the kernel check until it is` | Expected until the user grants it. Kernel detection still works, and the grant is re-read on the next start. |
 | `check_open timed out` | The probe exceeded its timeout; treated as "unknown" and the download proceeds. |
 | No `File open locally` line ever appears | Normal for editors that do not hold the file open. TextEdit reads and closes immediately; Word, Excel and `tail -f` are detected. |
