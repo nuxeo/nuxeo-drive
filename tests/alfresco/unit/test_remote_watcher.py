@@ -89,6 +89,7 @@ def _make_doc_pair(**kwargs):
     pair.local_state = kwargs.get("local_state", "synchronized")
     pair.pair_state = kwargs.get("pair_state", "synchronized")
     pair.last_remote_updated = kwargs.get("last_remote_updated", "2024-01-01 00:00:00")
+    pair.remote_version = kwargs.get("remote_version", "1.0")
     pair.local_digest = kwargs.get("local_digest", None)
     pair.processor = kwargs.get("processor", 0)
     return pair
@@ -105,6 +106,8 @@ def _make_remote_info(**kwargs):
         "last_modification_time", datetime(2024, 1, 1, tzinfo=timezone.utc)
     )
     info.digest = kwargs.get("digest", None)
+    info.version_label = kwargs.get("version_label", "1.0")
+    info.is_locked = kwargs.get("is_locked", False)
     return info
 
 
@@ -493,6 +496,9 @@ class TestScanRemoteRecursive:
             uid="child-1",
             name="Doc.txt",
             folderish=False,
+            # A new version label is what proves the content changed; the
+            # timestamp alone also moves on metadata-only edits.
+            version_label="1.1",
             last_modification_time=datetime(
                 2024, 6, 15, 10, 30, 0, tzinfo=timezone.utc
             ),

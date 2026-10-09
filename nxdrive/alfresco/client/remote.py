@@ -520,9 +520,11 @@ class AlfrescoRemote:
             can_delete=True,
             can_update=node.is_file,
             can_create_child=node.is_folder,
-            lock_owner=None,
+            lock_owner=node.lock_owner,
             lock_created=None,
             can_scroll_descendants=False,
+            version_label=node.version_label,
+            is_locked=node.is_locked,
         )
 
     @staticmethod
@@ -569,6 +571,10 @@ class AlfrescoRemote:
             lock_owner=None,
             lock_created=None,
             can_scroll_descendants=False,
+            # Empty until the Sync Service emits ``fileVersion``; the watcher
+            # falls back to a node fetch rather than treating it as "no version".
+            version_label=change.file_version,
+            is_locked=change.is_locked,
         )
 
     # -- Adapter methods (Processor compatibility) ---------------------------
@@ -590,19 +596,12 @@ class AlfrescoRemote:
         except Exception:
             raise NotFound(f"Could not find {fs_item_id!r} on {self.server_url!r}")
         info = self._node_to_remote_file_info(node)
-        # Prefer the server-provided digest (``Node.digest`` /
-        # ``Node.digest_algorithm``) when Alfresco returns one.  Fall back
-        # to whatever we stored in the DB during upload so the Processor's
-        # conflict check doesn't see a spurious None-vs-hash mismatch.
-        if info.digest is None:
-            if node.digest:
-                info.digest = node.digest
-                info.digest_algorithm = (node.digest_algorithm or "md5").lower()
-            elif hasattr(self, "dao"):
-                pair = self.dao.get_normal_state_from_remote(fs_item_id)
-                if pair and pair.remote_digest:
-                    info.digest = pair.remote_digest
-                    info.digest_algorithm = "md5"
+        # Only a digest the server actually vouches for may be used. Falling
+        # back to the one stored at upload time would report our own content as
+        # the server's, and the download check would then skip a remote edit.
+        if info.digest is None and node.digest:
+            info.digest = node.digest
+            info.digest_algorithm = (node.digest_algorithm or "md5").lower()
         return info
 
     def stream_content(

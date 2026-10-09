@@ -30,6 +30,8 @@ from nxdrive.alfresco.client.device_sync import (
     DEVICE_SYNC_CLIENT_VERSION,
     DeviceSyncProvisioner,
 )
+from nxdrive.alfresco.content_compare import content_matches
+from nxdrive.alfresco.engine.processor import LOCKED_ON_SERVER
 from nxdrive.alfresco.sync_filters import is_top_folder_excluded
 from nxdrive.drive.constants import MAC, ROOT, WINDOWS
 from nxdrive.drive.engine.activity import tooltip
@@ -144,6 +146,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         self._local_scan_seen: Set[str] = set()
         self._local_scan_deletions: List[DocPair] = []
         self._local_scan_incomplete = False
+
+        #: Completed poll cycles, used to run the lock-conflict sweep on every
+        #: other one.
+        self._cycle_count = 0
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
@@ -389,6 +395,193 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         return False
 
+    def _timestamp_moved(
+        self, child_pair: DocPair, child_info: RemoteFileInfo, /
+    ) -> bool:
+        """Return whether the server's modification time differs from the DB.
+
+        The DB stores timestamps as ``YYYY-MM-DD HH:MM:SS`` (no
+        microseconds/timezone) while the server returns full ``datetime``
+        objects, so both sides are normalised to the DB format first.
+        """
+        remote_ts = child_info.last_modification_time
+        if isinstance(remote_ts, datetime):
+            remote_ts_str = remote_ts.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            remote_ts_str = str(remote_ts)[:19]
+        db_ts_str = str(child_pair.last_remote_updated or "")[:19]
+        return bool(remote_ts_str) and remote_ts_str != db_ts_str
+
+    def _fill_version_and_lock(self, child_info: RemoteFileInfo, /) -> bool:
+        """Fetch the version label and lock state the change feed omitted.
+
+        The Device Sync feed does not yet carry ``fileVersion``/``locked``, so
+        they have to come from the node API. Mutating *child_info* means the
+        values reach the DB through the ``update_remote_state`` call that
+        follows. Returns whether the fetch succeeded, because the feed defaults
+        (``""`` and ``False``) are indistinguishable from a real answer.
+        """
+        try:
+            node = self.engine.remote.get_node(child_info.uid)
+        except Exception:
+            log.debug(
+                f"Could not read version/lock for {child_info.name!r}",
+                exc_info=True,
+            )
+            return False
+        child_info.version_label = node.version_label
+        child_info.is_locked = node.is_locked
+        if node.lock_owner:
+            child_info.lock_owner = node.lock_owner
+        return True
+
+    def _release_lock_conflict(self, pair: DocPair, /) -> None:
+        """Hand a no-longer-locked pair back to the processor.
+
+        Conditional on the pair still being lock-deferred: the re-check reads
+        the row, then makes a network call, and the user can resolve the
+        conflict in that gap.
+        """
+        released = self.dao.force_sync_if_conflicted(
+            pair,
+            "modified",
+            "synchronized",
+            "locally_modified",
+            last_error=LOCKED_ON_SERVER,
+        )
+        if not released:
+            log.debug(
+                f"Not releasing {pair.local_name!r}: it is no longer the "
+                "lock-deferred conflict we read"
+            )
+            return
+        log.info(
+            f"Server lock released on {pair.local_name!r}; retrying the "
+            "deferred upload"
+        )
+
+    def _sweep_lock_conflicts(self) -> None:
+        """Re-check pairs parked because the server node was locked.
+
+        ``_reconcile_child`` only sees a node when the feed reports a change,
+        and releasing a lock does not necessarily emit one — without this the
+        pair would sit in Conflicts until something else touched the node.
+
+        Runs on odd cycles only (1, 3, 5, …): each parked pair costs one
+        ``GET /nodes/{id}``, and a lock the user is actively holding does not
+        need sub-minute detection.
+        """
+        self._cycle_count += 1
+        if self._cycle_count % 2 == 0:
+            return
+
+        parked = [
+            pair
+            for pair in self.dao.get_conflicts()
+            if pair.last_error == LOCKED_ON_SERVER and pair.remote_ref
+        ]
+        if not parked:
+            return
+
+        log.debug(f"Re-checking {len(parked)} lock-deferred pair(s)")
+        for pair in parked:
+            self._interact()
+            try:
+                node = self.engine.remote.get_node(pair.remote_ref)
+            except Exception:
+                log.debug(
+                    f"Could not re-check the lock on {pair.local_name!r}",
+                    exc_info=True,
+                )
+                continue
+            if not node.is_locked:
+                self._release_lock_conflict(pair)
+
+    def _lock_was_released(
+        self, child_pair: DocPair, child_info: RemoteFileInfo, /
+    ) -> bool:
+        """Return whether a lock-only conflict can now be retried.
+
+        Only pairs the processor parked because of a server lock qualify: a
+        conflict the user has to arbitrate must never be cleared automatically.
+        """
+        if child_pair.pair_state != "conflicted":
+            return False
+        if child_pair.last_error != LOCKED_ON_SERVER:
+            return False
+        # The feed never reports lock state, so its ``False`` default would read
+        # as "released" and clear the conflict without the server ever saying so.
+        if not self._fill_version_and_lock(child_info):
+            return False
+        return not child_info.is_locked
+
+    def _content_differs(
+        self, child_pair: DocPair, child_info: RemoteFileInfo, /
+    ) -> bool:
+        """Compare the bytes when there is no metadata baseline to compare.
+
+        Unknown resolves to ``True`` so the pair is reconciled rather than
+        silently assumed identical.
+        """
+        local_path = self.engine.local.abspath(child_pair.local_path)
+        if not local_path.is_file():
+            return True
+        return not content_matches(self.engine.remote, local_path, child_info.uid)
+
+    def _content_changed(
+        self, child_pair: DocPair, child_info: RemoteFileInfo, /
+    ) -> bool:
+        """Return whether the node's *content* changed since we last saw it.
+
+        The version label is authoritative: it only advances when content is
+        written, whereas the modification time also moves on metadata-only
+        edits (rename, tag, aspect) and would raise a false conflict. A version
+        already in hand therefore decides outright.
+
+        A stored version can only be answered by another version, so when the
+        feed omits one it is fetched. The timestamp cannot stand in for it: it
+        is truncated to whole seconds, so an edit landing in the same second as
+        the one on record would read as unchanged and be missed for good.
+
+        A pair with no baseline at all has never synchronised: both columns were
+        written from the fetch that created it, so only the bytes can answer.
+        """
+        if child_info.folderish:
+            return False
+
+        db_version = child_pair.remote_version or ""
+        if child_info.version_label and db_version:
+            changed = child_info.version_label != db_version
+            if not changed:
+                log.debug(
+                    f"Ignoring metadata-only change for {child_info.name!r}: "
+                    f"version still {db_version!r}"
+                )
+            return changed
+
+        if db_version:
+            # A lookup we could not make is reported as changed: a needless
+            # download is recoverable, a missed one is not.
+            if not self._fill_version_and_lock(child_info):
+                return True
+            return child_info.version_label != db_version
+
+        if child_pair.last_remote_updated:
+            return self._timestamp_moved(child_pair, child_info)
+
+        return self._content_differs(child_pair, child_info)
+
+    @staticmethod
+    def _keep_known_version(child_pair: DocPair, child_info: RemoteFileInfo, /) -> None:
+        """Stop an empty feed value from erasing the version baseline.
+
+        The change feed omits ``fileVersion`` and ``update_remote_state``
+        writes ``remote_version`` unconditionally, so passing the feed value
+        straight through would discard the only reliable content signal we have.
+        """
+        if not child_info.version_label and child_pair.remote_version:
+            child_info.version_label = child_pair.remote_version
+
     def _reconcile_child(
         self,
         child_pair: Optional[DocPair],
@@ -424,6 +617,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             "parent_remotely_deleted",
         ):
             log.info(f"Restoring {child_info.name!r} from {child_pair.pair_state!r}")
+            self._keep_known_version(child_pair, child_info)
             self.dao.update_remote_state(
                 child_pair,
                 child_info,
@@ -434,80 +628,67 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self.dao.force_remote(child_pair)
             return self.dao.get_state_from_id(child_pair.id, from_write=True)
 
-        # Alfresco does not expose a content hash, so digest is
-        # always None.  Detect content changes by comparing the
-        # modification timestamp instead.
-        # The DB stores timestamps as 'YYYY-MM-DD HH:MM:SS'
-        # (no microseconds/timezone), while the server returns
-        # full datetime objects.  Normalise both sides to the
-        # DB format before comparing.
-        remote_ts = child_info.last_modification_time
-        if isinstance(remote_ts, datetime):
-            remote_ts_str = remote_ts.strftime("%Y-%m-%d %H:%M:%S")
-        else:
-            remote_ts_str = str(remote_ts)[:19]
-        db_ts_str = str(child_pair.last_remote_updated or "")[:19]
-        content_changed = (
-            not child_info.folderish and remote_ts_str and remote_ts_str != db_ts_str
-        )
-        if content_changed:
-            # Pair is already flagged as conflicted: don't touch
-            # remote state, don't re-queue.  ``update_remote_state``
-            # would recompute ``pair_state`` from PAIR_STATES and
-            # (because Alfresco digests are ``None``) the "similar"
-            # short-circuit would demote the row back to
-            # ``locally_modified`` — undoing the conflict marking
-            # and hiding the row from the systray Conflicts panel.
-            if child_pair.pair_state == "conflicted":
-                log.debug(
-                    f"Skipping update for {child_info.name!r}: "
-                    "pair is already conflicted (awaiting user)"
-                )
-            # Skip if the pair is currently being processed by the
-            # Processor (e.g. an upload is in progress).  Forcing
-            # remotely_modified mid-upload causes a redundant
-            # download cycle and can create ghost queue items.
-            elif child_pair.pair_state in (
-                "locally_created",
-                "locally_modified",
-            ):
-                log.debug(
-                    f"Skipping force_remote for {child_info.name!r}: "
-                    f"pair is {child_pair.pair_state!r} (processor active)"
-                )
-                self.dao.update_remote_state(
-                    child_pair,
-                    child_info,
-                    remote_parent_path=remote_parent_path,
-                )
-            else:
-                log.info(
-                    f"Content change detected for {child_info.name!r}: "
-                    f"old={child_pair.last_remote_updated!r} "
-                    f"new={child_info.last_modification_time!r}"
-                )
-                # Step 1: update metadata (esp. last_remote_updated)
-                # without bumping version, so force_remote can match
-                # the current version with its optimistic lock.
-                self.dao.update_remote_state(
-                    child_pair,
-                    child_info,
-                    remote_parent_path=remote_parent_path,
-                    force_update=True,
-                    versioned=False,
-                )
-                # Step 2: set pair to "remotely_modified" and queue.
-                # update_remote_state's no-change block resets
-                # remote_state to "synchronized" (because
-                # None in (local_digest, None)), so we must
-                # override it with force_remote.
-                self.dao.force_remote(child_pair)
-        elif child_pair.pair_state == "conflicted":
+        if self._lock_was_released(child_pair, child_info):
+            self._release_lock_conflict(child_pair)
+            return self.dao.get_state_from_id(child_pair.id, from_write=True)
+
+        # A conflicted pair is waiting on the user. ``update_remote_state``
+        # would recompute ``pair_state`` from PAIR_STATES and — because
+        # Alfresco digests are ``None`` — demote the row back to
+        # ``locally_modified``, hiding it from the Conflicts panel.
+        if child_pair.pair_state == "conflicted":
             log.debug(
                 f"Skipping update for {child_info.name!r}: "
                 "pair is already conflicted (awaiting user)"
             )
+            return child_pair
+
+        # The processor owns this pair. Refresh the naming metadata so a remote
+        # rename still lands, but keep the version/timestamp baseline: the
+        # pre-upload drift check compares against it, and overwriting it here
+        # makes the server look unchanged against itself.
+        if child_pair.pair_state in ("locally_created", "locally_modified"):
+            log.debug(
+                f"Keeping the sync baseline for {child_info.name!r}: "
+                f"pair is {child_pair.pair_state!r} (processor active)"
+            )
+            self.dao.update_remote_state(
+                child_pair,
+                child_info,
+                remote_parent_path=remote_parent_path,
+                no_baseline=True,
+            )
+            return child_pair
+
+        if self._content_changed(child_pair, child_info):
+            log.info(
+                f"Content change detected for {child_info.name!r}: "
+                f"old={child_pair.last_remote_updated!r} "
+                f"new={child_info.last_modification_time!r}"
+            )
+            self._keep_known_version(child_pair, child_info)
+            # Step 1: update metadata (esp. last_remote_updated)
+            # without bumping version, so force_remote can match
+            # the current version with its optimistic lock.
+            self.dao.update_remote_state(
+                child_pair,
+                child_info,
+                remote_parent_path=remote_parent_path,
+                force_update=True,
+                versioned=False,
+            )
+            # Alfresco serves no content hash, so ``remote_digest`` still holds
+            # what we last uploaded; the processor would read it as "the local
+            # copy is current" and skip the download.
+            self.dao.clear_remote_digest(child_pair)
+            # Step 2: set pair to "remotely_modified" and queue.
+            # update_remote_state's no-change block resets
+            # remote_state to "synchronized" (because
+            # None in (local_digest, None)), so we must
+            # override it with force_remote.
+            self.dao.force_remote(child_pair)
         else:
+            self._keep_known_version(child_pair, child_info)
             self.dao.update_remote_state(
                 child_pair,
                 child_info,
@@ -674,8 +855,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
             drained = self._poll_device_sync()
             completed = seeded and drained
-        except ThreadInterrupt:
-            # Cooperative shutdown from _interact(), not a failure.
+        except ThreadInterrupt:  # Cooperative shutdown from _interact(), not a failure.
             raise
         except AlfrescoAuthError:
             log.warning("Change poll failed, credentials are invalid", exc_info=True)
@@ -698,6 +878,18 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self._scan_local_changes()
         except Exception:
             log.warning("Error during local change scan", exc_info=True)
+
+        try:
+            self._sweep_lock_conflicts()
+        except Exception:
+            log.warning("Error during lock-conflict sweep", exc_info=True)
+
+        # Runs here rather than in the ``newConflict`` slot: that slot is on
+        # the GUI thread, and one round trip per conflicting file freezes it.
+        try:
+            self.engine.resolve_deferred_conflicts()
+        except Exception:
+            log.warning("Error while deciding deferred conflicts", exc_info=True)
 
         # Track whether the poll found any new work
         qm_after = self.engine.queue_manager.get_overall_size()

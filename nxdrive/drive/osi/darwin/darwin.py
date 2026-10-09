@@ -28,7 +28,7 @@ from ...constants import BUNDLE_IDENTIFIER, NXDRIVE_SCHEME
 from ...objects import DocPair
 from ...options import Options
 from ...translator import Translator
-from ...utils import if_frozen
+from ...utils import find_resource, if_frozen
 from .. import AbstractOSIntegration
 from ..extension import get_formatted_status
 from .darwin_config import get_agent_template, get_findersync_ids
@@ -37,6 +37,15 @@ from .extension import DarwinExtensionListener
 __all__ = ("DarwinIntegration",)
 
 log = getLogger(__name__)
+
+#: Seconds allowed for one ``check_open`` probe. The helper walks the window
+#: list of every running application, so it is capped to keep a sync cycle
+#: responsive; a timeout is reported as "unknown", never as "closed".
+CHECK_OPEN_TIMEOUT = 5.0
+
+#: Seconds allowed for the permission query. ``--request-permission`` returns
+#: as soon as the system dialog is shown, so this does not wait for the user.
+CHECK_OPEN_PERMISSION_TIMEOUT = 10.0
 
 
 def _get_app() -> str:
@@ -53,6 +62,10 @@ class DarwinIntegration(AbstractOSIntegration):
     # to prevent errors when it failed to start or when
     # trying to stop it twice from the auto-updater.
     _finder_sync_loaded = False
+
+    # Resolved on first use. An empty Path means "looked up and unusable",
+    # which stops us from probing the filesystem on every call.
+    _check_open_path: Optional[Path] = None
 
     @property
     def NDRIVE_AGENT_TEMPLATE(self) -> str:
@@ -439,3 +452,104 @@ class DarwinIntegration(AbstractOSIntegration):
     def get_extension_listener(self) -> DarwinExtensionListener:
         assert self._manager
         return DarwinExtensionListener(self._manager)
+
+    # -- Open-file detection -------------------------------------------------
+
+    def _check_open_helper(self) -> Optional[Path]:
+        """Return the path to the ``check_open`` helper, or ``None``.
+
+        The executable bit does not survive PyInstaller's data bundling, so it
+        is restored on first use.
+        """
+        if self._check_open_path is not None:
+            return self._check_open_path or None
+
+        helper = find_resource("utilities", file="check_open")
+        if not helper.is_file():
+            log.warning(f"Open-file detection disabled: {str(helper)!r} is missing")
+            self._check_open_path = Path()
+            return None
+
+        if not os.access(helper, os.X_OK):
+            try:
+                helper.chmod(helper.stat().st_mode | 0o111)
+            except OSError:
+                log.warning(
+                    f"Open-file detection disabled: cannot make {str(helper)!r} "
+                    "executable",
+                    exc_info=True,
+                )
+                self._check_open_path = Path()
+                return None
+
+        self._check_open_path = helper
+        return helper
+
+    def _run_check_open(self, *args: str, timeout: float) -> Optional[str]:
+        helper = self._check_open_helper()
+        if helper is None:
+            return None
+        try:
+            proc = subprocess.run(
+                [str(helper), *args],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            log.debug(f"check_open timed out for {args!r}")
+            return None
+        except OSError:
+            log.warning(f"Could not run check_open for {args!r}", exc_info=True)
+            return None
+        if proc.returncode != 0:
+            log.debug(f"check_open failed for {args!r}: {proc.stderr.strip()!r}")
+            return None
+        return proc.stdout.strip()
+
+    def has_file_open_detection(self) -> bool:
+        return self._check_open_helper() is not None
+
+    def is_file_open(self, path: Path, /) -> Optional[bool]:
+        result = self._run_check_open(str(path), timeout=CHECK_OPEN_TIMEOUT)
+        if result == "TRUE":
+            return True
+        if result == "FALSE":
+            return False
+        return None
+
+    def has_file_open_permission(self) -> bool:
+        """Read the current Accessibility grant without prompting.
+
+        The grant can be given or revoked in System Settings at any time, and
+        macOS tells a command-line helper nothing about it, so the only way to
+        know is to ask again.
+        """
+        granted = self._run_check_open(
+            "--check-permission", timeout=CHECK_OPEN_PERMISSION_TIMEOUT
+        )
+        return granted == "GRANTED"
+
+    def request_file_open_permission(self) -> bool:
+        """Show the macOS Accessibility prompt if it has not been granted.
+
+        Only the window/tab inspection tiers need Accessibility; the kernel
+        check works without it, so a refusal degrades detection rather than
+        disabling it.
+
+        The system dialog is answered long after the helper has exited, so a
+        ``False`` here means "not granted *yet*", not "refused" — the real
+        outcome is read later by :meth:`has_file_open_permission`.
+        """
+        granted = self._run_check_open(
+            "--request-permission", timeout=CHECK_OPEN_PERMISSION_TIMEOUT
+        )
+        if granted is None:
+            return False
+        if granted != "GRANTED":
+            log.info(
+                "Accessibility permission not granted yet; open-file detection "
+                "will use the kernel check until it is"
+            )
+        return granted == "GRANTED"

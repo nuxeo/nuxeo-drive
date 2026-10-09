@@ -1526,9 +1526,10 @@ class EngineDAO(BaseDAO):
                 "remote_can_create_child, last_remote_modifier, "
                 "remote_digest, folderish, last_remote_modifier, "
                 "local_path, local_parent_path, remote_state, "
-                "local_state, pair_state, local_name, creation_date) "
+                "local_state, pair_state, local_name, creation_date, "
+                "remote_version, remote_locked) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-                "'created', 'unknown', ?, ?, ?)",
+                "'created', 'unknown', ?, ?, ?, ?, ?)",
                 (
                     info.uid,
                     info.parent_uid,
@@ -1548,6 +1549,8 @@ class EngineDAO(BaseDAO):
                     pair_state,
                     info.name,
                     info.creation_time,
+                    info.version_label,
+                    int(info.is_locked),
                 ),
             )
             row_id: int = c.lastrowid
@@ -1614,7 +1617,68 @@ class EngineDAO(BaseDAO):
             row.last_error = None
             row.error_count = 0
 
-    def _force_sync(self, row: DocPair, local: str, remote: str, pair: str, /) -> bool:
+    def _force_sync(
+        self,
+        row: DocPair,
+        local: str,
+        remote: str,
+        pair: str,
+        /,
+        *,
+        last_error: str = None,
+        last_error_details: str = None,
+    ) -> bool:
+        # The reason is written in the same statement as the state flip because
+        # this also fires ``newConflict``: a resolver reacting to that signal
+        # must never observe the conflict without the reason that justifies it.
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE States"
+                "   SET local_state = ?,"
+                "       remote_state = ?,"
+                "       pair_state = ?,"
+                "       last_error = ?,"
+                "       last_error_details = ?,"
+                "       last_sync_error_date = NULL,"
+                "       error_count = 0"
+                " WHERE id = ?"
+                "   AND version = ?",
+                (
+                    local,
+                    remote,
+                    pair,
+                    last_error,
+                    last_error_details,
+                    row.id,
+                    row.version,
+                ),
+            )
+            self._queue_pair_state(row.id, row.folderish, pair)
+            if c.rowcount == 1:
+                self._items_count += 1
+                row.last_error = last_error
+                return True
+        return False
+
+    def force_sync_if_conflicted(
+        self,
+        row: DocPair,
+        local: str,
+        remote: str,
+        pair: str,
+        /,
+        *,
+        last_error: str,
+    ) -> bool:
+        """Flip a conflicted pair, but only while it still carries *last_error*.
+
+        ``_force_sync`` never bumps ``version``, so its optimistic lock cannot
+        separate two concurrent flips: a background re-check that read the row
+        before the user resolved the conflict would still match and silently
+        undo their choice. Requiring the reason as well makes the re-check a
+        no-op once anything else has touched the row.
+        """
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(
@@ -1623,20 +1687,38 @@ class EngineDAO(BaseDAO):
                 "       remote_state = ?,"
                 "       pair_state = ?,"
                 "       last_error = NULL,"
+                "       last_error_details = NULL,"
                 "       last_sync_error_date = NULL,"
                 "       error_count = 0"
                 " WHERE id = ?"
-                "   AND version = ?",
-                (local, remote, pair, row.id, row.version),
+                "   AND version = ?"
+                "   AND pair_state = 'conflicted'"
+                "   AND last_error = ?",
+                (local, remote, pair, row.id, row.version, last_error),
             )
+            if c.rowcount != 1:
+                return False
             self._queue_pair_state(row.id, row.folderish, pair)
-            if c.rowcount == 1:
-                self._items_count += 1
-                return True
-        return False
+            self._items_count += 1
+            row.last_error = None
+            return True
 
     def force_remote(self, row: DocPair, /) -> bool:
         return self._force_sync(row, "synchronized", "modified", "remotely_modified")
+
+    def clear_remote_digest(self, row: DocPair, /) -> None:
+        """Forget the digest recorded for the server copy of *row*.
+
+        A server that exposes no content hash leaves ``remote_digest`` holding
+        whatever *we* last uploaded. Once the server content changes that value
+        is simply wrong, and ``update_remote_state`` never overwrites it because
+        the change carries no digest to replace it with. Leaving it in place
+        makes the download check believe the local copy is already current.
+        """
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute("UPDATE States SET remote_digest = NULL WHERE id = ?", (row.id,))
+        row.remote_digest = None
 
     def force_remote_creation(self, row: DocPair, /) -> bool:
         return self._force_sync(row, "unknown", "created", "remotely_created")
@@ -1803,6 +1885,7 @@ class EngineDAO(BaseDAO):
         queue: bool = True,
         force_update: bool = False,
         no_digest: bool = False,
+        no_baseline: bool = False,
     ) -> bool:
         row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
@@ -1852,13 +1935,24 @@ class EngineDAO(BaseDAO):
 
         with self.lock:
             c = self._get_write_connection().cursor()
+            # ``last_remote_updated``/``remote_version`` are the baseline the
+            # pre-upload drift check compares against. Overwriting them while a
+            # local change is pending makes the server look unchanged against
+            # itself, and the upload then clobbers a concurrent remote edit.
+            baseline = (
+                ""
+                if no_baseline
+                else "       last_remote_updated = ?,"
+                "       remote_version = ?,"
+                "       remote_locked = ?,"
+            )
             query = (
                 "UPDATE States"
                 "   SET remote_ref = ?,"
                 "       remote_parent_ref = ?,"
                 "       remote_parent_path = ?,"
                 "       remote_name = ?,"
-                "       last_remote_updated = ?,"
+                f"{baseline}"
                 "       remote_can_rename = ?,"
                 "       remote_can_delete = ?,"
                 "       remote_can_update = ?,"
@@ -1877,6 +1971,15 @@ class EngineDAO(BaseDAO):
                 log.debug(f"Increasing version to {row.version + 1} for pair {row!r}")
 
             query += " WHERE id = ?"
+            baseline_values = (
+                ()
+                if no_baseline
+                else (
+                    info.last_modification_time,
+                    info.version_label,
+                    int(info.is_locked),
+                )
+            )
             try:
                 c.execute(
                     query,
@@ -1885,7 +1988,7 @@ class EngineDAO(BaseDAO):
                         info.parent_uid,
                         remote_parent_path,
                         info.name,
-                        info.last_modification_time,
+                        *baseline_values,
                         info.can_rename,
                         info.can_delete,
                         info.can_update,

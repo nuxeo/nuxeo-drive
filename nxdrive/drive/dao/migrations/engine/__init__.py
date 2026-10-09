@@ -9,6 +9,7 @@ __migrations_list = [
     "0023_direct_downloads",
     "0024_add_scheduled_at",
     "0025_add_filter_node_id",
+    "0026_add_remote_version_and_lock",
 ]  # Keep sorted
 
 

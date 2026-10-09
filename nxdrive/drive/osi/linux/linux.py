@@ -217,3 +217,16 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
                 log.warning(
                     f"Could not copy {icon!r} to {shared_icons!r}", exc_info=True
                 )
+
+    # -- Open-file detection -------------------------------------------------
+
+    def is_file_open(self, path: Path, /) -> Optional[bool]:
+        """Not implemented yet on GNU/Linux; see ``DarwinIntegration``.
+
+        Returning ``None`` keeps callers on their existing behaviour instead of
+        letting them assume the file is closed.
+        """
+        return None
+
+    def has_file_open_detection(self) -> bool:
+        return False
