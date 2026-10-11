@@ -644,19 +644,18 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             return child_pair
 
         # The processor owns this pair. Refresh the naming metadata so a remote
-        # rename still lands, but keep the version/timestamp baseline: the
-        # pre-upload drift check compares against it, and overwriting it here
-        # makes the server look unchanged against itself.
+        # rename still lands, and touch nothing else: the baseline is what the
+        # pre-upload drift check compares against, and the synchronisation
+        # state may already have moved on since this row was read.
         if child_pair.pair_state in ("locally_created", "locally_modified"):
             log.debug(
                 f"Keeping the sync baseline for {child_info.name!r}: "
                 f"pair is {child_pair.pair_state!r} (processor active)"
             )
-            self.dao.update_remote_state(
+            self.dao.update_remote_naming(
                 child_pair,
                 child_info,
                 remote_parent_path=remote_parent_path,
-                no_baseline=True,
             )
             return child_pair
 

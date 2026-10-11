@@ -634,7 +634,13 @@ class TestContentDiffers:
 
 class TestReconcileChildEarlyReturns:
     @pytest.mark.parametrize("state", ("locally_created", "locally_modified"))
-    def test_processor_owned_pair_keeps_its_baseline(self, state):
+    def test_processor_owned_pair_only_gets_its_naming_refreshed(self, state):
+        """Anything else here would be written from a row already read.
+
+        The processor can raise a conflict in that gap, and a write matched on
+        ``id`` alone would put the pair back to ``locally_modified`` and requeue
+        the upload the conflict exists to stop.
+        """
         watcher = _watcher()
         watcher._lock_was_released = MagicMock(return_value=False)
         watcher._content_changed = MagicMock()
@@ -643,9 +649,11 @@ class TestReconcileChildEarlyReturns:
 
         assert watcher._reconcile_child(pair, info, "/remote", Path("/sync")) is pair
 
-        kwargs = watcher.dao.update_remote_state.call_args.kwargs
-        assert kwargs["no_baseline"] is True
-        assert "force_update" not in kwargs
+        watcher.dao.update_remote_naming.assert_called_once()
+        kwargs = watcher.dao.update_remote_naming.call_args.kwargs
+        assert kwargs["remote_parent_path"] == "/remote"
+        # No sync state, no baseline, no queueing.
+        watcher.dao.update_remote_state.assert_not_called()
         watcher.dao.force_remote.assert_not_called()
         # No point computing a verdict we are not going to act on.
         watcher._content_changed.assert_not_called()

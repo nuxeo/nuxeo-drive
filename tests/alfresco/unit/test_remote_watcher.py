@@ -948,7 +948,7 @@ class TestScanRemoteRecursiveExtended:
         watcher.dao.update_remote_state.assert_not_called()
 
     def test_locally_created_pair_skipped_for_force(self):
-        """locally_created pairs should update state but not force_remote."""
+        """locally_created pairs get their naming refreshed, nothing more."""
         watcher = _make_watcher()
         remote = MagicMock()
         watcher.engine.remote = remote
@@ -976,11 +976,12 @@ class TestScanRemoteRecursiveExtended:
             parent_pair, _make_remote_info(uid="parent-node")
         )
 
-        watcher.dao.update_remote_state.assert_called_once()
+        watcher.dao.update_remote_naming.assert_called_once()
+        watcher.dao.update_remote_state.assert_not_called()
         watcher.dao.force_remote.assert_not_called()
 
     def test_locally_modified_pair_skipped_for_force(self):
-        """locally_modified pairs should update state but not force_remote."""
+        """locally_modified pairs get their naming refreshed, nothing more."""
         watcher = _make_watcher()
         remote = MagicMock()
         watcher.engine.remote = remote
@@ -1008,7 +1009,8 @@ class TestScanRemoteRecursiveExtended:
             parent_pair, _make_remote_info(uid="parent-node")
         )
 
-        watcher.dao.update_remote_state.assert_called_once()
+        watcher.dao.update_remote_naming.assert_called_once()
+        watcher.dao.update_remote_state.assert_not_called()
         watcher.dao.force_remote.assert_not_called()
 
     def test_new_folder_recurses(self):

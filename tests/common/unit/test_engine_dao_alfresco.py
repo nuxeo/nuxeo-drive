@@ -130,6 +130,95 @@ class TestUpdateRemoteStateBaseline:
         assert dao.get_state_from_id(pair.id).remote_name == "renamed.txt"
 
 
+class TestUpdateRemoteNaming:
+    """Used for pairs the processor owns, where only a rename may land.
+
+    ``update_remote_state`` matches on ``id`` alone and writes the sync state
+    from the caller's copy of the row, so a decision taken after that copy was
+    read would be overwritten and the pair requeued for upload.
+    """
+
+    def _state(self, dao, row_id):
+        cursor = dao._get_read_connection().cursor()
+        return cursor.execute(
+            "SELECT local_state, remote_state, pair_state, version"
+            " FROM States WHERE id = ?",
+            (row_id,),
+        ).fetchone()
+
+    def test_the_rename_lands(self, dao):
+        pair = _insert(dao)
+
+        assert dao.update_remote_naming(
+            pair, _info(name="renamed.txt"), remote_parent_path="/elsewhere"
+        )
+
+        refreshed = dao.get_state_from_id(pair.id)
+        assert refreshed.remote_name == "renamed.txt"
+        assert refreshed.remote_parent_path == "/elsewhere"
+
+    def test_a_conflict_raised_in_the_gap_survives(self, dao):
+        """The race this method exists for."""
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        dao._force_sync(
+            dao.get_state_from_id(pair.id),
+            "modified",
+            "modified",
+            "conflicted",
+            last_error="REMOTE_DRIFTED",
+        )
+
+        dao.update_remote_naming(stale, _info(name="renamed.txt"))
+
+        local, remote, state, _ = self._state(dao, pair.id)
+        assert (local, remote, state) == ("modified", "modified", "conflicted")
+        assert dao.get_state_from_id(pair.id).remote_name == "renamed.txt"
+
+    def test_the_baseline_is_left_alone(self, dao):
+        pair = _insert(dao, version_label="1.0", modified=OLD_TIME, is_locked=True)
+        before = _raw(dao, pair.id)
+
+        dao.update_remote_naming(
+            pair, _info(name="renamed.txt", version_label="9.9", modified=NEW_TIME)
+        )
+
+        assert _raw(dao, pair.id) == before
+
+    def test_the_version_is_not_bumped(self, dao):
+        """Bumping it would break the optimistic lock of an in-flight upload."""
+        pair = _insert(dao)
+        before = self._state(dao, pair.id)[3]
+
+        dao.update_remote_naming(pair, _info(name="renamed.txt"))
+
+        assert self._state(dao, pair.id)[3] == before
+
+    def test_nothing_is_queued(self, dao):
+        pair = _insert(dao)
+        dao.queue_pair_state = None  # any queueing attempt would raise
+
+        assert dao.update_remote_naming(pair, _info(name="renamed.txt"))
+
+    def test_the_caller_s_row_agrees_with_the_database(self, dao):
+        pair = _insert(dao)
+
+        dao.update_remote_naming(
+            pair, _info(name="renamed.txt"), remote_parent_path="/elsewhere"
+        )
+
+        assert pair.remote_name == "renamed.txt"
+        assert pair.remote_parent_path == "/elsewhere"
+
+    def test_a_vanished_row_reports_failure(self, dao):
+        pair = _insert(dao)
+        dao._get_write_connection().cursor().execute(
+            "DELETE FROM States WHERE id = ?", (pair.id,)
+        )
+
+        assert dao.update_remote_naming(pair, _info(name="renamed.txt")) is False
+
+
 class TestClearRemoteDigest:
     """A digest we can no longer vouch for must not pass as the server's."""
 

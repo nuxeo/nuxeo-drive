@@ -16,7 +16,7 @@ from ...qt.imports import Slot
 from ...translator import Translator
 from ...utils import force_encode, get_value, if_frozen
 from .. import AbstractOSIntegration
-from . import registry
+from . import open_files, registry
 from .extension import (
     WindowsExtensionListener,
     disable_overlay,
@@ -274,12 +274,7 @@ class WindowsIntegration(AbstractOSIntegration):
     # -- Open-file detection -------------------------------------------------
 
     def is_file_open(self, path: Path, /) -> Optional[bool]:
-        """Not implemented yet on Windows; see ``DarwinIntegration``.
-
-        Returning ``None`` keeps callers on their existing behaviour instead of
-        letting them assume the file is closed.
-        """
-        return None
+        return open_files.is_file_open(path)
 
     def has_file_open_detection(self) -> bool:
-        return False
+        return open_files.available()

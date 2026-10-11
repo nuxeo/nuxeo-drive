@@ -2040,6 +2040,66 @@ class EngineDAO(BaseDAO):
                     self._queue_pair_state(row.id, info.folderish, row.pair_state)
         return True
 
+    def update_remote_naming(
+        self,
+        row: DocPair,
+        info: RemoteFileInfo,
+        /,
+        *,
+        remote_parent_path: str = None,
+    ) -> bool:
+        """Write the remote naming metadata of *row*, and nothing else.
+
+        ``update_remote_state`` also writes the synchronisation state, taken
+        from the caller's copy of the row and matched on ``id`` alone, so a
+        decision made after that copy was read is overwritten and the pair
+        requeued. A pair the processor owns only needs a remote rename to
+        land, and writing nothing else leaves nothing here to race over.
+        """
+        if remote_parent_path is None:
+            remote_parent_path = row.remote_parent_path
+
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE States"
+                "   SET remote_ref = ?,"
+                "       remote_parent_ref = ?,"
+                "       remote_parent_path = ?,"
+                "       remote_name = ?,"
+                "       remote_can_rename = ?,"
+                "       remote_can_delete = ?,"
+                "       remote_can_update = ?,"
+                "       remote_can_create_child = ?,"
+                "       last_remote_modifier = ?"
+                " WHERE id = ?",
+                (
+                    info.uid,
+                    info.parent_uid,
+                    remote_parent_path,
+                    info.name,
+                    info.can_rename,
+                    info.can_delete,
+                    info.can_update,
+                    info.can_create_child,
+                    info.last_contributor,
+                    row.id,
+                ),
+            )
+            if c.rowcount != 1:
+                return False
+
+        row.remote_ref = info.uid
+        row.remote_parent_ref = info.parent_uid
+        row.remote_parent_path = remote_parent_path
+        row.remote_name = info.name
+        row.remote_can_rename = info.can_rename
+        row.remote_can_delete = info.can_delete
+        row.remote_can_update = info.can_update
+        row.remote_can_create_child = info.can_create_child
+        row.last_remote_modifier = info.last_contributor
+        return True
+
     def _clean_filter_path(self, path: str, /) -> str:
         if not path.endswith("/"):
             path += "/"
