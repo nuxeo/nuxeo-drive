@@ -1669,16 +1669,21 @@ class EngineDAO(BaseDAO):
         pair: str,
         /,
         *,
-        last_error: str,
+        last_error: str = None,
     ) -> bool:
-        """Flip a conflicted pair, but only while it still carries *last_error*.
+        """Flip a pair, but only while it is still the conflict we decided on.
 
         ``_force_sync`` never bumps ``version``, so its optimistic lock cannot
-        separate two concurrent flips: a background re-check that read the row
-        before the user resolved the conflict would still match and silently
-        undo their choice. Requiring the reason as well makes the re-check a
-        no-op once anything else has touched the row.
+        separate two concurrent flips: a decision taken before a slow probe,
+        written back after the user resolved the same conflict, would still
+        match and silently undo their choice.
+
+        *last_error* narrows the predicate further to conflicts raised for one
+        specific reason; omit it to accept any conflict.
         """
+        reason_clause = "" if last_error is None else "   AND last_error = ?"
+        reason_value = () if last_error is None else (last_error,)
+
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(
@@ -1693,8 +1698,8 @@ class EngineDAO(BaseDAO):
                 " WHERE id = ?"
                 "   AND version = ?"
                 "   AND pair_state = 'conflicted'"
-                "   AND last_error = ?",
-                (local, remote, pair, row.id, row.version, last_error),
+                f"{reason_clause}",
+                (local, remote, pair, row.id, row.version, *reason_value),
             )
             if c.rowcount != 1:
                 return False
@@ -1785,8 +1790,20 @@ class EngineDAO(BaseDAO):
             )
 
     def synchronize_state(
-        self, row: DocPair, /, *, version: int = None, dynamic_states: bool = False
+        self,
+        row: DocPair,
+        /,
+        *,
+        version: int = None,
+        dynamic_states: bool = False,
+        only_if_conflicted: bool = False,
     ) -> bool:
+        """Mark *row* synchronised.
+
+        *only_if_conflicted* additionally requires the row to still be
+        conflicted, for callers that decided on a copy read before a slow
+        probe and must not overwrite a resolution the user made meanwhile.
+        """
         if version is None:
             version = row.version
         log.debug(
@@ -1799,6 +1816,10 @@ class EngineDAO(BaseDAO):
         if not dynamic_states:
             row.local_state = row.remote_state = "synchronized"
         row.pair_state = self._get_pair_state(row)
+
+        conflicted_clause = (
+            "   AND pair_state = 'conflicted'" if only_if_conflicted else ""
+        )
 
         with self.lock:
             c = self._get_write_connection().cursor()
@@ -1815,7 +1836,8 @@ class EngineDAO(BaseDAO):
                 "       error_count = 0,"
                 "       last_sync_error_date = NULL"
                 " WHERE id = ?"
-                "   AND version = ?",
+                "   AND version = ?"
+                f"{conflicted_clause}",
                 (
                     row.local_state,
                     row.remote_state,
@@ -1828,8 +1850,9 @@ class EngineDAO(BaseDAO):
             )
             result = bool(c.rowcount == 1)
 
-            # Retry without version for folder
-            if not result and row.folderish:
+            # Retry without version for folder. Skipped for a conditional
+            # write: it drops the version guard, which is the whole point.
+            if not result and row.folderish and not only_if_conflicted:
                 c.execute(
                     "UPDATE States"
                     "   SET local_state = ?,"

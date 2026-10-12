@@ -219,6 +219,97 @@ class TestUpdateRemoteNaming:
         assert dao.update_remote_naming(pair, _info(name="renamed.txt")) is False
 
 
+class TestSynchronizeStateOnlyIfConflicted:
+    """For decisions taken on a copy read before a slow probe.
+
+    ``content_matches`` can read two 10 MB windows, which is long enough for
+    the user to resolve the same conflict from the Conflicts panel.
+    """
+
+    def _state(self, dao, row_id):
+        return dao.get_state_from_id(row_id).pair_state
+
+    def _conflicted(self, dao, **overrides):
+        pair = _insert(dao, **overrides)
+        dao._force_sync(pair, "modified", "modified", "conflicted")
+        return dao.get_state_from_id(pair.id)
+
+    def test_a_still_conflicted_row_is_synchronized(self, dao):
+        pair = self._conflicted(dao)
+
+        assert dao.synchronize_state(pair, only_if_conflicted=True)
+        assert self._state(dao, pair.id) == "synchronized"
+
+    def test_a_row_resolved_in_the_meantime_is_left_alone(self, dao):
+        pair = self._conflicted(dao)
+        stale = dao.get_state_from_id(pair.id)
+        dao.force_local(dao.get_state_from_id(pair.id))
+
+        assert dao.synchronize_state(stale, only_if_conflicted=True) is False
+        assert self._state(dao, pair.id) == "locally_resolved"
+
+    def test_a_folder_does_not_fall_back_to_an_unguarded_write(self, dao):
+        """The fallback drops the version guard, which is the whole point."""
+        pair = self._conflicted(dao, name="folder")
+        pair.folderish = True
+        dao.force_local(dao.get_state_from_id(pair.id))
+
+        assert dao.synchronize_state(pair, only_if_conflicted=True) is False
+        assert self._state(dao, pair.id) == "locally_resolved"
+
+    def test_the_default_keeps_the_nuxeo_behaviour(self, dao):
+        """Nuxeo never passes the flag and must be able to leave a conflict."""
+        pair = self._conflicted(dao)
+
+        assert dao.synchronize_state(dao.get_state_from_id(pair.id))
+        assert self._state(dao, pair.id) == "synchronized"
+
+    def test_the_default_still_retries_unversioned_for_a_folder(self, dao):
+        pair = _insert(dao, name="folder")
+        pair.folderish = True
+        stale_version = pair.version + 5
+        pair.version = stale_version
+
+        assert dao.synchronize_state(pair)
+        assert self._state(dao, pair.id) == "synchronized"
+
+
+class TestForceSyncIfConflictedWithoutAReason:
+    """Conflicts raised by the state machine carry no reason to match on."""
+
+    def _conflicted(self, dao, *, reason=None):
+        pair = _insert(dao)
+        dao._force_sync(pair, "modified", "modified", "conflicted", last_error=reason)
+        return dao.get_state_from_id(pair.id)
+
+    def test_any_conflict_qualifies_when_no_reason_is_given(self, dao):
+        pair = self._conflicted(dao)
+
+        assert dao.force_sync_if_conflicted(
+            pair, "modified", "synchronized", "locally_modified"
+        )
+        assert dao.get_state_from_id(pair.id).pair_state == "locally_modified"
+
+    def test_a_reasoned_conflict_also_qualifies(self, dao):
+        pair = self._conflicted(dao, reason="REMOTE_DRIFTED")
+
+        assert dao.force_sync_if_conflicted(
+            pair, "modified", "synchronized", "locally_modified"
+        )
+
+    def test_a_resolved_row_is_still_refused(self, dao):
+        pair = self._conflicted(dao)
+        dao.force_local(dao.get_state_from_id(pair.id))
+
+        assert (
+            dao.force_sync_if_conflicted(
+                pair, "modified", "synchronized", "locally_modified"
+            )
+            is False
+        )
+        assert dao.get_state_from_id(pair.id).pair_state == "locally_resolved"
+
+
 class TestClearRemoteDigest:
     """A digest we can no longer vouch for must not pass as the server's."""
 

@@ -695,9 +695,13 @@ class AlfrescoEngine(Engine):
                         f"Alfresco conflict resolver: remote unchanged for "
                         f"{pair.local_name!r}, resetting to locally_modified"
                     )
-                    self.dao._force_sync(
+                    if not self.dao.force_sync_if_conflicted(
                         pair, "modified", "synchronized", "locally_modified"
-                    )
+                    ):
+                        log.debug(
+                            f"Alfresco conflict resolver: {pair.local_name!r} was "
+                            "resolved while the server was being read; leaving it"
+                        )
                     return
 
         # Folder path: match local xattr remote_id.
@@ -711,7 +715,7 @@ class AlfrescoEngine(Engine):
                     f"Alfresco conflict resolver: folder {pair.local_name!r} "
                     "has matching remote UID, auto-resolving"
                 )
-                self.dao.synchronize_state(pair)
+                self.dao.synchronize_state(pair, only_if_conflicted=True)
                 return
 
         # Cannot auto-resolve — surface the conflict to the user.
@@ -761,7 +765,9 @@ class AlfrescoEngine(Engine):
                 f"Alfresco conflict resolver: {pair.local_name!r} is identical "
                 "on both sides, auto-resolving"
             )
-            self.dao.synchronize_state(pair)
+            # Comparing the bytes can take seconds, which is long enough for
+            # the user to have resolved this conflict themselves.
+            self.dao.synchronize_state(pair, only_if_conflicted=True)
             return
 
         log.info(

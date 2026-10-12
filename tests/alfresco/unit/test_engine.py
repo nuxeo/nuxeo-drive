@@ -539,7 +539,7 @@ class TestConflictResolver:
         engine.remote.get_fs_info.return_value = remote_info
 
         engine._decide_conflict(42)
-        engine.dao._force_sync.assert_called_once()
+        engine.dao.force_sync_if_conflicted.assert_called_once()
 
     def test_file_remote_drifted_emits_conflict(self):
         engine = _make_engine()
@@ -572,7 +572,9 @@ class TestConflictResolver:
         engine.local.get_remote_id.return_value = "folder-abc"
 
         engine._decide_conflict(42)
-        engine.dao.synchronize_state.assert_called_once_with(pair)
+        engine.dao.synchronize_state.assert_called_once_with(
+            pair, only_if_conflicted=True
+        )
 
     def test_folder_mismatched_uid_emits_conflict(self):
         engine = _make_engine()

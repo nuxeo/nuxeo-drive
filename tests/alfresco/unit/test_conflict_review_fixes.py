@@ -126,7 +126,9 @@ class TestConflictResolverNeverSynced:
         with patch("nxdrive.alfresco.engine.engine.content_matches", return_value=True):
             engine._decide_conflict(1)
 
-        engine.dao.synchronize_state.assert_called_once_with(pair)
+        engine.dao.synchronize_state.assert_called_once_with(
+            pair, only_if_conflicted=True
+        )
         engine.newConflict.emit.assert_not_called()
         # The timestamp shortcut must not run for a pair with no baseline.
         engine.dao._force_sync.assert_not_called()
@@ -259,7 +261,7 @@ class TestConflictResolverReasoned:
         ):
             engine._decide_conflict(1)
 
-        engine.dao._force_sync.assert_called_once_with(
+        engine.dao.force_sync_if_conflicted.assert_called_once_with(
             pair, "modified", "synchronized", "locally_modified"
         )
         engine.newConflict.emit.assert_not_called()
@@ -286,7 +288,7 @@ class TestResolverUsesTheVersionFirst:
         ):
             engine._decide_conflict(1)
 
-        engine.dao._force_sync.assert_not_called()
+        engine.dao.force_sync_if_conflicted.assert_not_called()
         engine.newConflict.emit.assert_called_once_with(1)
 
     def test_the_same_version_resolves_without_consulting_the_clock(self):
@@ -297,7 +299,7 @@ class TestResolverUsesTheVersionFirst:
 
         engine._decide_conflict(1)
 
-        engine.dao._force_sync.assert_called_once_with(
+        engine.dao.force_sync_if_conflicted.assert_called_once_with(
             pair, "modified", "synchronized", "locally_modified"
         )
 
@@ -319,7 +321,7 @@ class TestResolverUsesTheVersionFirst:
         ):
             engine._decide_conflict(1)
 
-        engine.dao._force_sync.assert_called_once()
+        engine.dao.force_sync_if_conflicted.assert_called_once()
 
     def test_emit_false_does_not_notify(self):
         engine = _engine()
