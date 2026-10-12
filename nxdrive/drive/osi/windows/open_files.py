@@ -257,9 +257,15 @@ def _window_titles(api: _WinApi, /) -> Optional[List[str]]:
         return True
 
     try:
-        api.user32.EnumWindows(api.enum_proc(collect), 0)
+        # Zero means the enumeration failed; our callback never stops it early,
+        # so a partial list must not pass as a complete one.
+        completed = api.user32.EnumWindows(api.enum_proc(collect), 0)
     except Exception:
         log.debug("Could not enumerate windows", exc_info=True)
+        return None
+
+    if not completed:
+        log.debug(f"Window enumeration failed (error {api.last_error()})")
         return None
     return titles
 

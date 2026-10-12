@@ -8,13 +8,18 @@ from typing import TYPE_CHECKING, Dict, List, Optional
 
 from ...constants import APP_NAME, NXDRIVE_SCHEME
 from ...objects import DocPair
-from ...utils import find_icon, host_env, if_frozen
+from ...utils import find_icon, find_resource, host_env, if_frozen
 from .. import AbstractOSIntegration
 from ..extension import Status, get_formatted_status, icon_status
 
 __all__ = ("LinuxIntegration",)
 
 log = getLogger(__name__)
+
+#: Seconds allowed for one open-file probe. The fallback walks every process's
+#: file descriptors, so it is capped to keep a sync cycle responsive; a timeout
+#: is reported as "unknown", never as "closed".
+CHECK_OPEN_TIMEOUT = 5.0
 
 if TYPE_CHECKING:
     from nxdrive.drive.manager import Manager  # noqa
@@ -34,6 +39,9 @@ class LinuxIntegration(AbstractOSIntegration):
         # Cache the last emblem written per path to avoid redundant subprocess
         # invocations when the sync status has not changed.
         self._last_emblem: Dict[str, str] = {}
+
+        #: Empty once the helper has been looked for and not found.
+        self._check_open_path: Optional[Path] = None
 
     @staticmethod
     def cb_get() -> str:
@@ -220,13 +228,51 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
 
     # -- Open-file detection -------------------------------------------------
 
-    def is_file_open(self, path: Path, /) -> Optional[bool]:
-        """Not implemented yet on GNU/Linux; see ``DarwinIntegration``.
+    def _check_open_script(self) -> Optional[Path]:
+        """Return the path to the ``check_open_files.sh`` helper, or ``None``."""
+        if self._check_open_path is not None:
+            return self._check_open_path or None
 
-        Returning ``None`` keeps callers on their existing behaviour instead of
-        letting them assume the file is closed.
-        """
+        script = find_resource("utilities", file="check_open_files.sh")
+        if not script.is_file():
+            log.warning(f"Open-file detection disabled: {str(script)!r} is missing")
+            self._check_open_path = Path()
+            return None
+
+        self._check_open_path = script
+        return script
+
+    def is_file_open(self, path: Path, /) -> Optional[bool]:
+        script = self._check_open_script()
+        if script is None:
+            return None
+
+        try:
+            # Run through ``bash`` so the executable bit, which does not
+            # survive PyInstaller's data bundling, does not matter.
+            proc = subprocess.run(
+                ["bash", str(script), str(path), str(os.getpid())],
+                capture_output=True,
+                text=True,
+                timeout=CHECK_OPEN_TIMEOUT,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            log.debug(f"check_open_files timed out for {str(path)!r}")
+            return None
+        except OSError:
+            log.warning(
+                f"Could not run check_open_files for {str(path)!r}", exc_info=True
+            )
+            return None
+
+        answer = proc.stdout.strip()
+        if answer == "TRUE":
+            return True
+        if answer == "FALSE":
+            return False
+        log.debug(f"check_open_files could not answer for {str(path)!r}: {answer!r}")
         return None
 
     def has_file_open_detection(self) -> bool:
-        return False
+        return self._check_open_script() is not None

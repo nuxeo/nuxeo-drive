@@ -235,6 +235,24 @@ class TestWindowScan:
 
         assert open_files._window_titles(api) is None
 
+    def test_a_refused_enumeration_is_unknown_not_an_empty_scan(self):
+        """``EnumWindows`` reports failure by returning zero, not by raising.
+
+        A partial list passing as a complete one would let the file read as
+        closed and the download go ahead.
+        """
+        api, ours = self._api_showing({1: (99, "file1.txt - Notepad", True)})
+        collected = api.user32.EnumWindows
+
+        def fails_midway(callback, lparam):
+            collected(callback, lparam)
+            return 0
+
+        api.user32.EnumWindows = fails_midway
+
+        assert open_files._window_titles(api) is None
+        assert open_files._shown_in_a_window(api, "file1.txt") is None
+
     def test_the_verdict_comes_from_the_collected_titles(self, monkeypatch):
         api, ours = self._api_showing({1: (99, "file1.txt - Notepad", True)})
         monkeypatch.setattr(open_files.os, "getpid", lambda: ours)

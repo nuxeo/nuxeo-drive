@@ -690,6 +690,61 @@ class TestReconcileChildEarlyReturns:
 # ---------------------------------------------------------------------------
 
 
+class TestLocalFileInUse:
+    """A probe that could not answer lets the download through, and says so.
+
+    Unsupported platforms are filtered by ``has_file_open_detection``, so a
+    ``None`` from the detector means the probe itself failed. Raising a
+    conflict there would hand the user something they cannot act on, so the
+    download proceeds and the failure is logged as an error instead.
+    """
+
+    def _proc(self, answer, /, *, detects=True):
+        proc = _processor()
+        proc.engine.manager.osi.has_file_open_detection.return_value = detects
+        proc.engine.manager.osi.is_file_open.return_value = answer
+        return proc
+
+    @pytest.mark.parametrize(
+        "answer, in_use", ((True, True), (False, False), (None, False))
+    )
+    def test_only_a_definite_yes_holds_the_download_back(self, answer, in_use):
+        assert self._proc(answer)._local_file_in_use(_pair()) is in_use
+
+    def test_a_failed_probe_is_logged_as_an_error(self, caplog):
+        """The log is the evidence that detection, not sync, is what failed."""
+        caplog.set_level("ERROR")
+
+        assert self._proc(None)._local_file_in_use(_pair()) is False
+
+        errors = [r.getMessage() for r in caplog.records if r.levelname == "ERROR"]
+        assert any("Open-file detection failed" in m for m in errors)
+        assert any("file.txt" in m for m in errors)
+
+    @pytest.mark.parametrize("answer", (True, False))
+    def test_an_answered_probe_logs_nothing(self, caplog, answer):
+        caplog.set_level("ERROR")
+
+        self._proc(answer)._local_file_in_use(_pair())
+
+        assert not [r for r in caplog.records if r.levelname == "ERROR"]
+
+    def test_a_platform_that_cannot_answer_is_not_consulted(self, caplog):
+        """Nothing changes, and nothing is logged, where the feature is absent."""
+        caplog.set_level("ERROR")
+        proc = self._proc(None, detects=False)
+
+        assert proc._local_file_in_use(_pair()) is False
+        proc.engine.manager.osi.is_file_open.assert_not_called()
+        assert not [r for r in caplog.records if r.levelname == "ERROR"]
+
+    def test_a_folder_is_never_in_use(self):
+        proc = self._proc(None)
+
+        assert proc._local_file_in_use(_pair(folderish=True)) is False
+        proc.engine.manager.osi.is_file_open.assert_not_called()
+
+
 class TestDeferOpenFile:
     def test_each_attempt_under_the_bound_postpones(self):
         for attempt in range(MAX_OPEN_FILE_DEFERRALS):

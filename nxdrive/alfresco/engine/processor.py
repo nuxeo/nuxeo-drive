@@ -238,15 +238,28 @@ class AlfrescoProcessor(_ProcessorBase):
         """Return whether the user currently has the local file open.
 
         Only consulted for download candidates, so the per-file cost of the
-        OS probe is bounded.  An unsupported platform answers ``None``, which
-        is treated as "not in use" so behaviour is unchanged there.
+        OS probe is bounded. Platforms that cannot answer at all are filtered
+        out above, so ``None`` here means the probe itself failed.
+
+        A failed probe lets the download through rather than raising a
+        conflict the user has no way to act on. Overwriting an unsaved edit is
+        accepted deliberately; the error log is the record that detection
+        failed, not synchronisation.
         """
         if doc_pair.folderish:
             return False
         osi = self.engine.manager.osi
         if not osi.has_file_open_detection():
             return False
-        return osi.is_file_open(self.local.abspath(doc_pair.local_path)) is True
+
+        answer = osi.is_file_open(self.local.abspath(doc_pair.local_path))
+        if answer is None:
+            log.error(
+                f"Open-file detection failed for {doc_pair.local_name!r}; "
+                "downloading anyway, so unsaved local changes may be lost"
+            )
+            return False
+        return answer
 
     def _mark_conflicted(
         self, doc_pair: DocPair, /, *, reason: str = None, details: str = None
