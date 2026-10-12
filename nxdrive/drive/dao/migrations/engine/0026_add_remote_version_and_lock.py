@@ -17,14 +17,15 @@ class MigrationAddRemoteVersionAndLock(MigrationInterface):
     modification timestamps. A timestamp also moves on metadata-only edits
     (rename, tag, aspect), which reads as a content change and raises false
     conflicts. ``cm:versionLabel`` only advances when content is written, so
-    it is the signal conflict detection compares first, falling back to the
-    timestamp for nodes that are not versionable.
+    it is the signal conflict detection compares first. A node the server does
+    not version keeps the label at its initial value, so for those the
+    timestamp decides and the bytes settle a tie.
 
     ``remote_locked`` lets the processor defer an upload while somebody holds
     the node checked out, instead of pushing and getting a 409.
 
     Both are nullable/defaulted: Nuxeo accounts and pre-existing rows simply
-    leave them unset.
+    leave them unset, and an unset version reads as the server's initial one.
     """
 
     def upgrade(self, cursor: Cursor) -> None:

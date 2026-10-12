@@ -196,12 +196,17 @@ class TestRemoteHasDrifted:
         pair.remote_version = ""
         pair.last_remote_updated = "2024-01-01 00:00:00"
         remote_info = Mock()
-        remote_info.version_label = ""
+        # No baseline stored, so the label cannot decide; the clock does.
+        remote_info.is_versionable = True
+        remote_info.version_label = "1.0"
         remote_info.last_modification_time = datetime(
             2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc
         )
         proc.remote.get_fs_info.return_value = remote_info
-        assert proc._remote_has_drifted(pair) is False
+        with patch(
+            "nxdrive.alfresco.engine.processor.content_matches", return_value=True
+        ):
+            assert proc._remote_has_drifted(pair) is False
 
     def test_file_different_timestamp_drift(self, proc) -> None:
         from datetime import datetime, timezone
@@ -1642,11 +1647,15 @@ class TestRemoteHasDriftedExtra:
             last_remote_updated="2024-01-01 00:00:00",
         )
         remote_info = Mock()
-        remote_info.version_label = ""
+        remote_info.is_versionable = True
+        remote_info.version_label = "1.0"
         remote_info.last_modification_time = Mock()
         remote_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
         proc.remote.get_fs_info.return_value = remote_info
-        assert proc._remote_has_drifted(pair) is False
+        with patch(
+            "nxdrive.alfresco.engine.processor.content_matches", return_value=True
+        ):
+            assert proc._remote_has_drifted(pair) is False
 
     def test_timestamps_differ_drift(self, proc):
         pair = Mock(

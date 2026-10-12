@@ -721,25 +721,35 @@ class AlfrescoEngine(Engine):
         # Cannot auto-resolve — surface the conflict to the user.
         self._surface_conflict(pair, row_id, emit=emit)
 
-    @staticmethod
-    def _remote_is_unchanged(pair: DocPair, remote_info: Any, /) -> bool:
+    def _remote_is_unchanged(self, pair: DocPair, remote_info: Any, /) -> bool:
         """Whether the server still holds the revision we last recorded.
 
-        The version label decides whenever both sides have one: it only moves
-        when content is written. The timestamp is the fallback, and it is
-        truncated to whole seconds, so an edit landing in the same second as
-        our baseline would otherwise read as "nothing changed" and the retry
-        would overwrite it.
-        """
-        db_version = pair.remote_version or ""
-        if remote_info.version_label and db_version:
-            return bool(remote_info.version_label == db_version)
+        The version label decides whenever the server maintains one: it only
+        moves when content is written.
 
+        A node the server does not version has no label, and a row predating
+        the ``remote_version`` column has no baseline; neither can be compared,
+        so the timestamp decides — and since it is truncated to whole seconds,
+        a timestamp that matches is confirmed against the bytes. Without that,
+        an edit landing in the same second as our baseline would read as
+        "nothing changed" and the retry would overwrite it.
+        """
         from nxdrive.alfresco.engine.processor import _fmt_remote_ts
+
+        if (
+            remote_info.is_versionable
+            and remote_info.version_label
+            and pair.remote_version
+        ):
+            return bool(remote_info.version_label == pair.remote_version)
 
         remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
         db_ts = str(pair.last_remote_updated or "")[:19]
-        return bool(remote_ts) and remote_ts == db_ts
+        if not remote_ts or remote_ts != db_ts:
+            return False
+
+        local_path = self.local.abspath(pair.local_path)
+        return content_matches(self.remote, local_path, pair.remote_ref) is True
 
     def _resolve_unsynced_conflict(
         self, pair: DocPair, row_id: int, /, *, emit: bool = True

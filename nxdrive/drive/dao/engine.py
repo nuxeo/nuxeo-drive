@@ -1909,7 +1909,14 @@ class EngineDAO(BaseDAO):
         force_update: bool = False,
         no_digest: bool = False,
         no_baseline: bool = False,
+        expected_version: int = None,
     ) -> bool:
+        """Apply *info* to *row*.
+
+        *expected_version* refuses the write unless the row is still at that
+        version, for callers that decided on a copy read before a slow probe
+        and must not overwrite a decision taken since.
+        """
         row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
@@ -1994,6 +2001,8 @@ class EngineDAO(BaseDAO):
                 log.debug(f"Increasing version to {row.version + 1} for pair {row!r}")
 
             query += " WHERE id = ?"
+            if expected_version is not None:
+                query += "   AND version = ?"
             baseline_values = (
                 ()
                 if no_baseline
@@ -2003,6 +2012,7 @@ class EngineDAO(BaseDAO):
                     int(info.is_locked),
                 )
             )
+            guard_values = () if expected_version is None else (expected_version,)
             try:
                 c.execute(
                     query,
@@ -2021,6 +2031,7 @@ class EngineDAO(BaseDAO):
                         row.remote_state,
                         row.pair_state,
                         row.id,
+                        *guard_values,
                     ),
                 )
             except IntegrityError as exc:
@@ -2051,6 +2062,12 @@ class EngineDAO(BaseDAO):
                     f"({'; '.join(clashes) or 'no conflicting row found'})"
                 )
                 raise
+            if expected_version is not None and c.rowcount != 1:
+                log.debug(
+                    f"Not updating remote state for row={row!r}: it moved past "
+                    f"version {expected_version}"
+                )
+                return False
             if queue:
                 # Check if parent is not in creation
                 parent = c.execute(

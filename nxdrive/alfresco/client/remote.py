@@ -43,6 +43,11 @@ __all__ = ("AlfrescoRemote",)
 
 log = getLogger(__name__)
 
+#: NXDRIVE-3287: how many files to probe ``/nodes/{id}/versions`` for. Bounded
+#: because it is one extra request per file and the answer is the same for all.
+VERSIONS_PROBE_LIMIT = 5
+_versions_probed = 0
+
 ALFRESCO_UPLOAD_BLOCK_SIZE = 65536
 UPLOAD_PROGRESS_INTERVAL = 1.0
 UPLOAD_PROGRESS_PERCENT_STEP = 1.0
@@ -239,7 +244,48 @@ class AlfrescoRemote:
 
     def get_node(self, node_id: str, include: Optional[List[str]] = None) -> Node:
         """Fetch a single node."""
-        return self.client.nodes.get(node_id, include=include)
+        node = self.client.nodes.get(node_id, include=include)
+        self._probe_versions(node)
+        return node
+
+    def _probe_versions(self, node: Node, /) -> None:
+        """NXDRIVE-3287: does ``/nodes/{id}/versions`` carry what nodes lack?
+
+        Two open questions: whether a node without ``cm:versionable`` has a
+        version history at all, and whether a version entry reports the content
+        digest that ``GET /nodes/{id}`` never does.
+
+        Diagnostics only, so nothing it does may reach the caller.
+        """
+        global _versions_probed
+
+        if _versions_probed >= VERSIONS_PROBE_LIMIT:
+            return
+
+        try:
+            if not getattr(node, "is_file", False):
+                return
+            _versions_probed += 1
+
+            history = self.client.versions.list(node.id)
+            log.debug(
+                f"VERSIONS PROBE {node.name!r}: "
+                f"is_versionable={node.is_versionable!r} "
+                f"history={len(history)} entries"
+            )
+            for version in history[:2]:
+                content = version.content
+                log.debug(
+                    f"VERSIONS PROBE {node.name!r}: "
+                    f"id={version.file_version_id!r} "
+                    f"hash={getattr(content, 'hash', None)!r} "
+                    f"algo={getattr(content, 'hash_algorithm', None)!r} "
+                    f"size={getattr(content, 'size_in_bytes', None)!r} "
+                    f"modified={version.modified_at!r} "
+                    f"props={sorted(version.properties)!r}"
+                )
+        except Exception as exc:
+            log.debug(f"VERSIONS PROBE failed: {exc!r}")
 
     def get_children(self, node_id: str, *, max_items: int = 100) -> List[Node]:
         return self.client.nodes.list_children(node_id, max_items=max_items)
@@ -500,6 +546,20 @@ class AlfrescoRemote:
         else:
             path_str = "/" + node.name
 
+        if node.is_file:
+            # NXDRIVE-3287: pending confirmation of whether a node without the
+            # cm:versionable aspect still reports cm:versionLabel.
+            props = node.properties if isinstance(node.properties, dict) else {}
+            log.debug(
+                f"VERSIONING PROBE {node.name!r}: "
+                f"is_versionable={node.is_versionable!r} "
+                f"version_label={node.version_label!r} "
+                f"cm:versionLabel_present={'cm:versionLabel' in props} "
+                f"cm:versionLabel={props.get('cm:versionLabel')!r} "
+                f"cm:autoVersion={props.get('cm:autoVersion')!r} "
+                f"aspects={node.aspect_names!r}"
+            )
+
         return RemoteFileInfo(
             name=node.name,
             uid=node.id,
@@ -525,6 +585,7 @@ class AlfrescoRemote:
             can_scroll_descendants=False,
             version_label=node.version_label,
             is_locked=node.is_locked,
+            is_versionable=bool(node.is_versionable),
         )
 
     @staticmethod

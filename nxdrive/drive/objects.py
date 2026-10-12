@@ -121,12 +121,21 @@ class RemoteFileInfo:
     lock_created: Optional[datetime]  # lock creation time
     # True if the API to scroll through the descendants can be used
     can_scroll_descendants: bool
-    # Alfresco: current version label (e.g. "1.3"). Empty when the node is not
-    # versionable or the server did not report one. Defaulted so the positional
-    # construction in from_dict() keeps working for Nuxeo.
+    # Alfresco: current version label. Opaque text, not a number — "1.0" for a
+    # major version, "0.1" for a minor one, and any value an admin chose when
+    # Version Baselining is in play. Only ever set on a node carrying the
+    # cm:versionable aspect, so empty means the node has no label rather than
+    # that it sits at the first one.
+    # Defaulted so the positional construction in from_dict() keeps working for
+    # Nuxeo.
     version_label: str = ""
     # Alfresco: whether the node is locked (checked out) on the server.
     is_locked: bool = False
+    # Alfresco: whether the node carries cm:versionable. Without it the server
+    # keeps no label at all, so the timestamp and the bytes have to decide
+    # instead. ACS <= 26.1 can also leave the label frozen across a content
+    # update (MNT-25259), making it unreliable there even when this is True.
+    is_versionable: bool = True
 
     @staticmethod
     def from_dict(fs_item: Dict[str, Any], /) -> "RemoteFileInfo":

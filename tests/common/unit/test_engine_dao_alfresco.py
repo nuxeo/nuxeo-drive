@@ -310,6 +310,53 @@ class TestForceSyncIfConflictedWithoutAReason:
         assert dao.get_state_from_id(pair.id).pair_state == "locally_resolved"
 
 
+class TestUpdateRemoteStateExpectedVersion:
+    """For callers that decided on a copy read before a slow probe."""
+
+    def test_a_matching_version_is_written(self, dao):
+        pair = _insert(dao)
+
+        assert dao.update_remote_state(
+            pair,
+            _info(name="renamed.txt"),
+            remote_parent_path="/remote",
+            force_update=True,
+            expected_version=pair.version,
+        )
+        assert dao.get_state_from_id(pair.id).remote_name == "renamed.txt"
+
+    def test_a_row_that_moved_on_is_refused(self, dao):
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        # Anything that bumps the version, e.g. the local scanner claiming it.
+        dao.update_remote_state(
+            dao.get_state_from_id(pair.id), _info(name="other.txt"), force_update=True
+        )
+
+        assert (
+            dao.update_remote_state(
+                stale,
+                _info(name="renamed.txt"),
+                remote_parent_path="/remote",
+                force_update=True,
+                expected_version=stale.version,
+            )
+            is False
+        )
+        assert dao.get_state_from_id(pair.id).remote_name == "other.txt"
+
+    def test_the_default_writes_without_a_version_guard(self, dao):
+        """Nuxeo never passes it and must keep today's behaviour."""
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        stale.version += 5
+
+        assert dao.update_remote_state(
+            stale, _info(name="renamed.txt"), force_update=True
+        )
+        assert dao.get_state_from_id(pair.id).remote_name == "renamed.txt"
+
+
 class TestClearRemoteDigest:
     """A digest we can no longer vouch for must not pass as the server's."""
 

@@ -413,7 +413,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         return bool(remote_ts_str) and remote_ts_str != db_ts_str
 
     def _fill_version_and_lock(self, child_info: RemoteFileInfo, /) -> bool:
-        """Fetch the version label and lock state the change feed omitted.
+        """Fetch the version, lock state and versionability the feed omitted.
 
         The Device Sync feed does not yet carry ``fileVersion``/``locked``, so
         they have to come from the node API. Mutating *child_info* means the
@@ -431,6 +431,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             return False
         child_info.version_label = node.version_label
         child_info.is_locked = node.is_locked
+        child_info.is_versionable = bool(node.is_versionable)
         if node.lock_owner:
             child_info.lock_owner = node.lock_owner
         return True
@@ -533,24 +534,32 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
     ) -> bool:
         """Return whether the node's *content* changed since we last saw it.
 
-        The version label is authoritative: it only advances when content is
-        written, whereas the modification time also moves on metadata-only
-        edits (rename, tag, aspect) and would raise a false conflict. A version
-        already in hand therefore decides outright.
+        The version label decides whenever the server maintains one: it only
+        advances when content is written, whereas the modification time also
+        moves on metadata-only edits (rename, tag, aspect) and would raise a
+        false conflict. The feed omits the label, so it is fetched when the
+        full scan has not already supplied it.
 
-        A stored version can only be answered by another version, so when the
-        feed omits one it is fetched. The timestamp cannot stand in for it: it
-        is truncated to whole seconds, so an edit landing in the same second as
-        the one on record would read as unchanged and be missed for good.
-
-        A pair with no baseline at all has never synchronised: both columns were
-        written from the fetch that created it, so only the bytes can answer.
+        A node the server does not version has no label, and a row predating
+        the ``remote_version`` column has no baseline to compare against; both
+        fall back to the timestamp — and because it is truncated to whole
+        seconds, a timestamp that did not move is confirmed against the bytes
+        rather than trusted.
         """
         if child_info.folderish:
             return False
 
-        db_version = child_pair.remote_version or ""
-        if child_info.version_label and db_version:
+        if not child_info.version_label and not self._fill_version_and_lock(child_info):
+            # A lookup we could not make is reported as changed: a needless
+            # download is recoverable, a missed one is not.
+            return True
+
+        if (
+            child_info.is_versionable
+            and child_info.version_label
+            and child_pair.remote_version
+        ):
+            db_version = child_pair.remote_version
             changed = child_info.version_label != db_version
             if not changed:
                 log.debug(
@@ -559,17 +568,14 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 )
             return changed
 
-        if db_version:
-            # A lookup we could not make is reported as changed: a needless
-            # download is recoverable, a missed one is not.
-            if not self._fill_version_and_lock(child_info):
-                return True
-            return child_info.version_label != db_version
+        if child_pair.last_remote_updated and not self._timestamp_moved(
+            child_pair, child_info
+        ):
+            # The server does not version this node, so only the bytes can
+            # tell a same-second edit from no edit at all.
+            return self._content_differs(child_pair, child_info)
 
-        if child_pair.last_remote_updated:
-            return self._timestamp_moved(child_pair, child_info)
-
-        return self._content_differs(child_pair, child_info)
+        return True
 
     @staticmethod
     def _keep_known_version(child_pair: DocPair, child_info: RemoteFileInfo, /) -> None:
@@ -668,14 +674,22 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self._keep_known_version(child_pair, child_info)
             # Step 1: update metadata (esp. last_remote_updated)
             # without bumping version, so force_remote can match
-            # the current version with its optimistic lock.
-            self.dao.update_remote_state(
+            # the current version with its optimistic lock. Guarded on the
+            # version we read: deciding this took a server call, and the local
+            # scanner may have claimed the row in the meantime.
+            if not self.dao.update_remote_state(
                 child_pair,
                 child_info,
                 remote_parent_path=remote_parent_path,
                 force_update=True,
                 versioned=False,
-            )
+                expected_version=child_pair.version,
+            ):
+                log.debug(
+                    f"Leaving {child_info.name!r} to the next cycle: it changed "
+                    "locally while the server was being read"
+                )
+                return child_pair
             # Alfresco serves no content hash, so ``remote_digest`` still holds
             # what we last uploaded; the processor would read it as "the local
             # copy is current" and skip the download.

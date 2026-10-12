@@ -148,11 +148,18 @@ class AlfrescoProcessor(_ProcessorBase):
         """Return ``True`` when the server-side node's *content* has been
         modified since ``doc_pair.last_remote_updated``.
 
-        The version label is the authoritative signal because it only advances
-        when content is written; the ``modifiedAt`` timestamp also moves on
+        The version label decides whenever the server maintains one: it only
+        advances when content is written, whereas ``modifiedAt`` also moves on
         metadata-only edits (rename, tag, aspect) and would report a conflict
-        for a file nobody re-saved.  The timestamp remains the fallback for
-        nodes without the ``cm:versionable`` aspect, which have no label.
+        for a file nobody re-saved.
+
+        A node the server does not version has no label at all, and a row
+        predating the ``remote_version`` column has no baseline to compare it
+        against. Neither can be guessed: ACS starts minor versions at "0.1"
+        and Version Baselining lets an admin pick any label. Both cases fall
+        back to the timestamp, and a timestamp that did not move is confirmed
+        against the bytes — it is truncated to whole seconds and cannot rule
+        out an edit inside the one we have on record.
 
         Pass *remote_info* to reuse a response the caller already fetched, so
         both checks read the same snapshot instead of two.
@@ -173,14 +180,26 @@ class AlfrescoProcessor(_ProcessorBase):
         if remote_info is None:
             return False
 
-        remote_version = remote_info.version_label
-        db_version = doc_pair.remote_version or ""
-        if remote_version and db_version:
-            return remote_version != db_version
+        if (
+            remote_info.is_versionable
+            and remote_info.version_label
+            and doc_pair.remote_version
+        ):
+            return remote_info.version_label != doc_pair.remote_version
 
         remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
         db_ts = str(doc_pair.last_remote_updated or "")[:19]
-        return bool(remote_ts) and remote_ts != db_ts
+        if not remote_ts or remote_ts != db_ts:
+            return bool(remote_ts)
+
+        local_path = self.local.abspath(doc_pair.local_path)
+        matches = content_matches(self.remote, local_path, doc_pair.remote_ref)
+        if matches is None:
+            log.debug(
+                f"Could not compare {doc_pair.local_name!r} against the server; "
+                "assuming it drifted"
+            )
+        return matches is not True
 
     def _safe_remote_info(self, doc_pair: DocPair, /) -> Optional[RemoteFileInfo]:
         """Fetch the node's current state, or ``None`` when unreachable."""
@@ -1014,7 +1033,8 @@ class AlfrescoProcessor(_ProcessorBase):
             )
             if not conflicted:
                 # The upload did happen, so the newer row still needs the
-                # version/timestamp baseline it produced.
+                # version/timestamp baseline it produced. Guarded on the row we
+                # just read, so a decision landing in between still wins.
                 self.dao.update_remote_state(
                     current,
                     fs_item_info,
@@ -1022,6 +1042,7 @@ class AlfrescoProcessor(_ProcessorBase):
                     versioned=False,
                     queue=False,
                     force_update=True,
+                    expected_version=current.version,
                 )
             self.remove_void_transfers(doc_pair)
             return

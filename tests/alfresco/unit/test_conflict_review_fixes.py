@@ -103,6 +103,7 @@ def _info(**overrides):
     info.folderish = False
     info.version_label = "1.0"
     info.is_locked = False
+    info.is_versionable = True
     info.last_modification_time = None
     for key, value in overrides.items():
         setattr(info, key, value)
@@ -247,19 +248,11 @@ class TestConflictResolverReasoned:
     def test_synced_pair_with_unchanged_remote_still_resets(self):
         """The legitimate spurious-conflict path must keep working."""
         engine = _engine()
-        pair = _pair(
-            remote_version="", last_remote_updated="2026-10-06 09:19:59.999000+00:00"
-        )
+        pair = _pair(remote_version="1.1")
         engine.dao.get_state_from_id.return_value = pair
-        engine.remote.get_fs_info.return_value = _info(
-            version_label="", last_modification_time="2026-10-06 09:19:59"
-        )
+        engine.remote.get_fs_info.return_value = _info(version_label="1.1")
 
-        with patch(
-            "nxdrive.alfresco.engine.processor._fmt_remote_ts",
-            return_value="2026-10-06 09:19:59",
-        ):
-            engine._decide_conflict(1)
+        engine._decide_conflict(1)
 
         engine.dao.force_sync_if_conflicted.assert_called_once_with(
             pair, "modified", "synchronized", "locally_modified"
@@ -268,10 +261,11 @@ class TestConflictResolverReasoned:
 
 
 class TestResolverUsesTheVersionFirst:
-    """The timestamp is truncated to whole seconds.
+    """The label decides, but only where the server maintains one.
 
-    An edit landing in the same second as our baseline would read as "nothing
-    changed", and the retry would overwrite it.
+    A node the server does not version has no label at all, so there the
+    timestamp decides — and because it is truncated to whole seconds, a match
+    has to be confirmed against the bytes.
     """
 
     def test_a_moved_version_is_a_conflict_even_at_the_same_second(self):
@@ -303,25 +297,83 @@ class TestResolverUsesTheVersionFirst:
             pair, "modified", "synchronized", "locally_modified"
         )
 
-    @pytest.mark.parametrize(
-        "db_version, served_version", (("", "1.1"), ("1.0", ""), ("", ""))
-    )
-    def test_a_missing_label_falls_back_to_the_clock(self, db_version, served_version):
+    def test_a_row_without_a_baseline_falls_back_to_the_clock(self):
+        """Migration 0026 left those rows empty, and the label cannot be
+        guessed: ACS starts minor versions at "0.1" and Version Baselining
+        allows any label at all."""
         engine = _engine()
-        pair = _pair(
-            remote_version=db_version,
-            last_remote_updated="2026-10-06 09:19:59.999000+00:00",
-        )
+        pair = _pair(remote_version="")
         engine.dao.get_state_from_id.return_value = pair
-        engine.remote.get_fs_info.return_value = _info(version_label=served_version)
+        engine.remote.get_fs_info.return_value = _info(version_label="1.0")
 
         with patch(
             "nxdrive.alfresco.engine.processor._fmt_remote_ts",
             return_value="2026-10-06 09:19:59",
-        ):
+        ), patch("nxdrive.alfresco.engine.engine.content_matches", return_value=True):
             engine._decide_conflict(1)
 
         engine.dao.force_sync_if_conflicted.assert_called_once()
+
+    def test_a_row_without_a_baseline_conflicts_when_the_clock_moved(self):
+        engine = _engine()
+        pair = _pair(remote_version="")
+        engine.dao.get_state_from_id.return_value = pair
+        engine.remote.get_fs_info.return_value = _info(version_label="2.0")
+
+        with patch(
+            "nxdrive.alfresco.engine.processor._fmt_remote_ts",
+            return_value="2026-10-07 11:00:00",
+        ):
+            engine._decide_conflict(1)
+
+        engine.dao.force_sync_if_conflicted.assert_not_called()
+        engine.newConflict.emit.assert_called_once_with(1)
+
+    def test_an_unversioned_node_is_decided_by_the_clock(self):
+        engine = _engine()
+        pair = _pair(
+            remote_version="1.0",
+            last_remote_updated="2026-10-06 09:19:59.999000+00:00",
+        )
+        engine.dao.get_state_from_id.return_value = pair
+        # The label is frozen at 1.0, so equality here proves nothing.
+        engine.remote.get_fs_info.return_value = _info(
+            version_label="1.0", is_versionable=False
+        )
+
+        with patch(
+            "nxdrive.alfresco.engine.processor._fmt_remote_ts",
+            return_value="2026-10-07 11:00:00",
+        ):
+            engine._decide_conflict(1)
+
+        engine.dao.force_sync_if_conflicted.assert_not_called()
+        engine.newConflict.emit.assert_called_once_with(1)
+
+    @pytest.mark.parametrize("identical, resolves", ((True, True), (False, False)))
+    def test_an_unversioned_node_at_the_same_second_compares_bytes(
+        self, identical, resolves
+    ):
+        """The frozen label and the truncated clock both say "unchanged"."""
+        engine = _engine()
+        pair = _pair(
+            remote_version="1.0",
+            last_remote_updated="2026-10-06 09:19:59.999000+00:00",
+        )
+        engine.dao.get_state_from_id.return_value = pair
+        engine.remote.get_fs_info.return_value = _info(
+            version_label="1.0", is_versionable=False
+        )
+
+        with patch(
+            "nxdrive.alfresco.engine.processor._fmt_remote_ts",
+            return_value="2026-10-06 09:19:59",
+        ), patch(
+            "nxdrive.alfresco.engine.engine.content_matches", return_value=identical
+        ):
+            engine._decide_conflict(1)
+
+        assert engine.dao.force_sync_if_conflicted.called is resolves
 
     def test_emit_false_does_not_notify(self):
         engine = _engine()
@@ -477,17 +529,24 @@ class TestContentChangedOrdering:
         )
         assert changed is True
 
-    def test_unmoved_timestamp_short_circuits_before_fetching(self):
+    def test_unmoved_timestamp_still_fetches_the_version(self):
+        """The label is the real answer; the clock cannot stand in for it."""
         watcher = _watcher()
         watcher._timestamp_moved = MagicMock(return_value=False)
-        watcher._fill_version_and_lock = MagicMock()
+
+        def _fill(child_info, /):
+            child_info.version_label = "1.0"
+            return True
+
+        watcher._fill_version_and_lock = MagicMock(side_effect=_fill)
 
         changed = watcher._content_changed(
-            _pair(remote_version=""), _info(version_label="")
+            _pair(remote_version="1.0"), _info(version_label="")
         )
 
         assert changed is False
-        watcher._fill_version_and_lock.assert_not_called()
+        watcher._fill_version_and_lock.assert_called_once()
+        watcher._timestamp_moved.assert_not_called()
 
     def test_moved_timestamp_fetches_version_and_compares(self):
         watcher = _watcher()
@@ -533,35 +592,85 @@ class TestContentChangedOrdering:
 
         assert changed is True
 
-    def test_non_versionable_node_trusts_the_timestamp(self):
+    def test_a_row_without_a_baseline_falls_back_to_the_clock(self):
+        """The absent baseline cannot be assumed to be "1.0"."""
+        watcher = _watcher()
+        watcher._timestamp_moved = MagicMock(return_value=False)
+        watcher._content_differs = MagicMock(return_value=False)
+
+        assert (
+            watcher._content_changed(
+                _pair(remote_version=""), _info(version_label="1.0")
+            )
+            is False
+        )
+        watcher._timestamp_moved.assert_called_once()
+
+    def test_a_row_without_a_baseline_is_changed_when_the_clock_moved(self):
         watcher = _watcher()
         watcher._timestamp_moved = MagicMock(return_value=True)
-        watcher._fill_version_and_lock = MagicMock()
+
+        assert (
+            watcher._content_changed(
+                _pair(remote_version=""), _info(version_label="2.0")
+            )
+            is True
+        )
+
+
+class TestUnversionedNodes:
+    """A node without cm:versionable carries no label the server maintains.
+
+    Trusting whatever label is on hand would make every remote edit to such a
+    node invisible.
+    """
+
+    def test_a_moved_timestamp_is_a_content_change(self):
+        watcher = _watcher()
+        watcher._timestamp_moved = MagicMock(return_value=True)
 
         changed = watcher._content_changed(
-            _pair(remote_version="", last_remote_updated="2026-10-06 09:19:59"),
-            _info(version_label=""),
+            _pair(remote_version="1.0", last_remote_updated="2026-10-06 09:19:59"),
+            _info(version_label="1.0", is_versionable=False),
         )
 
         assert changed is True
 
-    def test_no_baseline_falls_back_to_content_comparison(self):
-        """A newly created local file has neither a version nor a timestamp."""
+    def test_an_unmoved_timestamp_is_settled_by_the_bytes(self):
         watcher = _watcher()
-        watcher._fill_version_and_lock = MagicMock()
+        watcher._timestamp_moved = MagicMock(return_value=False)
         watcher._content_differs = MagicMock(return_value=True)
-        pair = _pair(remote_version="", last_remote_updated=None)
 
-        assert watcher._content_changed(pair, _info(version_label="")) is True
+        changed = watcher._content_changed(
+            _pair(remote_version="1.0", last_remote_updated="2026-10-06 09:19:59"),
+            _info(version_label="1.0", is_versionable=False),
+        )
+
+        assert changed is True
         watcher._content_differs.assert_called_once()
 
-    def test_no_baseline_with_matching_content_is_not_a_change(self):
+    def test_identical_bytes_at_the_same_second_are_not_a_change(self):
         watcher = _watcher()
-        watcher._fill_version_and_lock = MagicMock()
+        watcher._timestamp_moved = MagicMock(return_value=False)
         watcher._content_differs = MagicMock(return_value=False)
-        pair = _pair(remote_version="", last_remote_updated=None)
 
-        assert watcher._content_changed(pair, _info(version_label="")) is False
+        changed = watcher._content_changed(
+            _pair(remote_version="1.0", last_remote_updated="2026-10-06 09:19:59"),
+            _info(version_label="1.0", is_versionable=False),
+        )
+
+        assert changed is False
+
+    def test_a_pair_with_no_timestamp_at_all_is_a_change(self):
+        watcher = _watcher()
+        watcher._content_differs = MagicMock()
+
+        changed = watcher._content_changed(
+            _pair(remote_version="1.0", last_remote_updated=None),
+            _info(version_label="1.0", is_versionable=False),
+        )
+
+        assert changed is True
 
 
 class TestVersionBaselineIsNeverErased:
