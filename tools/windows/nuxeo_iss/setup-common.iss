@@ -18,7 +18,7 @@ DefaultGroupName={#MyAppPublisher}
 DisableProgramGroupPage=yes
 
 ; License file
-LicenseFile=..\..\..\LICENSE.txt
+LicenseFile=..\..\..\NUXEO_EULA.txt
 
 ; Icons
 UninstallDisplayIcon={app}\{#MyAppExeName}

@@ -10,7 +10,19 @@ The ``PySide`` namespace at the bottom remains available to the settings host
 until its now-redundant adapter layer is removed separately.
 """
 
+# ---------------------------------------------------------------------------
+# PySide6 namespace — retained for the existing settings-host adapters.
+#
+# Access via ``from nxdrive.drive.qt.imports import PySide as ps`` and use
+# ``ps.QDialog``, ``ps.Signal``, ``ps.QQmlApplicationEngine`` etc.
+# ---------------------------------------------------------------------------
+from PySide6 import QtCore as _ps_QtCore
+from PySide6 import QtGui as _ps_QtGui
+from PySide6 import QtQml as _ps_QtQml
+from PySide6 import QtQuick as _ps_QtQuick
+from PySide6 import QtWidgets as _ps_QtWidgets
 from PySide6.QtCore import (
+    Property,
     QAbstractListModel,
     QByteArray,
     QCoreApplication,
@@ -33,7 +45,6 @@ from PySide6.QtCore import (
     QTimer,
     QTranslator,
     QUrl,
-    Property,
     Signal,
     SignalInstance,
     Slot,
@@ -51,6 +62,8 @@ from PySide6.QtGui import (
     QRegularExpressionValidator,
     QStandardItem,
     QStandardItemModel,
+    QTextDocument,
+    QTextOption,
     QValidator,
     QWindow,
 )
@@ -85,6 +98,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QSpacerItem,
     QStyle,
@@ -95,18 +109,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-# ---------------------------------------------------------------------------
-# PySide6 namespace — retained for the existing settings-host adapters.
-#
-# Access via ``from nxdrive.drive.qt.imports import PySide as ps`` and use
-# ``ps.QDialog``, ``ps.Signal``, ``ps.QQmlApplicationEngine`` etc.
-# ---------------------------------------------------------------------------
-from PySide6 import QtCore as _ps_QtCore
-from PySide6 import QtGui as _ps_QtGui
-from PySide6 import QtQml as _ps_QtQml
-from PySide6 import QtQuick as _ps_QtQuick
-from PySide6 import QtWidgets as _ps_QtWidgets
 
 QT_VERSION_STR = qVersion()
 
@@ -205,6 +207,7 @@ __all__ = (
     "QRegularExpression",
     "QRegularExpressionValidator",
     "QRunnable",
+    "QScrollArea",
     "QSize",
     "QSizePolicy",
     "QSpacerItem",
@@ -216,7 +219,9 @@ __all__ = (
     "QT_VERSION_STR",
     "QTcpServer",
     "QTcpSocket",
+    "QTextDocument",
     "QTextEdit",
+    "QTextOption",
     "QThread",
     "QThreadPool",
     "QTime",

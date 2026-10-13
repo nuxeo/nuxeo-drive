@@ -27,6 +27,7 @@ data = os.path.join(nxdrive, "drive", "data")
 alfresco_qml = os.path.join(nxdrive, "alfresco", "gui", "qml")
 supported_server_list = os.path.join(nxdrive, "supported_server_list.txt")
 download_url_list = os.path.join(nxdrive, "download_urls.txt")
+alfresco_eula = os.path.join("ALFRESCO_EULA.txt")
 
 update_supported_server_list(supported_server_list)
 
@@ -61,6 +62,7 @@ data = [
     (supported_server_list, "data/server_list"),
     (download_url_list, "data/server_list"),
     (alfresco_qml, "nxdrive/alfresco/gui/qml"),
+    (alfresco_eula, "data/LICENSES")
 ]
 migrations = Path(nxdrive, "drive", "dao", "migrations")
 hiddenimports = [

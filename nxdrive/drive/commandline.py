@@ -932,7 +932,26 @@ class CliHandler:
 
     def launch(self, options: Optional[Namespace], /, *, console: bool = False) -> int:
         """Launch the Qt app in the main thread and sync in another thread."""
+        from .gui.show_eula import get_eula_application
         from .utils import PidLockFile
+
+        # This file locks the EULA choice (Accept) and prevents launch of EULA dialog again
+        eula_lock_file_path = Options.nxdrive_home / "eula_accepted"
+        if not Path.exists(eula_lock_file_path):
+            eula_app = get_eula_application("Nuxeo")
+            eula_result = eula_app.exec()
+            eula_app.shutdown()
+            if eula_result != 0:
+                log.warning("EULA Not Accepted. Quitting.")
+                return eula_result
+
+            log.info("EULA Accepted! :)")
+
+            with open(eula_lock_file_path, mode="w") as f:
+                # This is just binary form of "ACCEPTED"
+                f.write(
+                    "01000001 01000011 01000011 01000101 01010000 01010100 01000101 01000100"
+                )
 
         global RETRY
 
