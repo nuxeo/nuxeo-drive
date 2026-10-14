@@ -622,7 +622,22 @@ class TestReconcileChildEarlyReturns:
         kwargs = watcher.dao.update_remote_state.call_args.kwargs
         assert kwargs["force_update"] is True
         assert kwargs["versioned"] is False
-        watcher.dao.force_remote.assert_called_once_with(pair)
+        watcher.dao.force_remote.assert_called_once()
+        assert watcher.dao.force_remote.call_args.args[0] is pair
+
+    def test_the_forced_transition_is_guarded_on_the_committed_state(self):
+        """``force_remote`` clears ``last_error``, so a conflict raised between
+        the two writes would lose the reason it was raised for. Nothing bumps
+        ``version`` in that gap, so only the state can refuse it."""
+        watcher = _watcher()
+        watcher._lock_was_released = MagicMock(return_value=False)
+        watcher._content_changed = MagicMock(return_value=True)
+        pair = _pair(pair_state="synchronized", remote_state="synchronized")
+
+        watcher._reconcile_child(pair, _info(), "/remote", Path("/sync"))
+
+        kwargs = watcher.dao.force_remote.call_args.kwargs
+        assert kwargs["expected_pair_state"] == "synchronized"
 
     def test_the_content_change_write_is_guarded_on_state_too(self):
         """The byte comparison can take seconds, and ``_force_sync`` raises a
@@ -743,6 +758,65 @@ class TestDeferOpenFile:
     def test_error_count_stays_at_or_below_the_queue_threshold(self):
         """Otherwise the pair shows up as an error instead of a conflict."""
         assert MAX_OPEN_FILE_DEFERRALS <= 3
+
+
+class TestOpenFileRecheckedAfterTheDownload:
+    """``delete_final`` is permanent and the transfer can take minutes.
+
+    The verdict taken before it started says nothing about the file we are
+    about to destroy, so it has to be re-taken at the last possible moment.
+    """
+
+    def _proc(self, in_use, /):
+        proc = _processor()
+        proc._download_content = MagicMock(return_value=Path("/tmp/dl/file.txt"))
+        proc._local_file_in_use = MagicMock(return_value=in_use)
+        proc._defer_open_file = MagicMock()
+        proc._refresh_local_state = MagicMock()
+        proc._refresh_remote = MagicMock()
+        proc.local.abspath.return_value = Path("/sync/file.txt")
+        return proc
+
+    def test_a_file_opened_during_the_download_is_not_destroyed(self):
+        proc = self._proc(True)
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is False
+
+        proc.local.delete_final.assert_not_called()
+        proc.local.move.assert_not_called()
+        proc._defer_open_file.assert_called_once()
+
+    def test_the_abandoned_download_is_cleaned_up(self):
+        """Otherwise every deferral leaks a copy of the file on disk."""
+        proc = self._proc(True)
+
+        with patch("nxdrive.alfresco.engine.processor.shutil.rmtree") as rmtree:
+            proc._update_remotely(_pair(remote_name="file.txt"), False)
+
+        proc.local.move.assert_not_called()
+        rmtree.assert_called_once_with(Path("/tmp/dl"))
+
+    def test_a_closed_file_is_still_replaced(self):
+        proc = self._proc(False)
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
+
+        proc.local.delete_final.assert_called_once()
+
+    def test_a_deferred_pair_is_not_marked_synchronized(self):
+        """``_update_remotely`` cannot stop its caller without saying so."""
+        proc = self._proc(True)
+        proc.local.is_equal_digests.return_value = False
+        pair = _pair(
+            pair_state="remotely_modified",
+            remote_name="file.txt",
+            local_digest="aaa",
+            remote_digest="bbb",
+        )
+
+        proc._synchronize_remotely_modified(pair)
+
+        proc.dao.synchronize_state.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

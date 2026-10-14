@@ -677,8 +677,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             # update_remote_state's no-change block resets
             # remote_state to "synchronized" (because
             # None in (local_digest, None)), so we must
-            # override it with force_remote.
-            self.dao.force_remote(child_pair)
+            # override it with force_remote. Guarded on the state step 1
+            # committed, since a conflict raised in between keeps the version.
+            self.dao.force_remote(child_pair, expected_pair_state=child_pair.pair_state)
         else:
             self.dao.update_remote_state(
                 child_pair,

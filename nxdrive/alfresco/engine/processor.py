@@ -710,7 +710,8 @@ class AlfrescoProcessor(_ProcessorBase):
                     doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
                 )
             ):
-                self._update_remotely(doc_pair, is_renaming)
+                if not self._update_remotely(doc_pair, is_renaming):
+                    return
             else:
                 is_move, new_parent_pair = self._is_remote_move(doc_pair)
                 if self.remote.is_filtered(doc_pair.remote_parent_path):
@@ -789,7 +790,12 @@ class AlfrescoProcessor(_ProcessorBase):
         )
         return state, remote_parent
 
-    def _update_remotely(self, doc_pair: DocPair, is_renaming: bool, /) -> None:
+    def _update_remotely(self, doc_pair: DocPair, is_renaming: bool, /) -> bool:
+        """Replace the local content with the server's.
+
+        Returns whether the replacement happened; ``False`` means the pair was
+        deferred and the caller must not mark it synchronised.
+        """
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os_path.with_name(safe_filename(doc_pair.remote_name))
@@ -804,6 +810,15 @@ class AlfrescoProcessor(_ProcessorBase):
             remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
 
         tmp_file = self._download_content(doc_pair, new_os_path)
+
+        # The transfer can take minutes, and ``delete_final`` is permanent, so
+        # the verdict taken before it started is worthless by now: the user may
+        # have opened and edited the file in the meantime.
+        if self._local_file_in_use(doc_pair):
+            with suppress(OSError):
+                shutil.rmtree(tmp_file.parent)
+            self._defer_open_file(doc_pair)
+            return False
 
         remote_id = self.local.get_remote_id(doc_pair.local_path)
         self.local.delete_final(doc_pair.local_path)
@@ -837,6 +852,7 @@ class AlfrescoProcessor(_ProcessorBase):
         if remote_info:
             with suppress(Exception):
                 self._refresh_remote(doc_pair, remote_info)
+        return True
 
     def _synchronize_remotely_deleted(self, doc_pair: DocPair, /) -> None:
         remote_id = self.local.get_remote_id(doc_pair.local_path)
@@ -1053,7 +1069,9 @@ class AlfrescoProcessor(_ProcessorBase):
             )
             self.remove_void_transfers(doc_pair)
             return
-        self.dao.synchronize_state(doc_pair)
+        # Guarded on the state the write above committed: a conflict raised in
+        # between keeps the same version, so only the state can refuse it.
+        self.dao.synchronize_state(doc_pair, expected_pair_state=doc_pair.pair_state)
 
     def _synchronize_locally_modified(self, doc_pair: DocPair, /) -> None:
         if doc_pair.folderish:
@@ -1126,7 +1144,9 @@ class AlfrescoProcessor(_ProcessorBase):
                 )
                 self.remove_void_transfers(doc_pair)
                 return
-        self.dao.synchronize_state(doc_pair)
+        # Guarded on the state the write above committed: a conflict raised in
+        # between keeps the same version, so only the state can refuse it.
+        self.dao.synchronize_state(doc_pair, expected_pair_state=doc_pair.pair_state)
 
     def _synchronize_locally_resolved(self, doc_pair: DocPair, /) -> None:
         """Handle a user-resolved conflict where the local copy wins.

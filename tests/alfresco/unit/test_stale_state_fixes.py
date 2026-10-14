@@ -109,7 +109,22 @@ class TestCreationRaceGuard:
 
         proc._synchronize_locally_created(pair)
 
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once()
+        assert proc.dao.synchronize_state.call_args.args[0] is pair
+
+    def test_the_synchronised_transition_carries_the_committed_state(self):
+        """The baseline write and this one are two statements, and nothing
+        bumps ``version`` in between, so only the state can refuse it."""
+        proc = _processor()
+        pair = _pair(version=4, pair_state="locally_created")
+        proc.dao.get_state_from_id.return_value = _pair(
+            version=4, pair_state="locally_created"
+        )
+
+        proc._synchronize_locally_created(pair)
+
+        kwargs = proc.dao.synchronize_state.call_args.kwargs
+        assert kwargs["expected_pair_state"] == "locally_created"
 
     def test_a_row_re_decided_mid_upload_is_left_alone(self):
         """This is the double upload: our snapshot said ``locally_created``."""
@@ -244,6 +259,18 @@ class TestModificationRaceGuard:
         kwargs = proc.dao.update_remote_state.call_args.kwargs
         assert kwargs["expected_version"] == 5
         proc.dao.synchronize_state.assert_not_called()
+
+    def test_the_synchronised_transition_carries_the_committed_state(self):
+        """A conflict raised between the baseline write and this one keeps the
+        same version, so the version predicate alone would clear it."""
+        proc = _processor()
+        proc.local.is_equal_digests.return_value = False
+        proc.remote.stream_update.return_value = _info()
+
+        proc._synchronize_locally_modified(self._modified())
+
+        kwargs = proc.dao.synchronize_state.call_args.kwargs
+        assert kwargs["expected_pair_state"] == "locally_modified"
 
 
 # ---------------------------------------------------------------------------

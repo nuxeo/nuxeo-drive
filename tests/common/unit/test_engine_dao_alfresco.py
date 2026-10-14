@@ -10,6 +10,7 @@ Two things must hold for the Nuxeo engine to stay unaffected:
 
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -395,6 +396,91 @@ class TestUpdateRemoteStateExpectedPairState:
             stale, _info(name="renamed.txt"), force_update=True
         )
         assert dao.get_state_from_id(pair.id).remote_name == "renamed.txt"
+
+
+class TestSynchronizeStateExpectedPairState:
+    """The baseline write and the synchronised transition are two statements.
+
+    Nothing bumps ``version`` in between, so only the state the first write
+    committed can tell the second one that a conflict landed in the gap.
+    """
+
+    def test_a_conflict_raised_in_the_gap_is_not_cleared(self, dao):
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        dao.set_conflict_state(dao.get_state_from_id(pair.id))
+
+        assert (
+            dao.synchronize_state(stale, expected_pair_state=stale.pair_state) is False
+        )
+        assert dao.get_state_from_id(pair.id).pair_state == "conflicted"
+
+    def test_an_unchanged_state_is_synchronized(self, dao):
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+
+        assert dao.synchronize_state(stale, expected_pair_state=stale.pair_state)
+        assert dao.get_state_from_id(pair.id).pair_state == "synchronized"
+
+    def test_a_folder_does_not_fall_back_to_an_unguarded_write(self, dao):
+        """The fallback drops the version guard, which would defeat the point."""
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        stale.folderish = True
+        dao.set_conflict_state(dao.get_state_from_id(pair.id))
+
+        assert (
+            dao.synchronize_state(stale, expected_pair_state=stale.pair_state) is False
+        )
+        assert dao.get_state_from_id(pair.id).pair_state == "conflicted"
+
+    def test_the_default_synchronizes_without_a_state_guard(self, dao):
+        """Nuxeo never passes it and must keep today's behaviour."""
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        dao.set_conflict_state(dao.get_state_from_id(pair.id))
+
+        assert dao.synchronize_state(stale)
+        assert dao.get_state_from_id(pair.id).pair_state == "synchronized"
+
+
+class TestForceRemoteExpectedPairState:
+    """``force_remote`` clears ``last_error``, so an unguarded one erases the
+    reason a conflict was raised for."""
+
+    def test_a_conflict_raised_in_the_gap_is_not_overwritten(self, dao):
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        dao.set_conflict_state(dao.get_state_from_id(pair.id))
+
+        assert dao.force_remote(stale, expected_pair_state=stale.pair_state) is False
+        assert dao.get_state_from_id(pair.id).pair_state == "conflicted"
+
+    def test_a_refused_write_is_not_queued(self, dao):
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        dao.set_conflict_state(dao.get_state_from_id(pair.id))
+        dao.queue_manager = Mock()
+
+        dao.force_remote(stale, expected_pair_state=stale.pair_state)
+
+        dao.queue_manager.push_ref.assert_not_called()
+
+    def test_an_unchanged_state_is_forced(self, dao):
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+
+        assert dao.force_remote(stale, expected_pair_state=stale.pair_state)
+        assert dao.get_state_from_id(pair.id).pair_state == "remotely_modified"
+
+    def test_the_default_forces_without_a_state_guard(self, dao):
+        """Nuxeo never passes it and must keep today's behaviour."""
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        dao.set_conflict_state(dao.get_state_from_id(pair.id))
+
+        assert dao.force_remote(stale)
+        assert dao.get_state_from_id(pair.id).pair_state == "remotely_modified"
 
 
 class TestClearRemoteDigest:
