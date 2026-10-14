@@ -667,6 +667,18 @@ class AlfrescoEngine(Engine):
         if not pair or pair.pair_state != "conflicted":
             return
 
+        # The reason can arrive after ``conflict_resolver`` deferred this row —
+        # a processor parking it as LOCKED_ON_SERVER, say. The state alone
+        # still reads as "conflicted", so it has to be re-checked here or the
+        # auto-resolve below clears a conflict raised to prevent data loss.
+        if pair.last_error in REASONED_CONFLICTS:
+            log.debug(
+                f"Alfresco conflict resolver: {pair.local_name!r} became "
+                f"{pair.last_error!r} while deferred, leaving it to the user"
+            )
+            self._surface_conflict(pair, row_id, emit=emit)
+            return
+
         # The freshness check needs a baseline from an earlier successful sync.
         # A pair that has never synchronised had ``last_remote_updated`` written
         # from this very node, so the comparison can only ever say "unchanged"

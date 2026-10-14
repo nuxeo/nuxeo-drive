@@ -242,6 +242,24 @@ class TestConflictResolverReasoned:
         engine.dao.synchronize_state.assert_not_called()
         engine.newConflict.emit.assert_called_once_with(1)
 
+    @pytest.mark.parametrize("reason", (FILE_OPEN_LOCALLY, LOCKED_ON_SERVER))
+    def test_a_reason_arriving_while_deferred_still_wins(self, reason):
+        """``conflict_resolver`` defers, then a processor parks the row.
+
+        The state still reads as "conflicted", so only ``last_error`` can tell
+        the deferred worker that this is no longer its decision to make.
+        """
+        engine = _engine()
+        pair = _pair(last_error=reason)
+        engine.dao.get_state_from_id.return_value = pair
+
+        engine._decide_conflict(1)
+
+        engine.remote.get_fs_info.assert_not_called()
+        engine.dao.force_sync_if_conflicted.assert_not_called()
+        engine.dao.synchronize_state.assert_not_called()
+        engine.newConflict.emit.assert_called_once_with(1)
+
     def test_synced_pair_with_unchanged_remote_still_resets(self):
         """The legitimate spurious-conflict path must keep working."""
         engine = _engine()
