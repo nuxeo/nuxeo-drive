@@ -474,6 +474,15 @@ class QMLDriveApi(QObject):
 
         self.application.show_server_folders(engine, None, None)
 
+    @Slot(str)
+    def show_open_source_attribution(self, server_type: str) -> None:
+        """Show the Open Source Attribution Notice."""
+
+        from .show_open_source_attribution import Open_Source_Attribution
+
+        attribution_dialog = Open_Source_Attribution(server_type)
+        attribution_dialog.exec()
+
     @Slot(str, result=str)
     def get_hostname_from_url(self, url: str, /) -> str:
         urlp = urlparse(url)

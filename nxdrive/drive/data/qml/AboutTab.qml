@@ -65,6 +65,12 @@ Rectangle {
             icon: MdiFont.Icon.messageReplyText
             url: "https://portal.prodpad.com/089ed2a6-c892-11e7-aea6-0288f735e5b9"
         }
+
+        OpenSourceAttribution {
+            linkText: qsTr("OPEN_SOURCE_ATTRIBUTION") + tl.tr
+            icon: MdiFont.Icon.messageReplyText
+            serverType: SERVER_TYPE
+        }
     }
 
     Flickable {

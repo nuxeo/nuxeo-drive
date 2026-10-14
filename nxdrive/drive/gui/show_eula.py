@@ -46,6 +46,12 @@ class EULA(QApplication):
     def __init__(self, server_type: str = "Nuxeo") -> None:
         super().__init__([])
 
+        self.server_type = server_type.upper()
+
+        # Needed to stop EULA Application from closing
+        # until the Open Source Attribution notice is shown
+        self.setQuitOnLastWindowClosed(False)
+
         dialog = EULA_Dialog(
             f=Qt.WindowType.CustomizeWindowHint
             | Qt.WindowType.WindowTitleHint
@@ -61,12 +67,12 @@ class EULA(QApplication):
         eula_scroller.setWidgetResizable(True)
 
         eula_text = QTextEdit()
-        license_doc = self.fetch_license(server_type.upper())
+        license_doc = self.fetch_license()
 
         if not license_doc:
             self.exit(1)
 
-        eula_text.setDocument(license_doc)
+        eula_text.setDocument(license_doc)  # type: ignore
         eula_text.setReadOnly(True)
         eula_text.setWordWrapMode(QTextOption.WrapMode.WordWrap)
         eula_text.setSizePolicy(
@@ -95,20 +101,30 @@ class EULA(QApplication):
 
     def accept_eula(self) -> None:
         """Called on EULA Accept"""
-        self.exit(0)
 
-    def fetch_license(self, server_type: str) -> QTextDocument | None:
+        from .show_open_source_attribution import Open_Source_Attribution
+
+        self.eula_dialog.accept()
+        try:
+            attribution_notice = Open_Source_Attribution(self.server_type)
+            attribution_notice.exec()
+        except Exception as e:
+            log.warning(f"Cannot launch open source attribution notice : {e}")
+        finally:
+            self.exit(0)
+
+    def fetch_license(self) -> QTextDocument | None:
         """Fetch the corresponding license text"""
 
         from ..utils import find_resource
 
-        file_path = find_resource("LICENSES", file=f"{server_type}_EULA.txt")
+        file_path = find_resource("LICENSES", file=f"{self.server_type}_EULA.txt")
         content = None
         try:
             with open(file_path, mode="r") as f:
                 content = QTextDocument(f.read().strip())
         except Exception as e:
-            log.error(f"Unable to read {server_type}_EULA.txt : {e}")
+            log.error(f"Unable to read {self.server_type}_EULA.txt : {e}")
         finally:
             return content
 
