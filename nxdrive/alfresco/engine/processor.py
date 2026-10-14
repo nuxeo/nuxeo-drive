@@ -1026,6 +1026,7 @@ class AlfrescoProcessor(_ProcessorBase):
                     queue=False,
                     force_update=True,
                     expected_version=current.version,
+                    expected_pair_state=current.pair_state,
                 )
             self.remove_void_transfers(doc_pair)
             return
@@ -1034,7 +1035,7 @@ class AlfrescoProcessor(_ProcessorBase):
         # before recording the version the upload just created and leave the
         # next change feed entry looking like a remote edit. Guarded on the row
         # the check above read, so a decision landing in that gap still wins.
-        self.dao.update_remote_state(
+        if not self.dao.update_remote_state(
             doc_pair,
             fs_item_info,
             remote_parent_path=remote_parent_path,
@@ -1042,7 +1043,16 @@ class AlfrescoProcessor(_ProcessorBase):
             queue=False,
             force_update=True,
             expected_version=doc_pair.version,
-        )
+            expected_pair_state=doc_pair.pair_state,
+        ):
+            # synchronize_state() drops its own version guard for folders, so
+            # carrying on here would undo whatever was decided in the gap.
+            log.debug(
+                f"Leaving {doc_pair.local_name!r} to the next cycle: it was "
+                "re-decided while the upload was in flight"
+            )
+            self.remove_void_transfers(doc_pair)
+            return
         self.dao.synchronize_state(doc_pair)
 
     def _synchronize_locally_modified(self, doc_pair: DocPair, /) -> None:

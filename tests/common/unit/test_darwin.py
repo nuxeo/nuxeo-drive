@@ -848,6 +848,27 @@ class TestCheckOpenHelper:
         _helper(monkeypatch, exists=False)
         assert darwin_integration.has_file_open_detection() is False
 
+    def test_a_missing_helper_stays_disabled_on_every_call(
+        self, darwin_integration, monkeypatch
+    ):
+        """The cached sentinel is a Path, and every Path is truthy: a boolean
+        test re-enabled detection and ran the current directory as the
+        helper."""
+        _helper(monkeypatch, exists=False)
+
+        assert darwin_integration.has_file_open_detection() is False
+        assert darwin_integration.has_file_open_detection() is False
+        assert darwin_integration.is_file_open(Path("/sync/f.txt")) is None
+
+    def test_an_unchmodable_helper_stays_disabled_on_every_call(
+        self, darwin_integration, monkeypatch
+    ):
+        helper = _helper(monkeypatch, executable=False)
+        helper.chmod.side_effect = OSError("read-only")
+
+        assert darwin_integration.has_file_open_detection() is False
+        assert darwin_integration.has_file_open_detection() is False
+
     def test_the_helper_is_looked_for_once(self, darwin_integration, monkeypatch):
         from nxdrive.drive.osi.darwin import darwin as mod
 

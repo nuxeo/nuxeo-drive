@@ -47,6 +47,10 @@ CHECK_OPEN_TIMEOUT = 5.0
 #: as soon as the system dialog is shown, so this does not wait for the user.
 CHECK_OPEN_PERMISSION_TIMEOUT = 10.0
 
+#: Cached when the helper is unusable, so it is looked for only once. Compared
+#: by identity: every Path is truthy, so a boolean test would not see it.
+_NO_HELPER = Path()
+
 
 def _get_app() -> str:
     """Return the path to the application, when bundled."""
@@ -462,12 +466,16 @@ class DarwinIntegration(AbstractOSIntegration):
         is restored on first use.
         """
         if self._check_open_path is not None:
-            return self._check_open_path or None
+            # Never test the sentinel for truth: Path() is PosixPath('.'),
+            # which is truthy, and would re-enable a helper we rejected.
+            if self._check_open_path is _NO_HELPER:
+                return None
+            return self._check_open_path
 
         helper = find_resource("utilities", file="check_open")
         if not helper.is_file():
             log.warning(f"Open-file detection disabled: {str(helper)!r} is missing")
-            self._check_open_path = Path()
+            self._check_open_path = _NO_HELPER
             return None
 
         if not os.access(helper, os.X_OK):
@@ -479,7 +487,7 @@ class DarwinIntegration(AbstractOSIntegration):
                     "executable",
                     exc_info=True,
                 )
-                self._check_open_path = Path()
+                self._check_open_path = _NO_HELPER
                 return None
 
         self._check_open_path = helper

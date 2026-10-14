@@ -350,6 +350,53 @@ class TestUpdateRemoteStateExpectedVersion:
         assert dao.get_state_from_id(pair.id).remote_name == "renamed.txt"
 
 
+class TestUpdateRemoteStateExpectedPairState:
+    """``_force_sync`` leaves ``version`` alone, so a conflict raised after the
+    caller's read still satisfies the version predicate on its own."""
+
+    def test_a_conflict_raised_in_the_gap_is_refused(self, dao):
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        dao.set_conflict_state(dao.get_state_from_id(pair.id))
+
+        refused = dao.update_remote_state(
+            stale,
+            _info(name="renamed.txt"),
+            remote_parent_path="/remote",
+            force_update=True,
+            expected_version=stale.version,
+            expected_pair_state=stale.pair_state,
+        )
+
+        assert refused is False
+        assert dao.get_state_from_id(pair.id).pair_state == "conflicted"
+
+    def test_an_unchanged_state_is_written(self, dao):
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+
+        assert dao.update_remote_state(
+            stale,
+            _info(name="renamed.txt"),
+            remote_parent_path="/remote",
+            force_update=True,
+            expected_version=stale.version,
+            expected_pair_state=stale.pair_state,
+        )
+        assert dao.get_state_from_id(pair.id).remote_name == "renamed.txt"
+
+    def test_the_default_writes_without_a_state_guard(self, dao):
+        """Nuxeo never passes it and must keep today's behaviour."""
+        pair = _insert(dao)
+        stale = dao.get_state_from_id(pair.id)
+        dao.set_conflict_state(dao.get_state_from_id(pair.id))
+
+        assert dao.update_remote_state(
+            stale, _info(name="renamed.txt"), force_update=True
+        )
+        assert dao.get_state_from_id(pair.id).remote_name == "renamed.txt"
+
+
 class TestClearRemoteDigest:
     """A digest we can no longer vouch for must not pass as the server's."""
 

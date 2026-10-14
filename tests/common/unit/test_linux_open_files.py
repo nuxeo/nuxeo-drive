@@ -48,6 +48,18 @@ class TestDetectionAvailability:
         _found(monkeypatch, exists=False)
         assert integration.has_file_open_detection() is False
 
+    def test_a_missing_script_stays_disabled_on_every_call(
+        self, integration, monkeypatch
+    ):
+        """The cached sentinel is a Path, and every Path is truthy: a boolean
+        test re-enabled detection and ran the current directory as the
+        helper."""
+        _found(monkeypatch, exists=False)
+
+        assert integration.has_file_open_detection() is False
+        assert integration.has_file_open_detection() is False
+        assert integration.is_file_open(Path("/sync/f.txt")) is None
+
     def test_the_script_is_looked_for_once(self, integration, monkeypatch):
         find = Mock(return_value=_found(monkeypatch))
         monkeypatch.setattr(linux, "find_resource", find)

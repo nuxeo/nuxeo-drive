@@ -545,6 +545,15 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         ``cm:versionLabel`` used to cover this, but it is absent on nodes
         without the ``cm:versionable`` aspect and cannot be relied on across
         deployments. We take the gap knowingly.
+
+        ACCEPTED COST, the other way round: ``nodeTimestamp`` also moves on a
+        metadata-only edit — a rename, a tag, an aspect change — so those read
+        as a content change and re-download bytes that never changed. The
+        version label used to veto exactly that. It is wasteful rather than
+        destructive, but a bulk re-tag or folder reorganisation on the server
+        re-pulls every file it touches. Confirming against the bytes first
+        would fix it, at the price of a partial hash before every genuine
+        download, which is the common case.
         """
         if child_info.folderish:
             return False

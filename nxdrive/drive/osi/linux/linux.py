@@ -21,6 +21,10 @@ log = getLogger(__name__)
 #: is reported as "unknown", never as "closed".
 CHECK_OPEN_TIMEOUT = 5.0
 
+#: Cached when the helper is unusable, so it is looked for only once. Compared
+#: by identity: every Path is truthy, so a boolean test would not see it.
+_NO_SCRIPT = Path()
+
 if TYPE_CHECKING:
     from nxdrive.drive.manager import Manager  # noqa
 
@@ -231,12 +235,16 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
     def _check_open_script(self) -> Optional[Path]:
         """Return the path to the ``check_open_files.sh`` helper, or ``None``."""
         if self._check_open_path is not None:
-            return self._check_open_path or None
+            # Never test the sentinel for truth: Path() is PosixPath('.'),
+            # which is truthy, and would re-enable a helper we rejected.
+            if self._check_open_path is _NO_SCRIPT:
+                return None
+            return self._check_open_path
 
         script = find_resource("utilities", file="check_open_files.sh")
         if not script.is_file():
             log.warning(f"Open-file detection disabled: {str(script)!r} is missing")
-            self._check_open_path = Path()
+            self._check_open_path = _NO_SCRIPT
             return None
 
         self._check_open_path = script

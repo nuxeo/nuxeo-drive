@@ -1909,12 +1909,18 @@ class EngineDAO(BaseDAO):
         no_digest: bool = False,
         no_baseline: bool = False,
         expected_version: int = None,
+        expected_pair_state: str = None,
     ) -> bool:
         """Apply *info* to *row*.
 
         *expected_version* refuses the write unless the row is still at that
         version, for callers that decided on a copy read before a slow probe
         and must not overwrite a decision taken since.
+
+        *expected_pair_state* refuses it unless the row is also still in that
+        state. Needed because ``_force_sync`` deliberately leaves ``version``
+        alone, so a conflict raised after the caller's read still satisfies
+        the version predicate on its own.
         """
         row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
@@ -2000,6 +2006,8 @@ class EngineDAO(BaseDAO):
             query += " WHERE id = ?"
             if expected_version is not None:
                 query += "   AND version = ?"
+            if expected_pair_state is not None:
+                query += "   AND pair_state = ?"
             baseline_values = (
                 ()
                 if no_baseline
@@ -2009,6 +2017,8 @@ class EngineDAO(BaseDAO):
                 )
             )
             guard_values = () if expected_version is None else (expected_version,)
+            if expected_pair_state is not None:
+                guard_values = (*guard_values, expected_pair_state)
             try:
                 c.execute(
                     query,
