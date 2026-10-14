@@ -4,6 +4,8 @@ Create Open Source Attribution Notice dialog box
 
 from logging import getLogger
 
+from nxdrive.drive.translator import Translator
+
 from ..qt.imports import (
     QDialog,
     QPushButton,
@@ -25,7 +27,7 @@ class Open_Source_Attribution(QDialog):
 
         self.server_type = server_type.upper()
 
-        self.setWindowTitle("OPEN SOURCE ATTRIBUTION NOTICE")
+        self.setWindowTitle(Translator.get("OPEN_SOURCE_ATTRIBUTION"))
 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -43,7 +45,7 @@ class Open_Source_Attribution(QDialog):
         scroll_area.setWidget(text_content)
 
         ok_button = QPushButton()
-        ok_button.setText("OK")
+        ok_button.setText(Translator.get("OPEN_SOURCE_ATTRIBUTION"))
         ok_button.clicked.connect(self.accept)
 
         layout = QVBoxLayout()

@@ -47,27 +47,19 @@ Rectangle {
         }
 
         IconLink {
-            visible: SERVER_TYPE !== "ALFRESCO"
-            text: qsTr("SOURCE_LINK") + tl.tr
-            icon: MdiFont.Icon.codeTags
-            url: "https://github.com/nuxeo/nuxeo-drive"
-        }
-
-        IconLink {
             text: qsTr("UPDATES_LINK") + tl.tr
             icon: MdiFont.Icon.update
             url: api.get_update_url()
         }
 
-        IconLink {
-            visible: SERVER_TYPE !== "ALFRESCO"
-            text: qsTr("FEEDBACK_LINK") + tl.tr
-            icon: MdiFont.Icon.messageReplyText
-            url: "https://portal.prodpad.com/089ed2a6-c892-11e7-aea6-0288f735e5b9"
-        }
-
         OpenSourceAttribution {
             linkText: qsTr("OPEN_SOURCE_ATTRIBUTION") + tl.tr
+            icon: MdiFont.Icon.messageReplyText
+            serverType: SERVER_TYPE
+        }
+
+        LicenseAgreement {
+            linkText: qsTr("LICENSE_AGREEMENT_ABOUT_TAB") + tl.tr
             icon: MdiFont.Icon.messageReplyText
             serverType: SERVER_TYPE
         }
