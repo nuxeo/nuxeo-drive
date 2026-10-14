@@ -724,24 +724,18 @@ class AlfrescoEngine(Engine):
     def _remote_is_unchanged(self, pair: DocPair, remote_info: Any, /) -> bool:
         """Whether the server still holds the revision we last recorded.
 
-        The version label decides whenever the server maintains one: it only
-        moves when content is written.
+        Alfresco exposes no content digest, so the modification timestamp
+        decides, and because it is truncated to whole seconds a timestamp that
+        matches is confirmed against the bytes. Without that, an edit landing
+        in the same second as our baseline would read as "nothing changed" and
+        the retry would overwrite it.
 
-        A node the server does not version has no label, and a row predating
-        the ``remote_version`` column has no baseline; neither can be compared,
-        so the timestamp decides — and since it is truncated to whole seconds,
-        a timestamp that matches is confirmed against the bytes. Without that,
-        an edit landing in the same second as our baseline would read as
-        "nothing changed" and the retry would overwrite it.
+        ACCEPTED LIMITATION: an edit inside that same second which also leaves
+        both 10 MB comparison windows byte-identical is invisible to us. The
+        version label used to close this gap, but it is absent on nodes
+        without ``cm:versionable`` and is not dependable across deployments.
         """
         from nxdrive.alfresco.engine.processor import _fmt_remote_ts
-
-        if (
-            remote_info.is_versionable
-            and remote_info.version_label
-            and pair.remote_version
-        ):
-            return bool(remote_info.version_label == pair.remote_version)
 
         remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
         db_ts = str(pair.last_remote_updated or "")[:19]

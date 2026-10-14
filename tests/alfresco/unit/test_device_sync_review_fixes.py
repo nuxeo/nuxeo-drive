@@ -441,14 +441,17 @@ def test_reconcile_child_leaves_healthy_row_alone():
         remote_state="synchronized",
         pair_state="synchronized",
         folderish=False,
-        remote_version="1.0",
         last_remote_updated="2026-08-01 10:00:00",
     )
     info = _remote_info("file.txt")
     info.last_modification_time = stamp
-    info.version_label = "1.0"
 
-    watcher._reconcile_child(pair, info, "/parent", PurePosixPath("local"))
+    # Same second on both sides, so the bytes decide; they match.
+    with patch(
+        "nxdrive.alfresco.engine.watcher.remote_watcher.content_matches",
+        return_value=True,
+    ):
+        watcher._reconcile_child(pair, info, "/parent", PurePosixPath("local"))
 
     watcher.dao.force_remote.assert_not_called()
 

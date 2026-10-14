@@ -1,5 +1,6 @@
 """Unit tests for nxdrive.alfresco.engine.engine — targets uncovered lines."""
 
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -527,16 +528,19 @@ class TestConflictResolver:
         pair.folderish = False
         pair.remote_ref = "node-123"
         pair.last_remote_updated = "2024-01-01 00:00:00"
-        pair.remote_version = "1.0"
         pair.local_name = "file.txt"
         engine.dao.get_state_from_id.return_value = pair
 
         remote_info = MagicMock()
-        remote_info.is_versionable = True
-        remote_info.version_label = "1.0"
+        remote_info.last_modification_time = datetime(
+            2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+        )
         engine.remote.get_fs_info.return_value = remote_info
 
-        engine._decide_conflict(42)
+        # Same second on both sides, so the bytes decide; they match.
+        with patch("nxdrive.alfresco.engine.engine.content_matches", return_value=True):
+            engine._decide_conflict(42)
+
         engine.dao.force_sync_if_conflicted.assert_called_once()
 
     def test_file_remote_drifted_emits_conflict(self):

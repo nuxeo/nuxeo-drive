@@ -478,9 +478,14 @@ class TestScanRemoteRecursive:
         watcher.dao.is_filter.return_value = False
 
         parent_pair = _make_doc_pair(remote_ref="parent-node", remote_parent_path="")
-        watcher._scan_remote_recursive(
-            parent_pair, _make_remote_info(uid="parent-node")
-        )
+        # Same second on both sides, so the bytes decide; they match.
+        with patch(
+            "nxdrive.alfresco.engine.watcher.remote_watcher.content_matches",
+            return_value=True,
+        ):
+            watcher._scan_remote_recursive(
+                parent_pair, _make_remote_info(uid="parent-node")
+            )
 
         watcher.dao.update_remote_state.assert_called()
         watcher.dao.force_remote.assert_not_called()

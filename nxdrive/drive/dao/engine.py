@@ -1527,9 +1527,9 @@ class EngineDAO(BaseDAO):
                 "remote_digest, folderish, last_remote_modifier, "
                 "local_path, local_parent_path, remote_state, "
                 "local_state, pair_state, local_name, creation_date, "
-                "remote_version, remote_locked) "
+                "remote_locked) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-                "'created', 'unknown', ?, ?, ?, ?, ?)",
+                "'created', 'unknown', ?, ?, ?, ?)",
                 (
                     info.uid,
                     info.parent_uid,
@@ -1549,7 +1549,6 @@ class EngineDAO(BaseDAO):
                     pair_state,
                     info.name,
                     info.creation_time,
-                    info.version_label,
                     int(info.is_locked),
                 ),
             )
@@ -1965,16 +1964,14 @@ class EngineDAO(BaseDAO):
 
         with self.lock:
             c = self._get_write_connection().cursor()
-            # ``last_remote_updated``/``remote_version`` are the baseline the
-            # pre-upload drift check compares against. Overwriting them while a
-            # local change is pending makes the server look unchanged against
-            # itself, and the upload then clobbers a concurrent remote edit.
+            # ``last_remote_updated`` is the baseline the pre-upload drift
+            # check compares against. Overwriting it while a local change is
+            # pending makes the server look unchanged against itself, and the
+            # upload then clobbers a concurrent remote edit.
             baseline = (
                 ""
                 if no_baseline
-                else "       last_remote_updated = ?,"
-                "       remote_version = ?,"
-                "       remote_locked = ?,"
+                else "       last_remote_updated = ?," "       remote_locked = ?,"
             )
             query = (
                 "UPDATE States"
@@ -2008,7 +2005,6 @@ class EngineDAO(BaseDAO):
                 if no_baseline
                 else (
                     info.last_modification_time,
-                    info.version_label,
                     int(info.is_locked),
                 )
             )

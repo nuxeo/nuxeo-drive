@@ -29,7 +29,7 @@ def dao(tmp_path):
         instance.dispose()
 
 
-def _info(*, name="file.txt", modified=NEW_TIME, version_label="", is_locked=False):
+def _info(*, name="file.txt", modified=NEW_TIME, is_locked=False):
     return RemoteFileInfo(
         name=name,
         uid="node-1",
@@ -49,7 +49,6 @@ def _info(*, name="file.txt", modified=NEW_TIME, version_label="", is_locked=Fal
         lock_owner=None,
         lock_created=None,
         can_scroll_descendants=False,
-        version_label=version_label,
         is_locked=is_locked,
     )
 
@@ -68,49 +67,45 @@ def _insert(dao, **overrides):
 def _raw(dao, row_id):
     cursor = dao._get_read_connection().cursor()
     return cursor.execute(
-        "SELECT last_remote_updated, remote_version, remote_locked "
-        "FROM States WHERE id = ?",
+        "SELECT last_remote_updated, remote_locked FROM States WHERE id = ?",
         (row_id,),
     ).fetchone()
 
 
 class TestSchema:
-    def test_the_new_columns_exist_with_safe_defaults(self, dao):
+    def test_the_new_column_exists_with_a_safe_default(self, dao):
         pair = _insert(dao)
-        assert pair.remote_version == ""
         assert pair.remote_locked == 0
 
-    def test_version_and_lock_are_persisted_on_insert(self, dao):
-        pair = _insert(dao, version_label="1.3", is_locked=True)
-        assert pair.remote_version == "1.3"
+    def test_the_lock_is_persisted_on_insert(self, dao):
+        pair = _insert(dao, is_locked=True)
         assert pair.remote_locked == 1
 
 
 class TestUpdateRemoteStateBaseline:
     def test_the_baseline_is_refreshed_by_default(self, dao):
         """The Nuxeo engine never passes ``no_baseline`` and must not change."""
-        pair = _insert(dao, version_label="1.0")
+        pair = _insert(dao, modified=OLD_TIME)
 
         dao.update_remote_state(
             pair,
-            _info(name="renamed.txt", version_label="1.1", modified=NEW_TIME),
+            _info(name="renamed.txt", modified=NEW_TIME),
             remote_parent_path="/remote",
             force_update=True,
         )
 
-        updated, version, locked = _raw(dao, pair.id)
-        assert version == "1.1"
+        updated, locked = _raw(dao, pair.id)
         assert locked == 0
         assert str(NEW_TIME)[:19] in str(updated)
 
-    def test_no_baseline_keeps_the_version_timestamp_and_lock(self, dao):
+    def test_no_baseline_keeps_the_timestamp_and_lock(self, dao):
         """Overwriting these makes the server look unchanged against itself."""
-        pair = _insert(dao, version_label="1.0", modified=OLD_TIME)
+        pair = _insert(dao, modified=OLD_TIME)
         before = _raw(dao, pair.id)
 
         dao.update_remote_state(
             pair,
-            _info(name="renamed.txt", version_label="9.9", modified=NEW_TIME),
+            _info(name="renamed.txt", modified=NEW_TIME),
             remote_parent_path="/remote",
             no_baseline=True,
         )
@@ -118,11 +113,11 @@ class TestUpdateRemoteStateBaseline:
         assert _raw(dao, pair.id) == before
 
     def test_no_baseline_still_applies_a_remote_rename(self, dao):
-        pair = _insert(dao, version_label="1.0")
+        pair = _insert(dao)
 
         dao.update_remote_state(
             pair,
-            _info(name="renamed.txt", version_label="9.9"),
+            _info(name="renamed.txt"),
             remote_parent_path="/remote",
             no_baseline=True,
         )
@@ -176,12 +171,10 @@ class TestUpdateRemoteNaming:
         assert dao.get_state_from_id(pair.id).remote_name == "renamed.txt"
 
     def test_the_baseline_is_left_alone(self, dao):
-        pair = _insert(dao, version_label="1.0", modified=OLD_TIME, is_locked=True)
+        pair = _insert(dao, modified=OLD_TIME, is_locked=True)
         before = _raw(dao, pair.id)
 
-        dao.update_remote_naming(
-            pair, _info(name="renamed.txt", version_label="9.9", modified=NEW_TIME)
-        )
+        dao.update_remote_naming(pair, _info(name="renamed.txt", modified=NEW_TIME))
 
         assert _raw(dao, pair.id) == before
 
@@ -385,12 +378,12 @@ class TestClearRemoteDigest:
         assert self._digest(dao, pair.id) is None
 
     def test_nothing_else_about_the_row_changes(self, dao):
-        pair = _insert(dao, version_label="1.3")
+        pair = _insert(dao, is_locked=True)
 
         dao.clear_remote_digest(pair)
 
         refreshed = dao.get_state_from_id(pair.id)
-        assert refreshed.remote_version == "1.3"
+        assert refreshed.remote_locked == 1
         assert refreshed.remote_ref == "node-1"
         assert refreshed.pair_state == pair.pair_state
 

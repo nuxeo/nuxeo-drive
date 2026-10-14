@@ -193,20 +193,37 @@ class TestRemoteHasDrifted:
         pair = Mock()
         pair.remote_ref = "abc"
         pair.folderish = False
-        pair.remote_version = ""
         pair.last_remote_updated = "2024-01-01 00:00:00"
         remote_info = Mock()
-        # No baseline stored, so the label cannot decide; the clock does.
-        remote_info.is_versionable = True
-        remote_info.version_label = "1.0"
         remote_info.last_modification_time = datetime(
             2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc
         )
         proc.remote.get_fs_info.return_value = remote_info
+        assert proc._remote_has_drifted(pair) is False
+
+    def test_a_local_edit_alone_is_never_drift(self, proc) -> None:
+        """NXDRIVE-3287: this runs before an upload, so the local file is
+        *meant* to differ. Comparing the bytes here reported every local edit
+        as a remote change and raised a conflict for each one."""
+        from datetime import datetime, timezone
+
+        pair = Mock()
+        pair.remote_ref = "abc"
+        pair.folderish = False
+        pair.last_remote_updated = "2024-01-01 00:00:00"
+        remote_info = Mock()
+        remote_info.last_modification_time = datetime(
+            2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+        )
+        proc.remote.get_fs_info.return_value = remote_info
+
         with patch(
-            "nxdrive.alfresco.engine.processor.content_matches", return_value=True
-        ):
+            "nxdrive.alfresco.engine.processor.content_matches", return_value=False
+        ) as compare:
             assert proc._remote_has_drifted(pair) is False
+
+        # The bytes cannot answer "did the server move?" on this path.
+        compare.assert_not_called()
 
     def test_file_different_timestamp_drift(self, proc) -> None:
         from datetime import datetime, timezone
@@ -1643,19 +1660,13 @@ class TestRemoteHasDriftedExtra:
         pair = Mock(
             remote_ref="node-abc",
             folderish=False,
-            remote_version="",
             last_remote_updated="2024-01-01 00:00:00",
         )
         remote_info = Mock()
-        remote_info.is_versionable = True
-        remote_info.version_label = "1.0"
         remote_info.last_modification_time = Mock()
         remote_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
         proc.remote.get_fs_info.return_value = remote_info
-        with patch(
-            "nxdrive.alfresco.engine.processor.content_matches", return_value=True
-        ):
-            assert proc._remote_has_drifted(pair) is False
+        assert proc._remote_has_drifted(pair) is False
 
     def test_timestamps_differ_drift(self, proc):
         pair = Mock(

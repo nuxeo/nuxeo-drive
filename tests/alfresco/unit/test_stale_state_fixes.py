@@ -410,9 +410,9 @@ class TestGetFsInfoDigest:
         remote.dao.get_normal_state_from_remote.assert_not_called()
 
     @pytest.mark.parametrize("digest", (None, "SERVERHASH"))
-    def test_the_version_label_always_comes_through(self, digest):
+    def test_the_lock_state_always_comes_through(self, digest):
         remote = self._remote(self._node(digest=digest))
-        assert remote.get_fs_info("node-1").version_label == "2.0"
+        assert remote.get_fs_info("node-1").is_locked is False
 
 
 # ---------------------------------------------------------------------------

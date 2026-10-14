@@ -145,21 +145,21 @@ class AlfrescoProcessor(_ProcessorBase):
     def _remote_has_drifted(
         self, doc_pair: DocPair, /, *, remote_info: RemoteFileInfo = None
     ) -> bool:
-        """Return ``True`` when the server-side node's *content* has been
-        modified since ``doc_pair.last_remote_updated``.
+        """Return ``True`` when the server-side node has been modified since
+        ``doc_pair.last_remote_updated``.
 
-        The version label decides whenever the server maintains one: it only
-        advances when content is written, whereas ``modifiedAt`` also moves on
-        metadata-only edits (rename, tag, aspect) and would report a conflict
-        for a file nobody re-saved.
+        Only the timestamp may decide here. This runs *before* an upload, when
+        the local file is meant to differ from the server, so comparing the
+        bytes would answer "are the two sides the same?" — which is ``False``
+        for every local edit — instead of "did the server move?", and would
+        turn each local edit into a conflict.
 
-        A node the server does not version has no label at all, and a row
-        predating the ``remote_version`` column has no baseline to compare it
-        against. Neither can be guessed: ACS starts minor versions at "0.1"
-        and Version Baselining lets an admin pick any label. Both cases fall
-        back to the timestamp, and a timestamp that did not move is confirmed
-        against the bytes — it is truncated to whole seconds and cannot rule
-        out an edit inside the one we have on record.
+        ACCEPTED LIMITATION: ``modifiedAt`` is truncated to whole seconds, so
+        a server-side edit inside the second we already hold on record is
+        missed and the upload overwrites it. The bytes cannot close that gap
+        on this path for the reason above, and ``cm:versionLabel`` is absent
+        on nodes without the ``cm:versionable`` aspect, so we take the gap
+        knowingly.
 
         Pass *remote_info* to reuse a response the caller already fetched, so
         both checks read the same snapshot instead of two.
@@ -180,26 +180,9 @@ class AlfrescoProcessor(_ProcessorBase):
         if remote_info is None:
             return False
 
-        if (
-            remote_info.is_versionable
-            and remote_info.version_label
-            and doc_pair.remote_version
-        ):
-            return remote_info.version_label != doc_pair.remote_version
-
         remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
         db_ts = str(doc_pair.last_remote_updated or "")[:19]
-        if not remote_ts or remote_ts != db_ts:
-            return bool(remote_ts)
-
-        local_path = self.local.abspath(doc_pair.local_path)
-        matches = content_matches(self.remote, local_path, doc_pair.remote_ref)
-        if matches is None:
-            log.debug(
-                f"Could not compare {doc_pair.local_name!r} against the server; "
-                "assuming it drifted"
-            )
-        return matches is not True
+        return bool(remote_ts) and remote_ts != db_ts
 
     def _safe_remote_info(self, doc_pair: DocPair, /) -> Optional[RemoteFileInfo]:
         """Fetch the node's current state, or ``None`` when unreachable."""
