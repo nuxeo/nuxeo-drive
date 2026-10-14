@@ -606,6 +606,32 @@ class TestReconcileChildEarlyReturns:
         assert kwargs["versioned"] is False
         watcher.dao.force_remote.assert_called_once_with(pair)
 
+    def test_the_content_change_write_is_guarded_on_state_too(self):
+        """The byte comparison can take seconds, and ``_force_sync`` raises a
+        conflict without bumping ``version``."""
+        watcher = _watcher()
+        watcher._lock_was_released = MagicMock(return_value=False)
+        watcher._content_changed = MagicMock(return_value=True)
+        pair = _pair(pair_state="synchronized", remote_state="synchronized", version=9)
+
+        watcher._reconcile_child(pair, _info(), "/remote", Path("/sync"))
+
+        kwargs = watcher.dao.update_remote_state.call_args.kwargs
+        assert kwargs["expected_version"] == 9
+        assert kwargs["expected_pair_state"] == "synchronized"
+
+    def test_a_refused_write_does_not_clear_the_digest_or_queue(self):
+        watcher = _watcher()
+        watcher._lock_was_released = MagicMock(return_value=False)
+        watcher._content_changed = MagicMock(return_value=True)
+        watcher.dao.update_remote_state.return_value = False
+        pair = _pair(pair_state="synchronized", remote_state="synchronized")
+
+        watcher._reconcile_child(pair, _info(), "/remote", Path("/sync"))
+
+        watcher.dao.clear_remote_digest.assert_not_called()
+        watcher.dao.force_remote.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Bounded deferral for a file the user has open

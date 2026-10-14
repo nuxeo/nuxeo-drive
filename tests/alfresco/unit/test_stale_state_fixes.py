@@ -192,6 +192,60 @@ class TestUploadBaseline:
         assert proc.dao.update_remote_state.call_args.kwargs["force_update"] is True
 
 
+class TestModificationRaceGuard:
+    """An upload can run for minutes; the row can be re-decided meanwhile.
+
+    The baseline write is guarded on both ``version`` and ``pair_state``:
+    ``_force_sync`` raises a conflict without bumping ``version``, so the
+    version predicate alone would not see one.
+    """
+
+    def _modified(self, **overrides):
+        return _pair(
+            remote_ref="node-1",
+            remote_can_update=True,
+            local_digest="new",
+            local_state="modified",
+            pair_state="locally_modified",
+            **overrides,
+        )
+
+    def test_the_baseline_write_is_guarded(self):
+        proc = _processor()
+        proc.local.is_equal_digests.return_value = False
+        proc.remote.stream_update.return_value = _info()
+        pair = self._modified(version=3)
+
+        proc._synchronize_locally_modified(pair)
+
+        kwargs = proc.dao.update_remote_state.call_args.kwargs
+        assert kwargs["expected_version"] == 3
+        assert kwargs["expected_pair_state"] == "locally_modified"
+
+    def test_a_refused_write_stops_the_handler(self):
+        """``synchronize_state`` drops its version guard for folders, so
+        carrying on would undo whatever was decided in the gap."""
+        proc = _processor()
+        proc.local.is_equal_digests.return_value = False
+        proc.remote.stream_update.return_value = _info()
+        proc.dao.update_remote_state.return_value = False
+
+        proc._synchronize_locally_modified(self._modified())
+
+        proc.dao.synchronize_state.assert_not_called()
+
+    def test_the_refresh_only_path_is_guarded_too(self):
+        proc = _processor()
+        proc.local.is_equal_digests.return_value = True
+        proc.dao.update_remote_state.return_value = False
+
+        proc._synchronize_locally_modified(self._modified(version=5))
+
+        kwargs = proc.dao.update_remote_state.call_args.kwargs
+        assert kwargs["expected_version"] == 5
+        proc.dao.synchronize_state.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # A lock conflict must not be cleared without the server confirming it
 # ---------------------------------------------------------------------------

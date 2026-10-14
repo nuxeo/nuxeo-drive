@@ -651,9 +651,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             )
             # Step 1: update metadata (esp. last_remote_updated)
             # without bumping version, so force_remote can match
-            # the current version with its optimistic lock. Guarded on the
-            # version we read: a byte comparison can take seconds, and the
-            # local scanner may have claimed the row in the meantime.
+            # the current version with its optimistic lock. Guarded on the row
+            # we read: a byte comparison can take seconds, and the local
+            # scanner may have claimed it. The state is guarded too because
+            # ``_force_sync`` raises a conflict without bumping ``version``.
             if not self.dao.update_remote_state(
                 child_pair,
                 child_info,
@@ -661,6 +662,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 force_update=True,
                 versioned=False,
                 expected_version=child_pair.version,
+                expected_pair_state=child_pair.pair_state,
             ):
                 log.debug(
                     f"Leaving {child_info.name!r} to the next cycle: it changed "

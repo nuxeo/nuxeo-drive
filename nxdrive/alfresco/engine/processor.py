@@ -1086,9 +1086,23 @@ class AlfrescoProcessor(_ProcessorBase):
                     engine_uid=self.engine.uid,
                 )
                 self.dao.update_last_transfer(doc_pair.id, "upload")
-                self.dao.update_remote_state(
-                    doc_pair, fs_item_info, versioned=False, force_update=True
-                )
+                # The upload can take minutes; the local watcher or the
+                # conflict resolver may have moved the row on. Writing our
+                # snapshot unguarded would copy its stale states back.
+                if not self.dao.update_remote_state(
+                    doc_pair,
+                    fs_item_info,
+                    versioned=False,
+                    force_update=True,
+                    expected_version=doc_pair.version,
+                    expected_pair_state=doc_pair.pair_state,
+                ):
+                    log.debug(
+                        f"Leaving {doc_pair.local_name!r} to the next cycle: it "
+                        "was re-decided while the upload was in flight"
+                    )
+                    self.remove_void_transfers(doc_pair)
+                    return
             else:
                 log.info(
                     f"Skip update of remote document {doc_pair.local_name!r} "
@@ -1098,9 +1112,20 @@ class AlfrescoProcessor(_ProcessorBase):
                 return
         if fs_item_info is None:
             fs_item_info = self.remote.get_fs_info(doc_pair.remote_ref)
-            self.dao.update_remote_state(
-                doc_pair, fs_item_info, versioned=False, force_update=True
-            )
+            if not self.dao.update_remote_state(
+                doc_pair,
+                fs_item_info,
+                versioned=False,
+                force_update=True,
+                expected_version=doc_pair.version,
+                expected_pair_state=doc_pair.pair_state,
+            ):
+                log.debug(
+                    f"Leaving {doc_pair.local_name!r} to the next cycle: it was "
+                    "re-decided while the server was being read"
+                )
+                self.remove_void_transfers(doc_pair)
+                return
         self.dao.synchronize_state(doc_pair)
 
     def _synchronize_locally_resolved(self, doc_pair: DocPair, /) -> None:
