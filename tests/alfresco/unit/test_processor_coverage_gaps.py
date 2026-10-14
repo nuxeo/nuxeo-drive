@@ -21,6 +21,8 @@ def processor(tmp_path):
     engine.queue_manager = MagicMock()
     engine.queue_manager.get_error_threshold.return_value = 3
     engine.download_dir = tmp_path / "downloads"
+    # A bare mock answers "open" to everything, which would defer every download.
+    engine.manager.osi.is_file_open.return_value = False
 
     result = AlfrescoProcessor(engine, MagicMock(return_value=None))
     result.dao = engine.dao
@@ -266,7 +268,9 @@ def test_local_folder_create_recovers_parent_from_xattr(processor):
 
     processor._get_normal_state_from_remote_ref.assert_called_once_with("parent-id")
     processor.remote.make_folder.assert_called_once_with("parent-id", "new-folder")
-    processor.dao.synchronize_state.assert_called_once_with(pair)
+    processor.dao.synchronize_state.assert_called_once_with(
+        pair, expected_pair_state=pair.pair_state
+    )
 
 
 def test_local_create_postpones_when_digest_remains_inaccessible(processor):
@@ -328,7 +332,9 @@ def test_local_modify_refreshes_an_inaccessible_digest(processor, digest):
         processor.dao.update_local_state.assert_called_once_with(
             pair, local_info, versioned=False, queue=False
         )
-        processor.dao.synchronize_state.assert_called_once_with(pair)
+        processor.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
 
 def test_readonly_local_delete_retries_when_remote_path_lookup_fails(processor):

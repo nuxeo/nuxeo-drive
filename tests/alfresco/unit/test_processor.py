@@ -28,6 +28,8 @@ def mock_engine():
     engine.queue_manager.get_error_threshold = Mock(return_value=3)
     engine.get_metadata_url = Mock(return_value="http://alfresco/metadata")
     engine.get_remote_url = Mock(return_value="http://alfresco/remote")
+    # A bare mock answers "open" to everything, which would defer every download.
+    engine.manager.osi.is_file_open.return_value = False
     return engine
 
 
@@ -124,6 +126,8 @@ def proc():
     engine.queue_manager = Mock()
     engine.queue_manager.get_error_threshold = Mock(return_value=3)
     engine.download_dir = Path("/tmp/downloads")
+    # A bare mock answers "open" to everything, which would defer every download.
+    engine.manager.osi.is_file_open.return_value = False
     item_getter = Mock(return_value=None)
     p = AlfrescoProcessor(engine, item_getter)
     p.local = engine.local
@@ -725,7 +729,9 @@ class TestSynchronizeLocallyCreated:
 
         proc._synchronize_locally_created(pair)
         proc.remote.make_folder.assert_called_once_with("parent-ref", "NewFolder")
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_local_file_removes_exact_stale_filter(self, proc) -> None:
         pair, parent = self._file_pair_and_parent()
@@ -878,7 +884,9 @@ class TestSynchronizeLocallyCreated:
             proc._synchronize_locally_created(pair)
 
         proc.dao.update_remote_state.assert_called_once()
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_resolved_pair_is_never_re_conflicted(self, proc) -> None:
         """ "Use local" must upload, not bounce back into conflict.
@@ -948,7 +956,9 @@ class TestSynchronizeLocallyCreated:
 
         proc.dao.remove_state.assert_not_called()
         proc.dao.update_remote_state.assert_called_once()
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
 
 class TestRemoteTwinDiffers:
@@ -1125,7 +1135,9 @@ class TestSynchronizeLocallyModified:
 
         proc._synchronize_locally_modified(pair)
         proc.remote.stream_update.assert_called_once()
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_readonly_unsynchronizes(self, proc) -> None:
         pair = Mock()
@@ -1158,7 +1170,9 @@ class TestSynchronizeLocallyModified:
 
         proc._synchronize_locally_modified(pair)
         proc.remote.stream_update.assert_not_called()
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_a_folder_settles_without_hashing_it(self, proc) -> None:
         """Directories are unhashable: never take the content path."""

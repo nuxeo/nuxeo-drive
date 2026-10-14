@@ -42,6 +42,8 @@ def _processor():
     engine.uid = "test-uid"
     engine.queue_manager.get_error_threshold.return_value = 3
     engine.download_dir = Path("/tmp/downloads")
+    # A bare mock answers "open" to everything, which would defer every download.
+    engine.manager.osi.is_file_open.return_value = False
     proc = AlfrescoProcessor(engine, MagicMock(return_value=None))
     proc.dao = engine.dao
     proc.local = engine.local
@@ -435,7 +437,9 @@ class TestStaleDigest:
         watcher._reconcile_child(pair, _info(), "/remote", Path("/sync"))
 
         watcher.dao.clear_remote_digest.assert_called_once_with(pair)
-        watcher.dao.force_remote.assert_called_once_with(pair)
+        watcher.dao.force_remote.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_an_unchanged_node_keeps_its_digest(self):
         watcher = _watcher()

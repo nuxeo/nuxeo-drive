@@ -523,7 +523,9 @@ class TestScanRemoteRecursive:
             parent_pair, _make_remote_info(uid="parent-node")
         )
 
-        watcher.dao.force_remote.assert_called_once_with(existing_pair)
+        watcher.dao.force_remote.assert_called_once_with(
+            existing_pair, expected_pair_state=existing_pair.pair_state
+        )
 
     def test_missing_children_marked_deleted(self):
         watcher = _make_watcher()
