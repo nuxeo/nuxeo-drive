@@ -31,6 +31,7 @@ from nxdrive.alfresco.engine.processor import (
     AlfrescoProcessor,
 )
 from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
+from nxdrive.drive.constants import UNACCESSIBLE_HASH
 
 CONTENT_COMPARE = "nxdrive.alfresco.content_compare"
 
@@ -692,32 +693,33 @@ class TestLocalFileInUse:
     def test_only_a_definite_yes_holds_the_download_back(self, answer, in_use):
         assert self._proc(answer)._local_file_in_use(_pair()) is in_use
 
-    def test_a_failed_probe_is_logged_as_an_error(self, caplog):
-        """The log is the evidence that detection, not sync, is what failed."""
-        caplog.set_level("ERROR")
+    def test_a_failed_probe_is_logged_as_a_warning(self, caplog):
+        """ "I do not know" is not a decision: the pair has to go one way, and
+        the log is the record that detection, not sync, is what failed."""
+        caplog.set_level("WARNING")
 
         assert self._proc(None)._local_file_in_use(_pair()) is False
 
-        errors = [r.getMessage() for r in caplog.records if r.levelname == "ERROR"]
-        assert any("Open-file detection failed" in m for m in errors)
-        assert any("file.txt" in m for m in errors)
+        warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+        assert any("Open-file detection could not answer" in m for m in warnings)
+        assert any("file.txt" in m for m in warnings)
 
     @pytest.mark.parametrize("answer", (True, False))
     def test_an_answered_probe_logs_nothing(self, caplog, answer):
-        caplog.set_level("ERROR")
+        caplog.set_level("WARNING")
 
         self._proc(answer)._local_file_in_use(_pair())
 
-        assert not [r for r in caplog.records if r.levelname == "ERROR"]
+        assert not [r for r in caplog.records if r.levelname == "WARNING"]
 
     def test_a_platform_that_cannot_answer_is_not_consulted(self, caplog):
         """Nothing changes, and nothing is logged, where the feature is absent."""
-        caplog.set_level("ERROR")
+        caplog.set_level("WARNING")
         proc = self._proc(None, detects=False)
 
         assert proc._local_file_in_use(_pair()) is False
         proc.engine.manager.osi.is_file_open.assert_not_called()
-        assert not [r for r in caplog.records if r.levelname == "ERROR"]
+        assert not [r for r in caplog.records if r.levelname == "WARNING"]
 
     def test_a_folder_is_never_in_use(self):
         proc = self._proc(None)
@@ -817,6 +819,73 @@ class TestOpenFileRecheckedAfterTheDownload:
         proc._synchronize_remotely_modified(pair)
 
         proc.dao.synchronize_state.assert_not_called()
+
+
+class TestEditDuringTheDownload:
+    """An open-file probe answers for one instant; the user can edit, save and
+    close inside a transfer that takes minutes. Only the bytes on disk report
+    that, so they are read on both sides of it."""
+
+    def _proc(self, digests, /):
+        proc = _processor()
+        proc._download_content = MagicMock(return_value=Path("/tmp/dl/file.txt"))
+        proc._local_file_in_use = MagicMock(return_value=False)
+        proc._mark_conflicted = MagicMock()
+        proc._refresh_local_state = MagicMock()
+        proc._refresh_remote = MagicMock()
+        proc.local.abspath.return_value = Path("/sync/file.txt")
+        proc.local.get_info.return_value.get_digest.side_effect = digests
+        return proc
+
+    def test_an_edit_made_during_the_transfer_is_not_deleted(self):
+        proc = self._proc(["before", "after"])
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is False
+
+        proc.local.delete_final.assert_not_called()
+        proc.local.move.assert_not_called()
+
+    def test_the_edit_becomes_a_conflict_the_user_must_settle(self):
+        """Both sides changed, so neither copy may be chosen for the user."""
+        proc = self._proc(["before", "after"])
+
+        proc._update_remotely(_pair(remote_name="file.txt"), False)
+
+        proc._mark_conflicted.assert_called_once()
+        assert proc._mark_conflicted.call_args.kwargs["reason"] == DIFFERENT_CONTENT
+
+    def test_the_abandoned_download_is_cleaned_up(self):
+        proc = self._proc(["before", "after"])
+
+        with patch("nxdrive.alfresco.engine.processor.shutil.rmtree") as rmtree:
+            proc._update_remotely(_pair(remote_name="file.txt"), False)
+
+        rmtree.assert_called_once_with(Path("/tmp/dl"))
+
+    def test_an_untouched_file_is_still_replaced(self):
+        proc = self._proc(["same", "same", "same"])
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
+
+        proc.local.delete_final.assert_called_once()
+        proc._mark_conflicted.assert_not_called()
+
+    @pytest.mark.parametrize("unreadable", (UNACCESSIBLE_HASH, "", None))
+    def test_an_unreadable_hash_does_not_raise_a_conflict(self, unreadable):
+        """A hash we could not take is not evidence of an edit, and the user
+        cannot act on a conflict raised for one."""
+        proc = self._proc([unreadable, "after", "after"])
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
+
+        proc._mark_conflicted.assert_not_called()
+
+    def test_a_failing_hash_does_not_stop_the_download(self):
+        proc = self._proc(OSError("gone"))
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
+
+        proc._mark_conflicted.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

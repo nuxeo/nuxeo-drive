@@ -244,9 +244,10 @@ class AlfrescoProcessor(_ProcessorBase):
         out above, so ``None`` here means the probe itself failed.
 
         A failed probe lets the download through rather than raising a
-        conflict the user has no way to act on. Overwriting an unsaved edit is
-        accepted deliberately; the error log is the record that detection
-        failed, not synchronisation.
+        conflict the user has no way to act on: "I do not know" is not a
+        decision, and the pair has to go one way or the other. The digest
+        taken on both sides of the transfer is what actually protects a saved
+        edit; this probe only spares the user an interrupted editing session.
         """
         if doc_pair.folderish:
             return False
@@ -256,12 +257,25 @@ class AlfrescoProcessor(_ProcessorBase):
 
         answer = osi.is_file_open(self.local.abspath(doc_pair.local_path))
         if answer is None:
-            log.error(
-                f"Open-file detection failed for {doc_pair.local_name!r}; "
-                "downloading anyway, so unsaved local changes may be lost"
+            log.warning(
+                f"Open-file detection could not answer for "
+                f"{doc_pair.local_name!r}; downloading anyway"
             )
             return False
         return answer
+
+    def _readable_local_digest(self, doc_pair: DocPair, /) -> str:
+        """Hash the local file, or return ``""`` when it cannot be read.
+
+        An unreadable hash is treated like a failed probe: it compares equal
+        to nothing, so the caller carries on rather than raising a conflict
+        the user cannot act on.
+        """
+        with suppress(Exception):
+            digest = self.local.get_info(doc_pair.local_path).get_digest()
+            if digest and digest != UNACCESSIBLE_HASH:
+                return str(digest)
+        return ""
 
     def _mark_conflicted(
         self, doc_pair: DocPair, /, *, reason: str = None, details: str = None
@@ -809,6 +823,11 @@ class AlfrescoProcessor(_ProcessorBase):
         with suppress(Exception):
             remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
 
+        # The open-file probe only answers for the instant it is asked, and the
+        # user can edit, save and close while the transfer runs. Only the bytes
+        # on disk can report that, so they are read on both sides of it.
+        digest_before = self._readable_local_digest(doc_pair)
+
         tmp_file = self._download_content(doc_pair, new_os_path)
 
         # The transfer can take minutes, and ``delete_final`` is permanent, so
@@ -818,6 +837,17 @@ class AlfrescoProcessor(_ProcessorBase):
             with suppress(OSError):
                 shutil.rmtree(tmp_file.parent)
             self._defer_open_file(doc_pair)
+            return False
+
+        digest_after = self._readable_local_digest(doc_pair)
+        if digest_before and digest_after and digest_before != digest_after:
+            log.warning(
+                f"{doc_pair.local_name!r} was edited while the download ran; "
+                "raising a conflict rather than deleting the local copy"
+            )
+            with suppress(OSError):
+                shutil.rmtree(tmp_file.parent)
+            self._mark_conflicted(doc_pair, reason=DIFFERENT_CONTENT)
             return False
 
         remote_id = self.local.get_remote_id(doc_pair.local_path)

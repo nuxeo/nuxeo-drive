@@ -5,7 +5,7 @@ import Foundation
 // Detects whether a file is currently open in another process.
 //
 // Usage:
-//   check_open <file_path>          -> prints TRUE or FALSE
+//   check_open <file_path>          -> prints TRUE, FALSE or UNKNOWN
 //   check_open --check-permission   -> prints GRANTED or DENIED (never prompts)
 //   check_open --request-permission -> prints GRANTED or DENIED (shows the
 //                                      system Accessibility dialog if needed)
@@ -114,7 +114,10 @@ func findTabTitles(in element: AXUIElement, maxDepth: Int = 3) -> [String] {
 
 // MARK: - Tier 1: Kernel POSIX Check (lsof)
 
-func isKernelOpen(target: String) -> Bool {
+/// `nil` means the probe could not run, which is not the same as "closed":
+/// the caller is about to delete the file and must know the difference.
+/// `lsof` exiting non-zero because it found nothing is a genuine "closed".
+func isKernelOpen(target: String) -> Bool? {
     let task = Process()
     task.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
     task.arguments = ["-F", "pn", target]
@@ -123,11 +126,11 @@ func isKernelOpen(target: String) -> Bool {
     task.standardOutput = pipe
     task.standardError = Pipe()
 
-    do { try task.run() } catch { return false }
+    do { try task.run() } catch { return nil }
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
     task.waitUntilExit()
 
-    guard let output = String(data: data, encoding: .utf8) else { return false }
+    guard let output = String(data: data, encoding: .utf8) else { return nil }
 
     // The caller (Drive) reads xattrs and digests on the same file moments
     // before asking, so its own descriptors must not count as "in use".
@@ -203,10 +206,15 @@ func isGUIOpen(target: String, filename: String) -> Bool {
 
 // MARK: - Main Execution
 
-if isKernelOpen(target: targetPath) {
+let kernelVerdict = isKernelOpen(target: targetPath)
+
+if kernelVerdict == true {
     print("TRUE")
 } else if hasAccessibilityPermission(prompt: false) && isGUIOpen(target: targetPath, filename: filename) {
     print("TRUE")
+} else if kernelVerdict == nil {
+    // No tier could answer, so "FALSE" would be a claim we cannot make.
+    print("UNKNOWN")
 } else {
     print("FALSE")
 }
