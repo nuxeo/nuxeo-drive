@@ -450,14 +450,14 @@ class TestContentChangedOrdering:
 
     def test_folder_is_never_a_content_change(self):
         watcher = _watcher()
-        assert watcher._content_changed(_pair(), _info(folderish=True)) is False
+        assert watcher._content_changed(_pair(), _info(folderish=True), True) is False
 
     def test_a_moved_timestamp_is_a_content_change(self):
         watcher = _watcher()
         watcher._timestamp_moved = MagicMock(return_value=True)
         watcher._content_differs = MagicMock()
 
-        assert watcher._content_changed(_pair(), _info()) is True
+        assert watcher._content_changed(_pair(), _info(), True) is True
         # The clock already answered; the bytes cost a download.
         watcher._content_differs.assert_not_called()
 
@@ -466,7 +466,7 @@ class TestContentChangedOrdering:
         watcher._timestamp_moved = MagicMock(return_value=False)
         watcher._content_differs = MagicMock(return_value=True)
 
-        assert watcher._content_changed(_pair(), _info()) is True
+        assert watcher._content_changed(_pair(), _info(), True) is True
         watcher._content_differs.assert_called_once()
 
     def test_identical_bytes_at_the_same_second_are_not_a_change(self):
@@ -474,13 +474,15 @@ class TestContentChangedOrdering:
         watcher._timestamp_moved = MagicMock(return_value=False)
         watcher._content_differs = MagicMock(return_value=False)
 
-        assert watcher._content_changed(_pair(), _info()) is False
+        assert watcher._content_changed(_pair(), _info(), True) is False
 
     def test_a_pair_with_no_timestamp_at_all_is_a_change(self):
         watcher = _watcher()
         watcher._content_differs = MagicMock()
 
-        changed = watcher._content_changed(_pair(last_remote_updated=None), _info())
+        changed = watcher._content_changed(
+            _pair(last_remote_updated=None), _info(), True
+        )
 
         assert changed is True
         watcher._content_differs.assert_not_called()
@@ -490,9 +492,42 @@ class TestContentChangedOrdering:
         watcher = _watcher()
         watcher._timestamp_moved = MagicMock(return_value=True)
 
-        watcher._content_changed(_pair(), _info())
+        watcher._content_changed(_pair(), _info(), True)
 
         watcher.engine.remote.get_node.assert_not_called()
+
+
+class TestAScanDoesNotHashEveryFile:
+    """A full scan enumerates; it does not assert that anything changed.
+
+    Confirming an unmoved timestamp against the bytes there would hash every
+    unchanged file on every scan - roughly 20 MB each, on the whole tree.
+    """
+
+    def test_an_unmoved_timestamp_is_taken_at_face_value(self):
+        watcher = _watcher()
+        watcher._timestamp_moved = MagicMock(return_value=False)
+        watcher._content_differs = MagicMock(return_value=True)
+
+        assert watcher._content_changed(_pair(), _info(), False) is False
+        watcher._content_differs.assert_not_called()
+
+    def test_a_moved_timestamp_is_still_a_change(self):
+        watcher = _watcher()
+        watcher._timestamp_moved = MagicMock(return_value=True)
+
+        assert watcher._content_changed(_pair(), _info(), False) is True
+
+    def test_the_scan_path_does_not_report_a_change(self):
+        """``_reconcile_child`` defaults to enumeration; only the feed asserts."""
+        watcher = _watcher()
+        watcher._lock_was_released = MagicMock(return_value=False)
+        watcher._content_changed = MagicMock(return_value=False)
+        pair = _pair(pair_state="synchronized", remote_state="synchronized")
+
+        watcher._reconcile_child(pair, _info(), "/remote", Path("/sync"))
+
+        assert watcher._content_changed.call_args.args[2] is False
 
 
 class TestContentDiffers:

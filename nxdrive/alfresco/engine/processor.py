@@ -1032,7 +1032,8 @@ class AlfrescoProcessor(_ProcessorBase):
 
         # ``force_update`` skips the "not dirty" shortcut, which would return
         # before recording the version the upload just created and leave the
-        # next change feed entry looking like a remote edit.
+        # next change feed entry looking like a remote edit. Guarded on the row
+        # the check above read, so a decision landing in that gap still wins.
         self.dao.update_remote_state(
             doc_pair,
             fs_item_info,
@@ -1040,6 +1041,7 @@ class AlfrescoProcessor(_ProcessorBase):
             versioned=False,
             queue=False,
             force_update=True,
+            expected_version=doc_pair.version,
         )
         self.dao.synchronize_state(doc_pair)
 

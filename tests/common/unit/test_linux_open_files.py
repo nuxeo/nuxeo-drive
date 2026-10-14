@@ -93,7 +93,9 @@ class TestAnswers:
         argv = run.call_args.args[0]
         assert argv[0] == "bash"
         assert argv[1] == str(SCRIPT)
-        assert argv[2] == "/sync/f.txt"
+        # str() so the assertion survives a Windows runner, where a PurePath
+        # renders with backslashes.
+        assert argv[2] == str(Path("/sync/f.txt"))
         assert argv[3] == "4242"
 
     def test_the_probe_is_bounded(self, integration, monkeypatch):

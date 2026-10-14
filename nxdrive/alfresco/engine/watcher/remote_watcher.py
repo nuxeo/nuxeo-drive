@@ -528,14 +528,16 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         return not content_matches(self.engine.remote, local_path, child_info.uid)
 
     def _content_changed(
-        self, child_pair: DocPair, child_info: RemoteFileInfo, /
+        self, child_pair: DocPair, child_info: RemoteFileInfo, change_reported: bool, /
     ) -> bool:
         """Return whether the node's *content* changed since we last saw it.
 
         Alfresco exposes no content digest, so the feed's ``nodeTimestamp``
-        decides, and a timestamp that did not move is confirmed against the
-        bytes rather than trusted: ``content_matches`` hashes the first and
-        last 10 MB.
+        decides. A timestamp that did not move is confirmed against the bytes
+        — ``content_matches`` hashes the first and last 10 MB — but only when
+        *change_reported* says the Sync Service actually announced a change.
+        A full scan merely enumerates the tree, so confirming there would hash
+        every unchanged file on every scan.
 
         ACCEPTED LIMITATION: ``nodeTimestamp`` is truncated to whole seconds,
         so an edit inside the second we already hold, which also leaves both
@@ -543,8 +545,6 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         ``cm:versionLabel`` used to cover this, but it is absent on nodes
         without the ``cm:versionable`` aspect and cannot be relied on across
         deployments. We take the gap knowingly.
-
-        Costs no network call: the feed already carries everything this needs.
         """
         if child_info.folderish:
             return False
@@ -552,7 +552,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         if child_pair.last_remote_updated and not self._timestamp_moved(
             child_pair, child_info
         ):
-            return self._content_differs(child_pair, child_info)
+            return change_reported and self._content_differs(child_pair, child_info)
 
         return True
 
@@ -563,6 +563,8 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         remote_parent_path: str,
         local_parent_path: Path,
         /,
+        *,
+        change_reported: bool = False,
     ) -> Optional[DocPair]:
         """Apply a remote node's state to the DAO and return the pair.
 
@@ -632,7 +634,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             )
             return child_pair
 
-        if self._content_changed(child_pair, child_info):
+        if self._content_changed(child_pair, child_info, change_reported):
             log.info(
                 f"Content change detected for {child_info.name!r}: "
                 f"old={child_pair.last_remote_updated!r} "
@@ -1476,7 +1478,11 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
         )
         self._reconcile_child(
-            existing, info, remote_parent_path, parent_pair.local_path
+            existing,
+            info,
+            remote_parent_path,
+            parent_pair.local_path,
+            change_reported=True,
         )
         return True
 

@@ -807,3 +807,176 @@ class TestFindItemInList:
         result = darwin_integration._find_item_in_list(["list"], "item")
 
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Open-file detection
+#
+# These branches decide whether a destructive download is deferred, so a wrong
+# "closed" silently overwrites work the user has not saved. Anything other
+# than a definite TRUE/FALSE must therefore resolve to None.
+# ---------------------------------------------------------------------------
+
+
+def _helper(monkeypatch, *, exists=True, executable=True):
+    from nxdrive.drive.osi.darwin import darwin as mod
+
+    helper = Mock(spec=Path)
+    helper.is_file.return_value = exists
+    helper.__str__ = Mock(return_value="/res/utilities/check_open")
+    helper.stat.return_value = Mock(st_mode=0o644)
+    monkeypatch.setattr(mod, "find_resource", Mock(return_value=helper))
+    monkeypatch.setattr(mod.os, "access", lambda *a: executable)
+    return helper
+
+
+def _runs(monkeypatch, stdout, *, returncode=0):
+    from nxdrive.drive.osi.darwin import darwin as mod
+
+    run = Mock(return_value=Mock(stdout=stdout, stderr="", returncode=returncode))
+    monkeypatch.setattr(mod.subprocess, "run", run)
+    return run
+
+
+@mac_only
+class TestCheckOpenHelper:
+    def test_a_shipped_helper_enables_detection(self, darwin_integration, monkeypatch):
+        _helper(monkeypatch)
+        assert darwin_integration.has_file_open_detection() is True
+
+    def test_a_missing_helper_disables_detection(self, darwin_integration, monkeypatch):
+        _helper(monkeypatch, exists=False)
+        assert darwin_integration.has_file_open_detection() is False
+
+    def test_the_helper_is_looked_for_once(self, darwin_integration, monkeypatch):
+        from nxdrive.drive.osi.darwin import darwin as mod
+
+        helper = _helper(monkeypatch)
+        find = Mock(return_value=helper)
+        monkeypatch.setattr(mod, "find_resource", find)
+
+        darwin_integration.has_file_open_detection()
+        darwin_integration.has_file_open_detection()
+
+        find.assert_called_once()
+
+    def test_the_executable_bit_is_restored(self, darwin_integration, monkeypatch):
+        """PyInstaller's data bundling drops it."""
+        helper = _helper(monkeypatch, executable=False)
+
+        assert darwin_integration.has_file_open_detection() is True
+        helper.chmod.assert_called_once_with(0o644 | 0o111)
+
+    def test_an_unchmodable_helper_disables_detection(
+        self, darwin_integration, monkeypatch
+    ):
+        helper = _helper(monkeypatch, executable=False)
+        helper.chmod.side_effect = OSError("read-only")
+
+        assert darwin_integration.has_file_open_detection() is False
+
+
+@mac_only
+class TestIsFileOpen:
+    @pytest.mark.parametrize(
+        "stdout, expected",
+        (
+            ("TRUE\n", True),
+            ("FALSE\n", False),
+            ("UNKNOWN\n", None),
+            ("", None),
+            ("something else", None),
+        ),
+    )
+    def test_only_a_definite_answer_is_believed(
+        self, darwin_integration, monkeypatch, stdout, expected
+    ):
+        _helper(monkeypatch)
+        _runs(monkeypatch, stdout)
+
+        assert darwin_integration.is_file_open(Path("/sync/f.txt")) is expected
+
+    def test_a_missing_helper_answers_unknown(self, darwin_integration, monkeypatch):
+        _helper(monkeypatch, exists=False)
+        assert darwin_integration.is_file_open(Path("/sync/f.txt")) is None
+
+    def test_the_probe_is_bounded(self, darwin_integration, monkeypatch):
+        from nxdrive.drive.osi.darwin import darwin as mod
+
+        _helper(monkeypatch)
+        run = _runs(monkeypatch, "FALSE")
+
+        darwin_integration.is_file_open(Path("/sync/f.txt"))
+
+        assert run.call_args.kwargs["timeout"] == mod.CHECK_OPEN_TIMEOUT
+
+    def test_a_timeout_is_unknown_not_closed(self, darwin_integration, monkeypatch):
+        from nxdrive.drive.osi.darwin import darwin as mod
+
+        _helper(monkeypatch)
+        monkeypatch.setattr(
+            mod.subprocess,
+            "run",
+            Mock(side_effect=subprocess.TimeoutExpired("check_open", 5.0)),
+        )
+
+        assert darwin_integration.is_file_open(Path("/sync/f.txt")) is None
+
+    def test_an_unlaunchable_helper_is_unknown_not_closed(
+        self, darwin_integration, monkeypatch
+    ):
+        from nxdrive.drive.osi.darwin import darwin as mod
+
+        _helper(monkeypatch)
+        monkeypatch.setattr(mod.subprocess, "run", Mock(side_effect=OSError("denied")))
+
+        assert darwin_integration.is_file_open(Path("/sync/f.txt")) is None
+
+    def test_a_nonzero_exit_is_unknown_not_closed(
+        self, darwin_integration, monkeypatch
+    ):
+        _helper(monkeypatch)
+        _runs(monkeypatch, "TRUE", returncode=1)
+
+        assert darwin_integration.is_file_open(Path("/sync/f.txt")) is None
+
+
+@mac_only
+class TestAccessibilityPermission:
+    @pytest.mark.parametrize(
+        "stdout, expected", (("GRANTED\n", True), ("DENIED\n", False), ("", False))
+    )
+    def test_the_grant_is_read_without_prompting(
+        self, darwin_integration, monkeypatch, stdout, expected
+    ):
+        _helper(monkeypatch)
+        run = _runs(monkeypatch, stdout)
+
+        assert darwin_integration.has_file_open_permission() is expected
+        assert run.call_args.args[0][1] == "--check-permission"
+
+    def test_a_missing_helper_reports_no_permission(
+        self, darwin_integration, monkeypatch
+    ):
+        _helper(monkeypatch, exists=False)
+        assert darwin_integration.has_file_open_permission() is False
+
+    def test_requesting_uses_its_own_flag(self, darwin_integration, monkeypatch):
+        _helper(monkeypatch)
+        run = _runs(monkeypatch, "GRANTED\n")
+
+        assert darwin_integration.request_file_open_permission() is True
+        assert run.call_args.args[0][1] == "--request-permission"
+
+    def test_not_granted_yet_is_not_an_error(self, darwin_integration, monkeypatch):
+        """The system dialog is answered long after the helper exits."""
+        _helper(monkeypatch)
+        _runs(monkeypatch, "DENIED\n")
+
+        assert darwin_integration.request_file_open_permission() is False
+
+    def test_a_failed_request_reports_no_permission(
+        self, darwin_integration, monkeypatch
+    ):
+        _helper(monkeypatch, exists=False)
+        assert darwin_integration.request_file_open_permission() is False
