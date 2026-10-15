@@ -152,7 +152,10 @@ def test_remote_modify_postpones_until_parent_is_synchronized(processor):
 def test_remote_move_with_already_matching_target_synchronizes(processor):
     pair = MagicMock()
     pair.folderish = False
-    pair.local_digest = None
+    # A digest on record is what says the two sides already agree; without one
+    # the pair is fetched instead of being moved on trust.
+    pair.local_digest = "on-record"
+    processor.local.is_equal_digests.return_value = True
     pair.local_name = "document.txt"
     pair.remote_name = "document.txt"
     pair.local_path = Path("sync/new-parent/document.txt")

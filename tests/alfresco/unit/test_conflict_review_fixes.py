@@ -1938,3 +1938,154 @@ class TestLockStateIsActuallyRequested:
         from nxdrive.alfresco.client.remote import NODE_FIELDS
 
         assert "isLocked" in NODE_FIELDS
+
+
+class TestTheBackupSurvivesAFailedReplacement:
+    """The copy set aside is the user's only one until the guarded write
+    lands, so nothing between those two points may strand or delete it."""
+
+    def _proc(self, tmp_path, /, *, refreshed=True):
+        proc = _processor()
+        proc.engine.download_dir = tmp_path / "dl"
+        transfer = proc.engine.download_dir / "node-1"
+        transfer.mkdir(parents=True)
+        tmp_file = transfer / "file.txt"
+        tmp_file.write_bytes(b"the server's bytes")
+        proc._download_content = MagicMock(return_value=tmp_file)
+        proc._local_file_in_use = MagicMock(return_value=False)
+        proc._local_window = MagicMock(return_value=(SIZE, ON_DISK))
+        proc._refresh_local_state = MagicMock(return_value=refreshed)
+        proc._refresh_remote = MagicMock(return_value=True)
+        proc._follow_remote_move = MagicMock(return_value=True)
+        return proc, tmp_file
+
+    def _local(self, tmp_path, name, /):
+        local = tmp_path / "sync" / name
+        local.parent.mkdir(parents=True, exist_ok=True)
+        local.write_bytes(b"the user's bytes")
+        return local
+
+    def _installed(self, tmp_path, name, /):
+        info = MagicMock()
+        info.filepath = tmp_path / "sync" / name
+        info.path = Path("sync") / name
+        return info
+
+    def test_the_backup_is_not_inside_the_folder_a_retry_deletes(self, tmp_path):
+        """The transfer folder is keyed by node id and reused, and a run that
+        succeeds removes it wholesale."""
+        proc, tmp_file = self._proc(tmp_path)
+        proc.local.abspath.return_value = self._local(tmp_path, "file.txt")
+        proc.local.move.return_value = self._installed(tmp_path, "file.txt")
+        seen = {}
+        kept_aside = proc._keep_aside
+
+        def spy(pair, holding, /):
+            seen["holding"] = holding
+            return kept_aside(pair, holding)
+
+        proc._keep_aside = spy
+        proc._update_remotely(_pair(remote_name="file.txt"), False)
+
+        assert tmp_file.parent != seen["holding"]
+        assert tmp_file.parent not in seen["holding"].parents
+
+    def test_an_exception_puts_the_user_s_copy_back(self, tmp_path):
+        proc, _ = self._proc(tmp_path)
+        local = self._local(tmp_path, "file.txt")
+        proc.local.abspath.return_value = local
+        proc.local.move.side_effect = OSError("no space left on device")
+
+        with pytest.raises(OSError):
+            proc._update_remotely(_pair(remote_name="file.txt"), False)
+
+        assert local.read_bytes() == b"the user's bytes"
+
+    def test_a_refused_write_removes_the_renamed_replacement(self, tmp_path):
+        """Restoring to ``local_path`` alone would leave the download sitting
+        under the server's name, remote id and all."""
+        proc, _ = self._proc(tmp_path, refreshed=False)
+        local = self._local(tmp_path, "old.txt")
+        proc.local.abspath.return_value = local
+        info = self._installed(tmp_path, "new.txt")
+        info.filepath.write_bytes(b"the server's bytes")
+        proc.local.move.return_value = info
+
+        pair = _pair(remote_name="new.txt", local_name="old.txt")
+        assert proc._update_remotely(pair, True) is False
+
+        assert not info.filepath.exists()
+        assert local.read_bytes() == b"the user's bytes"
+
+    def test_the_row_learns_the_name_the_file_now_has(self, tmp_path):
+        """``_follow_remote_move`` runs next and would move a path that the
+        rename has already made obsolete."""
+        proc, _ = self._proc(tmp_path)
+        proc.local.abspath.return_value = self._local(tmp_path, "old.txt")
+        proc.local.move.return_value = self._installed(tmp_path, "new.txt")
+
+        pair = _pair(remote_name="new.txt", local_name="old.txt")
+        assert proc._update_remotely(pair, True) is True
+
+        assert pair.local_path == Path("sync/new.txt")
+        assert pair.local_parent_path == Path("sync")
+        assert pair.local_name == "new.txt"
+
+
+class TestAPairWithNoRecordedDigestIsFetched:
+    """ "Use remote" records only the local size, so a pair the server raised
+    reaches the handler with no digest at all. Treating that as "nothing to
+    do" marked the user's different file synchronised."""
+
+    def _proc(self):
+        proc = _processor()
+        proc._update_remotely = MagicMock(return_value=True)
+        proc._follow_remote_move = MagicMock(return_value=True)
+        proc._is_remote_move = MagicMock(return_value=(False, _pair(id=2)))
+        proc._handle_readonly = MagicMock()
+        return proc
+
+    def _pair(self, **overrides):
+        return _pair(
+            pair_state="remotely_modified",
+            remote_name="file.txt",
+            local_name="file.txt",
+            remote_parent_path="/Company Home/sync",
+            **overrides,
+        )
+
+    def test_a_pair_with_no_digest_is_downloaded(self):
+        proc = self._proc()
+
+        proc._synchronize_remotely_modified(self._pair(local_digest=None))
+
+        proc._update_remotely.assert_called_once()
+
+    def test_a_matching_digest_still_skips_the_download(self):
+        proc = self._proc()
+        proc.local.is_equal_digests.return_value = True
+
+        proc._synchronize_remotely_modified(self._pair(local_digest=ON_DISK))
+
+        proc._update_remotely.assert_not_called()
+
+    def test_a_missing_parent_is_still_postponed_first(self):
+        """The download branch has no postponement of its own, so the parent
+        check has to keep happening before it."""
+        proc = self._proc()
+        proc._is_remote_move = MagicMock(return_value=(False, None))
+        proc._postpone_pair = MagicMock()
+
+        proc._synchronize_remotely_modified(self._pair(local_digest=None))
+
+        proc._postpone_pair.assert_called_once()
+        proc._update_remotely.assert_not_called()
+
+    def test_a_folder_is_never_downloaded(self):
+        proc = self._proc()
+
+        proc._synchronize_remotely_modified(
+            self._pair(local_digest=None, folderish=True)
+        )
+
+        proc._update_remotely.assert_not_called()

@@ -11,6 +11,7 @@ import sqlite3
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
+from tempfile import mkdtemp
 from time import monotonic_ns, sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 
@@ -319,6 +320,11 @@ class AlfrescoProcessor(_ProcessorBase):
     def _keep_aside(self, doc_pair: DocPair, holding: Path, /) -> Optional[Path]:
         """Move the local file out of the way, keeping it recoverable.
 
+        *holding* must be a directory of its own, outside the download folder:
+        that folder is reused for the next attempt and deleted wholesale once
+        one succeeds, which would take an unrestored copy with it. A server
+        rename to ``<name>.previous`` would also land on the backup there.
+
         ``None`` means the file could not be moved, so the caller must not
         replace it. :data:`NOTHING_KEPT` means there was nothing there.
         """
@@ -336,12 +342,24 @@ class AlfrescoProcessor(_ProcessorBase):
             return None
         return target
 
-    def _restore_aside(self, doc_pair: DocPair, kept: Path, /) -> None:
-        """Put the user's copy back after a refused transition."""
+    def _restore_aside(
+        self, doc_pair: DocPair, kept: Path, /, installed: Path = None
+    ) -> bool:
+        """Put the user's copy back after a refused or failed replacement.
+
+        *installed* is where the server's copy actually landed, which is not
+        ``local_path`` when the download also renamed the file; leaving it
+        behind would turn the restore into a duplicate carrying the remote id.
+
+        ``False`` means the copy is still in the holding directory, which the
+        caller must then leave alone.
+        """
         if kept is NOTHING_KEPT:
-            return
+            return True
         destination = self.local.abspath(doc_pair.local_path)
         try:
+            if installed is not None and installed != destination:
+                installed.unlink(missing_ok=True)
             destination.unlink(missing_ok=True)
             shutil.move(str(kept), str(destination))
         except OSError:
@@ -350,6 +368,8 @@ class AlfrescoProcessor(_ProcessorBase):
                 f"at {str(kept)!r}",
                 exc_info=True,
             )
+            return False
+        return True
 
     def _decision_changed(self, doc_pair: DocPair, /) -> bool:
         """Whether the row has been re-decided since the handler read it.
@@ -904,7 +924,16 @@ class AlfrescoProcessor(_ProcessorBase):
                 if not new_parent_pair:
                     self._postpone_pair(doc_pair, "PARENT_UNSYNC")
                     return
-                if is_move or is_renaming:
+                if not doc_pair.folderish and doc_pair.local_digest is None:
+                    # Never compared, so there is nothing here that says the
+                    # two sides agree. "Use remote" on a same-name conflict
+                    # records only the local size and lands exactly here;
+                    # falling through would bless the file already on disk.
+                    if not self._update_remotely(doc_pair, is_renaming):
+                        return
+                    if not self._follow_remote_move(doc_pair):
+                        return
+                elif is_move or is_renaming:
                     file_or_folder = "folder" if doc_pair.folderish else "file"
                     if doc_pair.folderish:
                         self.engine.set_local_folder_lock(doc_pair.local_path)
@@ -1105,45 +1134,85 @@ class AlfrescoProcessor(_ProcessorBase):
         # Kept aside rather than deleted: the check above and this replacement
         # cannot be made atomic with a resolution write, so the user's copy
         # has to stay recoverable until the guarded transition below lands.
-        kept = self._keep_aside(doc_pair, tmp_file.parent)
+        holding_root = self.engine.download_dir
+        holding_root.mkdir(parents=True, exist_ok=True)
+        holding = Path(mkdtemp(prefix="previous-", dir=holding_root))
+        kept = self._keep_aside(doc_pair, holding)
         if kept is None:
+            with suppress(OSError):
+                shutil.rmtree(holding)
             with suppress(OSError):
                 shutil.rmtree(tmp_file.parent)
             return False
-        if remote_id:
-            self.local.set_remote_id(tmp_file, doc_pair.remote_ref)
-        updated_info = self.local.move(
-            tmp_file, doc_pair.local_parent_path, name=doc_pair.remote_name
-        )
 
-        # change_file_date() parses with the exact "%Y-%m-%d %H:%M:%S" format,
-        # so the server's timezone-aware datetime has to be normalised first.
-        self.local.change_file_date(
-            updated_info.filepath,
-            mtime=_fmt_remote_ts(
-                remote_info.last_modification_time
-                if remote_info
-                else doc_pair.last_remote_updated
-            ),
-        )
-        doc_pair.local_digest = updated_info.get_digest()
-        self.dao.update_last_transfer(doc_pair.id, "download")
-        # First write after the replacement, so it is the one that has to carry
-        # the guard: it sets ``pair_state`` from the stale row, and every later
-        # predicate would then be comparing against its own write.
-        if not self._refresh_local_state(
-            doc_pair,
-            updated_info,
-            expected_version=doc_pair.version,
-            expected_pair_state=doc_pair.pair_state,
-        ):
+        updated_info: Optional[FileInfo] = None
+        try:
+            if remote_id:
+                self.local.set_remote_id(tmp_file, doc_pair.remote_ref)
+            updated_info = self.local.move(
+                tmp_file, doc_pair.local_parent_path, name=doc_pair.remote_name
+            )
+            if updated_info is None:
+                raise OSError(f"Could not install the download for {os_path!r}")
+            installed = updated_info.filepath
+            installed_path = updated_info.path
+
+            # change_file_date() parses with the exact "%Y-%m-%d %H:%M:%S"
+            # format, so the server's timezone-aware datetime has to be
+            # normalised first.
+            self.local.change_file_date(
+                updated_info.filepath,
+                mtime=_fmt_remote_ts(
+                    remote_info.last_modification_time
+                    if remote_info
+                    else doc_pair.last_remote_updated
+                ),
+            )
+            doc_pair.local_digest = updated_info.get_digest()
+            self.dao.update_last_transfer(doc_pair.id, "download")
+            # First write after the replacement, so it is the one that has to
+            # carry the guard: it sets ``pair_state`` from the stale row, and
+            # every later predicate would then be comparing against its own
+            # write.
+            landed = self._refresh_local_state(
+                doc_pair,
+                updated_info,
+                expected_version=doc_pair.version,
+                expected_pair_state=doc_pair.pair_state,
+            )
+        except Exception:
+            # Without this the user's only copy is the one in the holding
+            # directory, and nothing downstream knows to look for it there.
+            log.warning(
+                f"Could not replace {doc_pair.local_name!r}; "
+                "putting the local copy back",
+                exc_info=True,
+            )
+            installed = updated_info.filepath if updated_info else None
+            if self._restore_aside(doc_pair, kept, installed):
+                with suppress(OSError):
+                    shutil.rmtree(holding)
+            raise
+
+        if not landed:
             log.debug(
                 f"Leaving {doc_pair.local_name!r} to the next cycle: it was "
                 "re-decided while the file was being replaced"
             )
-            self._restore_aside(doc_pair, kept)
+            if self._restore_aside(doc_pair, kept, installed):
+                with suppress(OSError):
+                    shutil.rmtree(holding)
             return False
 
+        # The database now names the file, but the row in hand still carries
+        # the old one, and a download that renamed it would send the move that
+        # follows to a path that no longer exists.
+        doc_pair.local_path = installed_path
+        doc_pair.local_parent_path = installed_path.parent
+        doc_pair.local_name = installed_path.name
+
+        with suppress(OSError):
+            shutil.rmtree(holding)
         with suppress(OSError):
             shutil.rmtree(tmp_file.parent)
         # Only the pre-transfer snapshot may become the baseline. Fetching one
