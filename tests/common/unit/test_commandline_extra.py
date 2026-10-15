@@ -74,6 +74,8 @@ def restore_commandline_global_state():
 def cli(tmp_path):
     home = tmp_path / "options-home"
     home.mkdir()
+    # Without that marker, launch() would open the modal EULA dialog.
+    (home / "eula_accepted").touch()
     Options.nxdrive_home = home
     Options.server_type = "NUXEO"
     # Protocol callbacks use the lower-priority CLI setter, so preserve a
