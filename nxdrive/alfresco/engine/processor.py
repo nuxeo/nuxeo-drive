@@ -305,6 +305,12 @@ class AlfrescoProcessor(_ProcessorBase):
 
         *reason* travels in the same statement so a resolver woken by the
         signal cannot see the conflict before knowing why it was raised.
+
+        ``remote_digest`` goes with it: Alfresco serves no content hash, so it
+        only ever holds what *we* last uploaded. Once a conflict says the two
+        sides differ, that value is a claim about the server we can no longer
+        make, and a later download would use it to reuse a local duplicate
+        instead of fetching the bytes the user asked for.
         """
         log.info(
             f"Marking pair as conflicted: {doc_pair.local_name!r} "
@@ -317,6 +323,7 @@ class AlfrescoProcessor(_ProcessorBase):
             "conflicted",
             last_error=reason,
             last_error_details=details,
+            clear_remote_digest=True,
         )
 
     def _conflicting_remote_twin(

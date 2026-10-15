@@ -511,6 +511,70 @@ class TestForceRemoteExpectedPairState:
         assert dao.get_state_from_id(pair.id).pair_state == "remotely_modified"
 
 
+class TestForceSyncClearsTheRemoteDigest:
+    """A digest invalidated by the flip must not be readable after it."""
+
+    def _digest(self, dao, row_id):
+        cursor = dao._get_read_connection().cursor()
+        return cursor.execute(
+            "SELECT remote_digest FROM States WHERE id = ?", (row_id,)
+        ).fetchone()[0]
+
+    def _with_digest(self, dao):
+        pair = _insert(dao)
+        cursor = dao._get_write_connection().cursor()
+        cursor.execute(
+            "UPDATE States SET remote_digest = ? WHERE id = ?", ("OURUPLOAD", pair.id)
+        )
+        return dao.get_state_from_id(pair.id)
+
+    def test_the_digest_dies_with_the_conflict(self, dao):
+        pair = self._with_digest(dao)
+
+        dao._force_sync(
+            pair, "modified", "modified", "conflicted", clear_remote_digest=True
+        )
+
+        assert self._digest(dao, pair.id) is None
+        # The caller keeps using this row, so it must agree with the database.
+        assert pair.remote_digest is None
+
+    def test_a_refused_flip_leaves_the_digest_alone(self, dao):
+        """Nothing was invalidated, because nothing was decided."""
+        pair = self._with_digest(dao)
+        stale = dao.get_state_from_id(pair.id)
+        stale.version += 1
+
+        dao._force_sync(
+            stale, "modified", "modified", "conflicted", clear_remote_digest=True
+        )
+
+        assert self._digest(dao, pair.id) == "OURUPLOAD"
+
+    def test_the_default_keeps_it(self, dao):
+        """Nuxeo never asks for this and must keep today's behaviour."""
+        pair = self._with_digest(dao)
+
+        dao._force_sync(pair, "modified", "modified", "conflicted")
+
+        assert self._digest(dao, pair.id) == "OURUPLOAD"
+
+
+class TestUpdateLocalDigest:
+    """Acknowledging the bytes on disk, without claiming anything else."""
+
+    def test_only_the_digest_moves(self, dao):
+        pair = _insert(dao)
+        before = dao.get_state_from_id(pair.id)
+
+        dao.update_local_digest(pair, "on-disk-now")
+
+        after = dao.get_state_from_id(pair.id)
+        assert after.local_digest == "on-disk-now"
+        assert pair.local_digest == "on-disk-now"
+        assert (after.pair_state, after.version) == (before.pair_state, before.version)
+
+
 class TestClearRemoteDigest:
     """A digest we can no longer vouch for must not pass as the server's."""
 

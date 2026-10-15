@@ -650,6 +650,21 @@ class TestReconcileChildEarlyReturns:
         kwargs = watcher.dao.force_remote.call_args.kwargs
         assert kwargs["expected_pair_state"] == "synchronized"
 
+    def test_the_unchanged_path_is_guarded_too(self):
+        """It is reached *after* the byte comparison, so it has had just as
+        long for a decision to land: a same-second rename with matching bytes
+        answers "unchanged" seconds later."""
+        watcher = _watcher()
+        watcher._lock_was_released = MagicMock(return_value=False)
+        watcher._content_changed = MagicMock(return_value=False)
+        pair = _pair(pair_state="synchronized", remote_state="synchronized", version=6)
+
+        watcher._reconcile_child(pair, _info(), "/remote", Path("/sync"))
+
+        kwargs = watcher.dao.update_remote_state.call_args.kwargs
+        assert kwargs["expected_version"] == 6
+        assert kwargs["expected_pair_state"] == "synchronized"
+
     def test_the_content_change_write_is_guarded_on_state_too(self):
         """The byte comparison can take seconds, and ``_force_sync`` raises a
         conflict without bumping ``version``."""
@@ -1001,6 +1016,88 @@ class TestBaselineAfterTheReplace:
         assert proc._update_remotely(_pair(remote_name="file.txt"), False) is False
 
         proc.dao.update_remote_state.assert_not_called()
+
+
+class TestResolveWithRemoteTerminates:
+    """ "Use remote" has to be a way out, not another lap.
+
+    The conflict can be raised because the bytes on disk no longer match
+    ``local_digest`` -- a save the watchdog missed. Flipping the states alone
+    leaves that mismatch, so the processor raises the same conflict again and
+    the user is stuck in a loop with no exit.
+    """
+
+    def _engine_with(self, on_disk, /):
+        engine = _engine()
+        engine.local.get_info.return_value.get_digest.return_value = on_disk
+        engine.dao.get_state_from_id.return_value = _pair(
+            local_digest="recorded-earlier"
+        )
+        return engine
+
+    def test_the_stale_baseline_is_replaced_before_the_flip(self):
+        engine = self._engine_with("what-is-on-disk-now")
+
+        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
+            engine.resolve_with_remote(1)
+
+        engine.dao.update_local_digest.assert_called_once()
+        assert engine.dao.update_local_digest.call_args.args[1] == "what-is-on-disk-now"
+
+    def test_the_download_then_runs_instead_of_re_conflicting(self):
+        """The whole point: the second pass must get past the digest check."""
+        engine = self._engine_with("what-is-on-disk-now")
+        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
+            engine.resolve_with_remote(1)
+        resolved = engine.dao.update_local_digest.call_args.args[0]
+
+        proc = _processor()
+        proc._download_content = MagicMock(return_value=Path("/tmp/dl/file.txt"))
+        proc._local_file_in_use = MagicMock(return_value=False)
+        proc._mark_conflicted = MagicMock()
+        proc._refresh_local_state = MagicMock(return_value=True)
+        proc.local.abspath.return_value = Path("/sync/file.txt")
+        proc.local.get_info.return_value.get_digest.return_value = "what-is-on-disk-now"
+        resolved.remote_name = "file.txt"
+
+        assert proc._update_remotely(resolved, False) is True
+
+        proc._mark_conflicted.assert_not_called()
+
+    @pytest.mark.parametrize("unreadable", (UNACCESSIBLE_HASH, "", None))
+    def test_an_unreadable_file_still_resolves(self, unreadable):
+        """A missing local file is the commonest "use remote" case of all."""
+        engine = self._engine_with(unreadable)
+
+        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote") as base:
+            engine.resolve_with_remote(1)
+
+        engine.dao.update_local_digest.assert_not_called()
+        base.assert_called_once_with(1)
+
+    def test_a_failing_probe_does_not_block_the_resolution(self):
+        engine = self._engine_with("x")
+        engine.local.get_info.side_effect = OSError("gone")
+
+        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote") as base:
+            engine.resolve_with_remote(1)
+
+        base.assert_called_once_with(1)
+
+
+class TestConflictDropsTheRemoteDigest:
+    """Alfresco serves no content hash, so ``remote_digest`` only holds what
+    *we* last uploaded. A conflict says the two sides differ, which makes that
+    value a claim about the server we can no longer make -- and a later
+    download would use it to reuse a local duplicate instead of fetching."""
+
+    def test_the_flip_clears_it_in_the_same_statement(self):
+        proc = _processor()
+
+        proc._mark_conflicted(_pair(), reason=REMOTE_DRIFTED)
+
+        kwargs = proc.dao._force_sync.call_args.kwargs
+        assert kwargs["clear_remote_digest"] is True
 
 
 # ---------------------------------------------------------------------------

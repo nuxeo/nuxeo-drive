@@ -1665,12 +1665,16 @@ class EngineDAO(BaseDAO):
         last_error: str = None,
         last_error_details: str = None,
         expected_pair_state: str = None,
+        clear_remote_digest: bool = False,
     ) -> bool:
         # The reason is written in the same statement as the state flip because
         # this also fires ``newConflict``: a resolver reacting to that signal
         # must never observe the conflict without the reason that justifies it.
+        # *clear_remote_digest* rides along for the same reason: a digest the
+        # flip has just invalidated must never be readable after it.
         state_clause = "" if expected_pair_state is None else "   AND pair_state = ?"
         state_value = () if expected_pair_state is None else (expected_pair_state,)
+        digest_clause = ",       remote_digest = NULL" if clear_remote_digest else ""
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(
@@ -1682,6 +1686,7 @@ class EngineDAO(BaseDAO):
                 "       last_error_details = ?,"
                 "       last_sync_error_date = NULL,"
                 "       error_count = 0"
+                f"{digest_clause}"
                 " WHERE id = ?"
                 "   AND version = ?"
                 f"{state_clause}",
@@ -1697,6 +1702,8 @@ class EngineDAO(BaseDAO):
                 ),
             )
             landed = c.rowcount == 1
+            if landed and clear_remote_digest:
+                row.remote_digest = None
             # A refused conditional write must not queue the state it failed to
             # write, or the processor acts on a transition that never happened.
             if landed or expected_pair_state is None:
@@ -1777,6 +1784,19 @@ class EngineDAO(BaseDAO):
             c = self._get_write_connection().cursor()
             c.execute("UPDATE States SET remote_digest = NULL WHERE id = ?", (row.id,))
         row.remote_digest = None
+
+    def update_local_digest(self, row: DocPair, digest: str, /) -> None:
+        """Record *digest* as the known state of the local file.
+
+        Only the digest moves: this is for callers acknowledging the bytes
+        currently on disk, not reporting a sync decision about them.
+        """
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE States SET local_digest = ? WHERE id = ?", (digest, row.id)
+            )
+        row.local_digest = digest
 
     def force_remote_creation(self, row: DocPair, /) -> bool:
         return self._force_sync(row, "unknown", "created", "remotely_created")

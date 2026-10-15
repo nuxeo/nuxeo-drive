@@ -9,6 +9,7 @@ Phase 1 scope: account addition + synchronization only.
 Excluded features: Direct Edit, Direct Transfer, Direct Download.
 """
 
+from contextlib import suppress
 from logging import getLogger
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Dict, Optional, Type
@@ -36,7 +37,7 @@ from nxdrive.alfresco.engine.watcher.remote_watcher import (
 from nxdrive.drive import server_type as _st
 from nxdrive.drive.client.local import LocalClient
 from nxdrive.drive.client.local.base import LocalClientMixin
-from nxdrive.drive.constants import ROOT
+from nxdrive.drive.constants import ROOT, UNACCESSIBLE_HASH
 from nxdrive.drive.engine.engine import Engine
 from nxdrive.drive.exceptions import RemoteUnauthorized
 from nxdrive.drive.feature import Feature
@@ -613,6 +614,29 @@ class AlfrescoEngine(Engine):
             return
 
         self._defer_conflict(row_id, emit)
+
+    def resolve_with_remote(self, row_id: int, /) -> None:
+        """Accept the server copy, and record what the user is giving up.
+
+        The conflict may have been raised because the file on disk no longer
+        matches ``local_digest`` — a save the watchdog missed. Flipping the
+        states alone leaves that mismatch in place, so the processor raises
+        the same conflict again and "Use remote" can never complete. Writing
+        the current bytes as the baseline settles it, while still leaving a
+        save made *after* this point detectable.
+        """
+        row = self.dao.get_state_from_id(row_id)
+        if not row:
+            return
+
+        with suppress(Exception):
+            info = self.local.get_info(row.local_path)
+            digest = info.get_digest()
+            if digest and digest != UNACCESSIBLE_HASH:
+                row.local_digest = digest
+                self.dao.update_local_digest(row, digest)
+
+        super().resolve_with_remote(row_id)
 
     def _defer_conflict(self, row_id: int, emit: bool, /) -> None:
         # ``Engine.start()`` re-checks every existing conflict with

@@ -681,10 +681,14 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             # committed, since a conflict raised in between keeps the version.
             self.dao.force_remote(child_pair, expected_pair_state=child_pair.pair_state)
         else:
+            # Reached after the byte comparison above, which takes seconds on
+            # a reported change, so the same decisions can have landed here.
             self.dao.update_remote_state(
                 child_pair,
                 child_info,
                 remote_parent_path=remote_parent_path,
+                expected_version=child_pair.version,
+                expected_pair_state=child_pair.pair_state,
             )
 
         return child_pair

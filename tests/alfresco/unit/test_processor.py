@@ -275,6 +275,7 @@ class TestMarkConflicted:
             "conflicted",
             last_error=None,
             last_error_details=None,
+            clear_remote_digest=True,
         )
 
 
@@ -821,6 +822,7 @@ class TestSynchronizeLocallyCreated:
             "conflicted",
             last_error=DIFFERENT_CONTENT,
             last_error_details=None,
+            clear_remote_digest=True,
         )
 
     def test_conflicted_pair_is_bound_to_the_twin(self, proc) -> None:
@@ -1643,6 +1645,7 @@ class TestMarkConflictedExtra:
             "conflicted",
             last_error=None,
             last_error_details=None,
+            clear_remote_digest=True,
         )
 
 
@@ -1979,6 +1982,7 @@ class TestExecuteEdgeCases:
             "conflicted",
             last_error=None,
             last_error_details=None,
+            clear_remote_digest=True,
         )
 
     def test_download_paused_sets_transfer_doc(self, proc):
