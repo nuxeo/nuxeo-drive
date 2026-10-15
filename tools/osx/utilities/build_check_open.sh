@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 #
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
+#
 # Build the universal (arm64 + x86_64) `check_open` helper and install it into
 # the application data directory so PyInstaller ships it.
 #

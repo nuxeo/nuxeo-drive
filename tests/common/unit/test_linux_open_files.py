@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Open-file detection on GNU/Linux (``osi/linux/linux.py``).
 
 The helper script is exercised separately; what is pinned here is the contract
