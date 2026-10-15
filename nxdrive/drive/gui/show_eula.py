@@ -7,6 +7,7 @@ from logging import getLogger
 from PySide6.QtGui import QKeyEvent
 
 from nxdrive.drive.translator import Translator
+from nxdrive.drive.utils import find_resource
 
 from ..qt.imports import (
     QApplication,
@@ -75,6 +76,7 @@ class EULA(QApplication):
         super().__init__([])
 
         self.server_type = server_type.upper()
+        self._init_translator()
 
         # Needed to stop EULA Application from closing
         # until the Open Source Attribution notice is shown
@@ -131,12 +133,35 @@ class EULA(QApplication):
         finally:
             self.eula_dialog.deleteLater()
             self.eula_scroller.deleteLater()
+            self.removeTranslator(self.translator_singleton)
             self.exit(0)
+
+    def _init_translator(self) -> None:
+        """Initialize a translator singleton"""
+
+        import locale
+
+        locale.setlocale(locale.LC_ALL, "")
+        locale_info = locale.getlocale()
+        user_lang = (
+            locale_info[0].split("_")[0]
+            if locale_info and locale_info[0]
+            else "English"
+        )
+        lang_code = (
+            locale.normalize(user_lang)[:2].lower()
+            if locale.normalize(user_lang)
+            else "en"
+        )
+        Translator(find_resource("i18n"), lang=lang_code)
+        self.translator_singleton = Translator.singleton
+        self.installTranslator(self.translator_singleton)
 
     def reject_eula(self) -> None:
         """Called on EULA Reject"""
         self.eula_dialog.deleteLater()
         self.eula_scroller.deleteLater()
+        self.removeTranslator(self.translator_singleton)
         self.exit(1)
 
 
@@ -175,11 +200,15 @@ def get_eula_dialog(server_type: str = "Nuxeo") -> QDialog:
 
     ok_button = QPushButton()
     ok_button.setText(Translator.get("BUTTON_OK"))
+    ok_button.setFixedWidth(70)
     ok_button.clicked.connect(dialog.accept)
+
+    button_layout = QHBoxLayout()
+    button_layout.addWidget(ok_button, alignment=Qt.AlignmentFlag.AlignHCenter)
 
     layout = QVBoxLayout()
     layout.addWidget(scroller)
-    layout.addWidget(ok_button)
+    layout.addLayout(button_layout)
 
     dialog.setLayout(layout)
     dialog.setMinimumSize(500, 500)

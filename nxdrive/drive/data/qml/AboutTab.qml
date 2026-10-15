@@ -83,15 +83,11 @@ Rectangle {
             font.family: "Courier"
             color: primaryText
             property string appName: SERVER_TYPE === "ALFRESCO" ? "Hyland Drive for Alfresco" : "Nuxeo Drive"
-            text: "The source code of " + appName + " is available under the LGPL 2.1." +
-                  "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html\n\n" +
-                  appName + " depends on those components:" +
-                  "- Qt: GNU Lesser General Public License, version 3" +
-                  "- PyQt: GNU General Public License, version 2 or 3\n\n" +
-                  "Thus any code written on the top of " + appName + " must be distributed" +
-                  "under the terms of a GPL compliant license.\n\n" +
-                  "©2026 Hyland Software, Inc. and its affiliates. All rights reserved. " +
-                  "All Hyland product names are registered or unregistered trademarks of Hyland Software, Inc. or its affiliates."
+            property string productName: SERVER_TYPE === "NUXEO" ? "Nuxeo" : "Alfresco"
+            text: appName + " includes third-party open source components, which are licensed under their own terms.\n" +
+                  "See the Open Source Attribution Notice for the full list of components and their licences.\n" +
+                  "©2026 Hyland. " + productName + ", Hyland, the H design, and Hyland product names " +
+                  "are registered and/or unregistered trademarks of Hyland and its affiliates in the United States and other countries."
         }
     }
 }

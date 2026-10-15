@@ -1,1 +1,324 @@
-﻿HYLAND SOFTWARENUXEO DRIVEEND USER LICENSE AGREEMENTIMPORTANT -- READ CAREFULLYThis End User License Agreement ("Agreement") is made between Hyland (defined below) and the person or entity ("Customer") that has submitted to Hyland or an applicable Hyland authorized channel partner written purchase orders that have been accepted by Hyland or such channel partner for Hyland's proprietary software products, including, in each case, third party software bundled by Hyland as part of a unified product ("Software"), that has paid the applicable Software license fees or subscription fees for such Software and that has agreed to the terms of this Agreement by clicking the "I ACCEPT THE AGREEMENT" option that appears at the bottom of this screen ("Acceptance Date"). Unless Hyland and Customer have executed and delivered another License Agreement or document of similar import with respect to the Software, BY CLICKING ON THE "I ACCEPT THE AGREEMENT" OPTION AT THE BOTTOM OF THIS SCREEN, CUSTOMER AGREES TO BE BOUND BY THE TERMS OF THIS AGREEMENT. IF CUSTOMER IS NOT WILLING TO BE BOUND BY THESE TERMS, CUSTOMER SHOULD CLICK ON THE "I DECLINE THE AGREEMENT" OPTION AT THE BOTTOM OF THIS SCREEN. If Hyland or one of Hyland's affiliates or any one of Hyland's authorized channel partners and Customer have executed and delivered another License Agreement or document of similar import with respect to the Software, this Agreement shall have no force or effect and the terms and conditions of such other License Agreement or document of similar import shall govern. Customer acknowledges and agrees that, (i) if Customer licenses the Software for installation on Customer's premises (or any cloud environment not managed by Hyland) and (ii) Customer has also entered into an agreement with Hyland or one of its affiliates for Hyland Cloud Services (also referred to as a Hosted Solution) or other solution hosted by Hyland or one of its affiliates (the "SaaS Agreement"), then the terms of the SaaS Agreement do not apply to any such Software.As used herein, "Hyland" means, in any case where Customer is located in the United States or Canada, Hyland Software, Inc. ("Hyland"), 28105 Clemens Road, Westlake, Ohio 44145 USA, and in any case where Customer is located elsewhere, Hyland UK Operations Limited, The Place, Bridge Avenue, Maidenhead SL6 1AF, UK.REPRESENTATION AND WARRANTY REGARDING AUTHORITY: BY CLICKING THE "I ACCEPT THE AGREEMENT" OPTION AT THE BOTTOM OF THIS SCREEN, CUSTOMER REPRESENTS AND WARRANTS THAT THE PERSON THAT HAS CLICKED THE "I ACCEPT THE AGREEMENT" OPTION HAS ALL REQUISITE POWER AND AUTHORITY, FOR AND ON BEHALF OF CUSTOMER, TO TAKE SUCH ACTION AND TO BIND CUSTOMER TO SUCH ACCEPTANCE AND TO THE TERMS AND CONDITIONS OF THIS AGREEMENT.1.  LICENSE(a) Subject to payment in full of the Software license fees or subscription fees, and subject further to Customer's compliance with this Agreement, Hyland grants to Customer a revocable (as the case may be), non-exclusive, non-assignable (except as provided in this Agreement), limited license to the Software, in machine-readable object code form only, solely for use by: (i) Customer internally, and only for capturing, storing, processing and accessing Customer's own data in connection with authorised Nuxeo repositories; and (ii) subject to the contractor requirements set forth herein below, by a third party contractor retained by Customer as a provider of services to Customer ("Contractor"), but only by the Contractor for capturing, storing, processing and accessing Customer's own data in fulfillment of the Contractor's contractual obligations as a service provider to Customer, in each case for the duration and extent to which Customer has paid the appropriate license fees or subscription fees. The Software and associated Documentation are licensed for use by a single organization and may not be used for the processing of third-party data as a service bureau, application service provider or otherwise. Customer shall not make any use of the Software in any manner not expressly permitted by this Agreement.(b) The Software is licensed for a specific type of use, such as concurrently or on a specified workstation or by a specified individual and the Software may control such use. Customer may not circumvent or attempt to circumvent this restriction by any means, including but not limited to changing the computer calendars. Use of software or hardware that reduces the number of users directly accessing or utilizing the Software does not reduce the number of Software licenses required. Customer further agrees that the Software shall not be copied and installed on additional servers unless Customer has purchased a license therefore, and the number of users of the Software shall not exceed the number of users permitted by the Software licenses purchased by Customer.(c) Unless otherwise stated in an Order Form, Customer shall be entitled to use one (1) production copy of the Software licensed and one (1) additional copy of the production environment licensed Software for customary remote disaster recovery purposes which may not be used as a production system concurrently with the operation of any other copy of the Software in a production environment. Subject to the payment of any additional applicable fees, Customer shall also be entitled to license a reasonable number of additional copies of the production environment licensed Software to be used exclusively in a non-production environment and solely for the purposes of experimenting and testing the Software, developing integrations, and training Customer's employees on the Software ("Test Systems"). For purpose of this Agreement, "Order Form" means an ordering document signed by the applicable parties, describing the Software or other products or services purchased, associated fees, and other terms agreed to by the parties.(d) Customer agrees not to: (1) remove copyright, trademark or other proprietary rights notices that appear on or during the use of the Software or Documentation; (2) sell, transfer, rent, lease or sub-license the Software or Documentation to any third party; (3) alter or modify the Software or Documentation; or (4) reverse engineer, disassemble, decompile or attempt to derive source code from the Software or Documentation or prepare derivative works therefrom.(e) From time to time Customer may elect to evaluate certain Software ("Evaluation Software") for the purpose of determining whether or not to purchase a production license of such Evaluation Software. Evaluation Software is licensed for Customer's use in a non-production environment. The Agreement and the limited license granted hereby will terminate on the earliest of: (a) last day of the evaluation period specified in the accepted purchase order or Order Form; or (b) immediately upon the delivery of written notice to such effect by Hyland to Customer.(f) Except as otherwise set forth in this Agreement, neither party may assign, transfer or sublicense all or part of this Agreement or its rights or obligations under this Agreement without the prior written consent of the other party. Notwithstanding anything to the contrary, Hyland may assign this Agreement to any Hyland affiliate without the consent of the other party upon written notice to the other party.(g) The Software may be bundled with software owned by third parties. Such third party software is licensed solely for use within the Software and is not to be used on a stand-alone basis. Customer acknowledges that the Software may include open source software governed by an open source licence, in which case the open source licence may grant additional rights to such open source software.(h) Software also includes any desktop host or other content services software provided by Hyland and downloaded on a user's computer used to extend functionality in Hyland's products. Such desktop software may only be used in combination with other Software and in accordance with the terms of this Agreement.(i) Customer agrees that if it desires to allow a Contractor to make use of the Software configuration tools, administrative tools, APIs, training materials, or any of Hyland's secure websites, Customer must cause such Contractor to execute a use agreement in a form available for download at Hyland's Community website ("Contractor Use Agreement").(j) The Software is not fault-tolerant and is not guaranteed to be error free or to operate uninterrupted. The Software is not designed or intended for use in any High Risk Use situation where failure could lead to death, serious bodily injury, or severe physical or environmental damage. HIGH RISK USE IS STRICTLY PROHIBITED.(k) During the term of this Agreement and for one (1) year thereafter, upon reasonable notice to Customer, Hyland shall be permitted access to Customer's facilities and records, during regular business hours, to audit Customer's use of the Software solely in order to determine Customer's compliance with the licensing and pricing terms of this Agreement.2.  OWNERSHIP OF SOFTWAREThe Software is proprietary to and a trade secret of Hyland. Hyland and its licensors retain all right, title, and interest in and to the Software, including all intellectual property rights therein. Customer's possession, installation, or use of the Software does not transfer to Customer any title to the intellectual property in the Software. Except for the limited rights expressly granted under this Agreement, Hyland reserves all rights.3.  FEES; DELIVERYAll fees, costs and expenses shall be determined and invoiced in, and all payments required to be made in connection with this Agreement shall be made in the currency identified on the applicable Order Form. Customer is responsible for hardware and non-licensed software for the installation, operation and support of the Software.4.  LIMITED WARRANTY; DISCLAIMER OF OTHER WARRANTIES(a) For a period of sixty (60) days from the date of delivery of Software, Hyland warrants to Customer that the media on which the Software is delivered are free from defects in materials and in workmanship.(b) For a period of sixty (60) days from delivery, Hyland warrants to Customer that the Software, when properly installed and properly used, will operate substantially in accordance with the Documentation. The terms of this warranty shall not apply to any Software that has been (1) modified by Customer or a third party, (2) used in combination with equipment or software other than that which is consistent with the Documentation, or (3) misused or abused.(c) Hyland's sole obligation, and Customer's sole and exclusive remedy, for any non-conformities to the express limited warranties shall be: provided that, within the applicable 60-day period, Customer notifies Hyland in writing of the non-conformity, Hyland will either (1) repair or replace the non-conforming Software; or (2) if Hyland determines that repair or replacement is not commercially practicable, terminate this Agreement and refund any portion of fees paid with respect to such Software.(d) EXCEPT FOR THE WARRANTIES PROVIDED BY HYLAND AS EXPRESSLY SET FORTH IN THIS AGREEMENT, HYLAND AND ITS SUPPLIERS MAKE NO WARRANTIES OR REPRESENTATIONS REGARDING ANY SOFTWARE. HYLAND AND ITS SUPPLIERS DISCLAIM AND EXCLUDE ANY AND ALL OTHER EXPRESS, IMPLIED AND STATUTORY WARRANTIES, INCLUDING WITHOUT LIMITATION WARRANTIES OF GOOD TITLE, WARRANTIES AGAINST INFRINGEMENT, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. HYLAND AND ITS SUPPLIERS DO NOT WARRANT THAT THE SOFTWARE PROVIDED WILL SATISFY REQUIREMENTS OR IS WITHOUT DEFECT OR ERROR, OR THAT THE OPERATION OF ANY SOFTWARE PROVIDED WILL BE UNINTERRUPTED.(e) No oral or written information given by Hyland, its agents, or employees shall create any additional warranty.5.  LIMITATIONS OF LIABILITYHYLAND'S (INCLUDING ITS AFFILIATES AND SUPPLIERS) TOTAL, CUMULATIVE LIABILITY ARISING OUT OF OR RELATED TO THIS AGREEMENT OR THE PRODUCTS PROVIDED UNDER IT, WHETHER IN CONTRACT OR TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL OR EQUITABLE THEORY, SHALL IN NO EVENT EXCEED THE TOTAL AMOUNTS ACTUALLY PAID BY CUSTOMER (LESS ANY REFUNDS OR CREDITS) FOR USE OF THE PRODUCTS GIVING RISE TO THE CLAIM DURING THE TWELVE (12) MONTH PERIOD IMMEDIATELY PRECEDING THE FIRST EVENT GIVING RISE TO SUCH CLAIM.NEITHER PARTY NOR ANY OF ITS AFFILIATES (AND IN THE CASE OF HYLAND, ITS SUPPLIERS) SHALL BE LIABLE, WHETHER IN CONTRACT, TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL OR EQUITABLE THEORY, FOR ANY INDIRECT, INCIDENTAL, SPECIAL, PUNITIVE, OR CONSEQUENTIAL DAMAGES, OR ANY LOSS OF REVENUE, GOODWILL, SAVINGS OR PROFITS, LOSS OR CORRUPTION OF DATA OR PROGRAMS, OR BUSINESS INTERRUPTION DAMAGES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.6.  MAINTENANCEMaintenance and technical support of the Software may be available for purchase by Customer from Hyland or the Hyland authorized channel partner through which Customer has ordered the Software pursuant to the terms of a separate agreement.7.  TERM; TERMINATIONThis Agreement will terminate upon the expiration of the term of all of the licenses of the Software for which Customer has paid applicable fees, unless earlier terminated. Hyland may terminate this Agreement if Customer breaches or fails to comply with any provision of this Agreement. Upon termination, Customer shall immediately (a) discontinue any and all use of the Software and Documentation; and (b) either (1) return the Software and Documentation to Hyland, or (2) with the prior permission of Hyland, destroy the Software and Documentation and certify in writing to Hyland that Customer has completed such destruction.8.  SEVERABILITYIf any provision of this Agreement is found by a proper authority to be unenforceable or invalid, such unenforceability or invalidity shall not render this Agreement unenforceable or invalid as a whole and in such event, such provision shall be changed and interpreted so as to best accomplish the objectives of such unenforceable or invalid provision within the limits of applicable law or applicable court decisions.9.  NOTICEUnless otherwise agreed to by the parties in a writing signed by both parties, all notices required under this Agreement shall be deemed effective when made in writing and sent to each party, by either: (A) reputable overnight courier, specifying next day delivery to the address specified in the Order Form or last known business address of such party; or (B) email to the address specified in the Order Form or such other email address provided by such party for such purpose, without receipt of a notice of failed delivery.In cases where the Hyland contracting party is not Hyland Software, Inc., all notices shall also be sent with copy to:Hyland Software, Inc. 28105 Clemens Road Westlake, OH 44145 Attn: General Counsel hylandcontracts@hyland.com10.  GOVERNING LAW; JURISDICTIONThis Agreement and any claim, action, suit, proceeding or dispute arising out of this Agreement shall in all respects be governed by, and interpreted in accordance with, the substantive laws of: (i) in the case "Hyland" is Hyland UK Operations Limited, England and Wales, and (ii) in the case "Hyland" is Hyland Software, Inc., the State of Ohio, USA, without regard to the conflicts of laws provisions thereof. Venue and jurisdiction for any action, suit or proceeding arising out of this Agreement shall vest exclusively in: (i) in the case "Hyland" is Hyland UK Operations Limited, the courts of London, England, and (ii) in the case "Hyland" is Hyland Software, Inc., the courts of general jurisdiction located in Cuyahoga County, Ohio.11.  ENTIRE AGREEMENTThis Agreement constitutes the entire Agreement among the parties with respect to the subject matter of this Agreement. No provision of this Agreement will be deemed waived, amended or modified by any of the parties, unless such waiver, amendment or modification is made in writing and signed by authorized representatives of all the parties. This Agreement supersedes all previous agreements between or among any of the parties relating to the subject matter hereof.12.  U.S. GOVERNMENT END USERSTo the extent applicable to Customer, the terms and conditions of the Agreement shall pertain to the U.S. Government's use and/or disclosure of the Software, and shall supersede any conflicting contractual terms or conditions. The Software is developed exclusively at private expense.13.  EXPORTAny Software or Documentation provided under this Agreement are subject to export control laws and regulations of the United States and other jurisdictions. Customer agrees to comply fully with all relevant export control laws and regulations, including the regulations of the U.S. Department of Commerce and all U.S. export control laws. Customer agrees that it will not export or re-export Hyland's Software or Documentation to any organizations or nationals in United States embargoed territories or for any prohibited end uses.14.  THIRD PARTIESNothing herein expressed or implied is intended or shall be construed to confer upon or give to any person or entity, other than the parties hereto, any rights or remedies by reason of this Agreement; provided, however, that third party suppliers of software products bundled with the Software are third party beneficiaries to this Agreement as it applies to their respective software products.15.  CONFIDENTIAL INFORMATIONCustomer agrees to hold in confidence, and to take all reasonable steps to avoid publication or disclosure of (except as required by law or court order), Hyland's confidential information. "Confidential information" shall mean: (a) all information and/or material obtained by Customer from, or disclosed to Customer by, Hyland or any of its authorized agents or channel partners that relates to Hyland's past, present or future business activities and which is clearly labeled or identified in writing to Customer at the time of disclosure as "Confidential"; and (b) the Software and related documentation, training materials, and all related or included software source documents, algorithms, formulae, ideas, techniques, know-how, inventions, product/service specifications, research, experimental work, development, design details and specifications.© 2024-2025 Hyland.Hyland, the H design, and Hyland product names are registered and/or unregistered trademarks of Hyland and its affiliates in the United States and other countries.
+﻿HYLAND SOFTWARE
+NUXEO DRIVE
+END USER LICENSE AGREEMENT
+IMPORTANT -- READ CAREFULLY
+
+This End User License Agreement ("Agreement") is made between Hyland (defined
+below) and the person or entity ("Customer") that has submitted to Hyland or an
+applicable Hyland authorized channel partner written purchase orders that have
+been accepted by Hyland or such channel partner for Hyland's proprietary
+software products, including, in each case, third party software bundled by
+Hyland as part of a unified product ("Software"), that has paid the applicable
+Software license fees or subscription fees for such Software and that has agreed
+to the terms of this Agreement by clicking the "I ACCEPT THE AGREEMENT" option
+that appears at the bottom of this screen ("Acceptance Date"). Unless Hyland and
+Customer have executed and delivered another License Agreement or document of
+similar import with respect to the Software, BY CLICKING ON THE "I ACCEPT THE
+AGREEMENT" OPTION AT THE BOTTOM OF THIS SCREEN, CUSTOMER AGREES TO BE BOUND BY
+THE TERMS OF THIS AGREEMENT. IF CUSTOMER IS NOT WILLING TO BE BOUND BY THESE
+TERMS, CUSTOMER SHOULD CLICK ON THE "I DECLINE THE AGREEMENT" OPTION AT THE
+BOTTOM OF THIS SCREEN. If Hyland or one of Hyland's affiliates or any one of
+Hyland's authorized channel partners and Customer have executed and delivered
+another License Agreement or document of similar import with respect to the
+Software, this Agreement shall have no force or effect and the terms and
+conditions of such other License Agreement or document of similar import shall
+govern. Customer acknowledges and agrees that, (i) if Customer licenses the
+Software for installation on Customer's premises (or any cloud environment not
+managed by Hyland) and (ii) Customer has also entered into an agreement with
+Hyland or one of its affiliates for Hyland Cloud Services (also referred to as a
+Hosted Solution) or other solution hosted by Hyland or one of its affiliates
+(the "SaaS Agreement"), then the terms of the SaaS Agreement do not apply to any
+such Software.
+
+As used herein, "Hyland" means, in any case where Customer is located in the
+United States or Canada, Hyland Software, Inc. ("Hyland"), 28105 Clemens Road,
+Westlake, Ohio 44145 USA, and in any case where Customer is located elsewhere,
+Hyland UK Operations Limited, The Place, Bridge Avenue, Maidenhead SL6 1AF, UK.
+
+REPRESENTATION AND WARRANTY REGARDING AUTHORITY: BY CLICKING THE "I ACCEPT THE
+AGREEMENT" OPTION AT THE BOTTOM OF THIS SCREEN, CUSTOMER REPRESENTS AND WARRANTS
+THAT THE PERSON THAT HAS CLICKED THE "I ACCEPT THE AGREEMENT" OPTION HAS ALL
+REQUISITE POWER AND AUTHORITY, FOR AND ON BEHALF OF CUSTOMER, TO TAKE SUCH
+ACTION AND TO BIND CUSTOMER TO SUCH ACCEPTANCE AND TO THE TERMS AND CONDITIONS
+OF THIS AGREEMENT.
+
+1. LICENSE
+
+(a) Subject to payment in full of the Software license fees or subscription
+fees, and subject further to Customer's compliance with this Agreement, Hyland
+grants to Customer a revocable (as the case may be), non-exclusive,
+non-assignable (except as provided in this Agreement), limited license to the
+Software, in machine-readable object code form only, solely for use by: (i)
+Customer internally, and only for capturing, storing, processing and accessing
+Customer's own data in connection with authorised Nuxeo repositories; and (ii)
+subject to the contractor requirements set forth herein below, by a third party
+contractor retained by Customer as a provider of services to Customer
+("Contractor"), but only by the Contractor for capturing, storing, processing
+and accessing Customer's own data in fulfillment of the Contractor's contractual
+obligations as a service provider to Customer, in each case for the duration and
+extent to which Customer has paid the appropriate license fees or subscription
+fees. The Software and associated Documentation are licensed for use by a single
+organization and may not be used for the processing of third-party data as a
+service bureau, application service provider or otherwise. Customer shall not
+make any use of the Software in any manner not expressly permitted by this
+Agreement.
+
+(b) The Software is licensed for a specific type of use, such as concurrently or
+on a specified workstation or by a specified individual and the Software may
+control such use. Customer may not circumvent or attempt to circumvent this
+restriction by any means, including but not limited to changing the computer
+calendars. Use of software or hardware that reduces the number of users directly
+accessing or utilizing the Software does not reduce the number of Software
+licenses required. Customer further agrees that the Software shall not be copied
+and installed on additional servers unless Customer has purchased a license
+therefore, and the number of users of the Software shall not exceed the number
+of users permitted by the Software licenses purchased by Customer.
+
+(c) Unless otherwise stated in an Order Form, Customer shall be entitled to use
+one (1) production copy of the Software licensed and one (1) additional copy of
+the production environment licensed Software for customary remote disaster
+recovery purposes which may not be used as a production system concurrently with
+the operation of any other copy of the Software in a production environment.
+Subject to the payment of any additional applicable fees, Customer shall also be
+entitled to license a reasonable number of additional copies of the production
+environment licensed Software to be used exclusively in a non-production
+environment and solely for the purposes of experimenting and testing the
+Software, developing integrations, and training Customer's employees on the
+Software ("Test Systems"). For purpose of this Agreement, "Order Form" means an
+ordering document signed by the applicable parties, describing the Software or
+other products or services purchased, associated fees, and other terms agreed to
+by the parties.
+
+(d) Customer agrees not to: (1) remove copyright, trademark or other proprietary
+rights notices that appear on or during the use of the Software or
+Documentation; (2) sell, transfer, rent, lease or sub-license the Software or
+Documentation to any third party; (3) alter or modify the Software or
+Documentation; or (4) reverse engineer, disassemble, decompile or attempt to
+derive source code from the Software or Documentation or prepare derivative
+works therefrom.
+
+(e) From time to time Customer may elect to evaluate certain Software
+("Evaluation Software") for the purpose of determining whether or not to
+purchase a production license of such Evaluation Software. Evaluation Software
+is licensed for Customer's use in a non-production environment. The Agreement
+and the limited license granted hereby will terminate on the earliest of: (a)
+last day of the evaluation period specified in the accepted purchase order or
+Order Form; or (b) immediately upon the delivery of written notice to such
+effect by Hyland to Customer.
+
+(f) Except as otherwise set forth in this Agreement, neither party may assign,
+transfer or sublicense all or part of this Agreement or its rights or
+obligations under this Agreement without the prior written consent of the other
+party. Notwithstanding anything to the contrary, Hyland may assign this
+Agreement to any Hyland affiliate without the consent of the other party upon
+written notice to the other party.
+
+(g) The Software may be bundled with software owned by third parties. Such third
+party software is licensed solely for use within the Software and is not to be
+used on a stand-alone basis. Customer acknowledges that the Software may include
+open source software governed by an open source licence, in which case the open
+source licence may grant additional rights to such open source software.
+
+(h) Software also includes any desktop host or other content services software
+provided by Hyland and downloaded on a user's computer used to extend
+functionality in Hyland's products. Such desktop software may only be used in
+combination with other Software and in accordance with the terms of this
+Agreement.
+
+(i) Customer agrees that if it desires to allow a Contractor to make use of the
+Software configuration tools, administrative tools, APIs, training materials, or
+any of Hyland's secure websites, Customer must cause such Contractor to execute
+a use agreement in a form available for download at Hyland's Community website
+("Contractor Use Agreement").
+
+(j) The Software is not fault-tolerant and is not guaranteed to be error free or
+to operate uninterrupted. The Software is not designed or intended for use in
+any High Risk Use situation where failure could lead to death, serious bodily
+injury, or severe physical or environmental damage. HIGH RISK USE IS STRICTLY
+PROHIBITED.
+
+(k) During the term of this Agreement and for one (1) year thereafter, upon
+reasonable notice to Customer, Hyland shall be permitted access to Customer's
+facilities and records, during regular business hours, to audit Customer's use
+of the Software solely in order to determine Customer's compliance with the
+licensing and pricing terms of this Agreement.
+
+2. OWNERSHIP OF SOFTWARE
+
+The Software is proprietary to and a trade secret of Hyland. Hyland and its
+licensors retain all right, title, and interest in and to the Software,
+including all intellectual property rights therein. Customer's possession,
+installation, or use of the Software does not transfer to Customer any title to
+the intellectual property in the Software. Except for the limited rights
+expressly granted under this Agreement, Hyland reserves all rights.
+
+3. FEES; DELIVERY
+
+All fees, costs and expenses shall be determined and invoiced in, and all
+payments required to be made in connection with this Agreement shall be made in
+the currency identified on the applicable Order Form. Customer is responsible
+for hardware and non-licensed software for the installation, operation and
+support of the Software.
+
+4. LIMITED WARRANTY; DISCLAIMER OF OTHER WARRANTIES
+
+(a) For a period of sixty (60) days from the date of delivery of Software,
+Hyland warrants to Customer that the media on which the Software is delivered
+are free from defects in materials and in workmanship.
+
+(b) For a period of sixty (60) days from delivery, Hyland warrants to Customer
+that the Software, when properly installed and properly used, will operate
+substantially in accordance with the Documentation. The terms of this warranty
+shall not apply to any Software that has been (1) modified by Customer or a
+third party, (2) used in combination with equipment or software other than that
+which is consistent with the Documentation, or (3) misused or abused.
+
+(c) Hyland's sole obligation, and Customer's sole and exclusive remedy, for any
+non-conformities to the express limited warranties shall be: provided that,
+within the applicable 60-day period, Customer notifies Hyland in writing of the
+non-conformity, Hyland will either (1) repair or replace the non-conforming
+Software; or (2) if Hyland determines that repair or replacement is not
+commercially practicable, terminate this Agreement and refund any portion of
+fees paid with respect to such Software.
+
+(d) EXCEPT FOR THE WARRANTIES PROVIDED BY HYLAND AS EXPRESSLY SET FORTH IN THIS
+AGREEMENT, HYLAND AND ITS SUPPLIERS MAKE NO WARRANTIES OR REPRESENTATIONS
+REGARDING ANY SOFTWARE. HYLAND AND ITS SUPPLIERS DISCLAIM AND EXCLUDE ANY AND
+ALL OTHER EXPRESS, IMPLIED AND STATUTORY WARRANTIES, INCLUDING WITHOUT
+LIMITATION WARRANTIES OF GOOD TITLE, WARRANTIES AGAINST INFRINGEMENT, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+HYLAND AND ITS SUPPLIERS DO NOT WARRANT THAT THE SOFTWARE PROVIDED WILL SATISFY
+REQUIREMENTS OR IS WITHOUT DEFECT OR ERROR, OR THAT THE OPERATION OF ANY
+SOFTWARE PROVIDED WILL BE UNINTERRUPTED.
+
+(e) No oral or written information given by Hyland, its agents, or employees
+shall create any additional warranty.
+
+5. LIMITATIONS OF LIABILITY
+
+HYLAND'S (INCLUDING ITS AFFILIATES AND SUPPLIERS) TOTAL, CUMULATIVE LIABILITY
+ARISING OUT OF OR RELATED TO THIS AGREEMENT OR THE PRODUCTS PROVIDED UNDER IT,
+WHETHER IN CONTRACT OR TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL OR
+EQUITABLE THEORY, SHALL IN NO EVENT EXCEED THE TOTAL AMOUNTS ACTUALLY PAID BY
+CUSTOMER (LESS ANY REFUNDS OR CREDITS) FOR USE OF THE PRODUCTS GIVING RISE TO
+THE CLAIM DURING THE TWELVE (12) MONTH PERIOD IMMEDIATELY PRECEDING THE FIRST
+EVENT GIVING RISE TO SUCH CLAIM.
+
+NEITHER PARTY NOR ANY OF ITS AFFILIATES (AND IN THE CASE OF HYLAND, ITS
+SUPPLIERS) SHALL BE LIABLE, WHETHER IN CONTRACT, TORT (INCLUDING NEGLIGENCE), OR
+ANY OTHER LEGAL OR EQUITABLE THEORY, FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+PUNITIVE, OR CONSEQUENTIAL DAMAGES, OR ANY LOSS OF REVENUE, GOODWILL, SAVINGS OR
+PROFITS, LOSS OR CORRUPTION OF DATA OR PROGRAMS, OR BUSINESS INTERRUPTION
+DAMAGES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+6. MAINTENANCE
+
+Maintenance and technical support of the Software may be available for purchase
+by Customer from Hyland or the Hyland authorized channel partner through which
+Customer has ordered the Software pursuant to the terms of a separate agreement.
+
+7. TERM; TERMINATION
+
+This Agreement will terminate upon the expiration of the term of all of the
+licenses of the Software for which Customer has paid applicable fees, unless
+earlier terminated. Hyland may terminate this Agreement if Customer breaches or
+fails to comply with any provision of this Agreement. Upon termination, Customer
+shall immediately (a) discontinue any and all use of the Software and
+Documentation; and (b) either (1) return the Software and Documentation to
+Hyland, or (2) with the prior permission of Hyland, destroy the Software and
+Documentation and certify in writing to Hyland that Customer has completed such
+destruction.
+
+8. SEVERABILITY
+
+If any provision of this Agreement is found by a proper authority to be
+unenforceable or invalid, such unenforceability or invalidity shall not render
+this Agreement unenforceable or invalid as a whole and in such event, such
+provision shall be changed and interpreted so as to best accomplish the
+objectives of such unenforceable or invalid provision within the limits of
+applicable law or applicable court decisions.
+
+9. NOTICE
+
+Unless otherwise agreed to by the parties in a writing signed by both parties,
+all notices required under this Agreement shall be deemed effective when made in
+writing and sent to each party, by either: (A) reputable overnight courier,
+specifying next day delivery to the address specified in the Order Form or last
+known business address of such party; or (B) email to the address specified in
+the Order Form or such other email address provided by such party for such
+purpose, without receipt of a notice of failed delivery.
+
+In cases where the Hyland contracting party is not Hyland Software, Inc., all
+notices shall also be sent with copy to:
+
+Hyland Software, Inc. 28105 Clemens Road Westlake, OH 44145 Attn: General
+Counsel hylandcontracts@hyland.com
+
+10. GOVERNING LAW; JURISDICTION
+
+This Agreement and any claim, action, suit, proceeding or dispute arising out of
+this Agreement shall in all respects be governed by, and interpreted in
+accordance with, the substantive laws of: (i) in the case "Hyland" is Hyland UK
+Operations Limited, England and Wales, and (ii) in the case "Hyland" is Hyland
+Software, Inc., the State of Ohio, USA, without regard to the conflicts of laws
+provisions thereof. Venue and jurisdiction for any action, suit or proceeding
+arising out of this Agreement shall vest exclusively in: (i) in the case
+"Hyland" is Hyland UK Operations Limited, the courts of London, England, and
+(ii) in the case "Hyland" is Hyland Software, Inc., the courts of general
+jurisdiction located in Cuyahoga County, Ohio.
+
+11. ENTIRE AGREEMENT
+
+This Agreement constitutes the entire Agreement among the parties with respect
+to the subject matter of this Agreement. No provision of this Agreement will be
+deemed waived, amended or modified by any of the parties, unless such waiver,
+amendment or modification is made in writing and signed by authorized
+representatives of all the parties. This Agreement supersedes all previous
+agreements between or among any of the parties relating to the subject matter
+hereof.
+
+12. U.S. GOVERNMENT END USERS
+
+To the extent applicable to Customer, the terms and conditions of the Agreement
+shall pertain to the U.S. Government's use and/or disclosure of the Software,
+and shall supersede any conflicting contractual terms or conditions. The
+Software is developed exclusively at private expense.
+
+13. EXPORT
+
+Any Software or Documentation provided under this Agreement are subject to
+export control laws and regulations of the United States and other
+jurisdictions. Customer agrees to comply fully with all relevant export control
+laws and regulations, including the regulations of the U.S. Department of
+Commerce and all U.S. export control laws. Customer agrees that it will not
+export or re-export Hyland's Software or Documentation to any organizations or
+nationals in United States embargoed territories or for any prohibited end uses.
+
+14. THIRD PARTIES
+
+Nothing herein expressed or implied is intended or shall be construed to confer
+upon or give to any person or entity, other than the parties hereto, any rights
+or remedies by reason of this Agreement; provided, however, that third party
+suppliers of software products bundled with the Software are third party
+beneficiaries to this Agreement as it applies to their respective software
+products.
+
+15. CONFIDENTIAL INFORMATION
+
+Customer agrees to hold in confidence, and to take all reasonable steps to avoid
+publication or disclosure of (except as required by law or court order),
+Hyland's confidential information. "Confidential information" shall mean: (a)
+all information and/or material obtained by Customer from, or disclosed to
+Customer by, Hyland or any of its authorized agents or channel partners that
+relates to Hyland's past, present or future business activities and which is
+clearly labeled or identified in writing to Customer at the time of disclosure
+as "Confidential"; and (b) the Software and related documentation, training
+materials, and all related or included software source documents, algorithms,
+formulae, ideas, techniques, know-how, inventions, product/service
+specifications, research, experimental work, development, design details and
+specifications.
+
+© 2024-2025 Hyland.
+Hyland, the H design, and Hyland product names are registered and/or
+unregistered trademarks of Hyland and its affiliates in the United States and
+other countries.

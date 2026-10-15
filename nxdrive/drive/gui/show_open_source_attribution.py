@@ -8,9 +8,11 @@ from nxdrive.drive.translator import Translator
 
 from ..qt.imports import (
     QDialog,
+    QHBoxLayout,
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    Qt,
     QTextDocument,
     QTextEdit,
     QTextOption,
@@ -45,12 +47,16 @@ class Open_Source_Attribution(QDialog):
         scroll_area.setWidget(text_content)
 
         ok_button = QPushButton()
-        ok_button.setText(Translator.get("OPEN_SOURCE_ATTRIBUTION"))
+        ok_button.setText(Translator.get("BUTTON_OK"))
+        ok_button.setFixedWidth(70)
         ok_button.clicked.connect(self.accept)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(ok_button, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         layout = QVBoxLayout()
         layout.addWidget(scroll_area)
-        layout.addWidget(ok_button)
+        layout.addLayout(button_layout)
 
         self.setLayout(layout)
         self.setMinimumSize(500, 500)
