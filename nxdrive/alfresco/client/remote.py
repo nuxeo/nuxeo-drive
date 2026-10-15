@@ -43,6 +43,10 @@ __all__ = ("AlfrescoRemote",)
 
 log = getLogger(__name__)
 
+#: Optional fields every node fetch must ask for. ``isLocked`` is not returned
+#: by default, and without it the SDK reports every node as unlocked.
+NODE_FIELDS = ["path", "isLocked"]
+
 ALFRESCO_UPLOAD_BLOCK_SIZE = 65536
 UPLOAD_PROGRESS_INTERVAL = 1.0
 UPLOAD_PROGRESS_PERCENT_STEP = 1.0
@@ -459,7 +463,7 @@ class AlfrescoRemote:
         would still pull the rest and sync them unconditionally
         (root cause of NXDRIVE-3186 "selected 2 files but all synced").
         """
-        nodes = list(self.client.nodes.iter_children(fs_item_id, include=["path"]))
+        nodes = list(self.client.nodes.iter_children(fs_item_id, include=NODE_FIELDS))
         infos = [self._node_to_remote_file_info(n) for n in nodes]
 
         # Always hide Alfresco system folders from the folder-picker
@@ -523,7 +527,10 @@ class AlfrescoRemote:
             lock_owner=node.lock_owner,
             lock_created=None,
             can_scroll_descendants=False,
-            is_locked=node.is_locked,
+            # ``isLocked`` only arrives when it was asked for, and defaults to
+            # ``False`` otherwise. ``cm:lockOwner`` comes with the properties
+            # either way, so one missed ``include`` cannot disable the check.
+            is_locked=bool(node.is_locked or node.lock_owner),
         )
 
     @staticmethod
@@ -588,7 +595,7 @@ class AlfrescoRemote:
         refresh remote state, check digests, etc.
         """
         try:
-            node = self.get_node(fs_item_id, include=["path"])
+            node = self.get_node(fs_item_id, include=NODE_FIELDS)
         except Exception:
             raise NotFound(f"Could not find {fs_item_id!r} on {self.server_url!r}")
         info = self._node_to_remote_file_info(node)

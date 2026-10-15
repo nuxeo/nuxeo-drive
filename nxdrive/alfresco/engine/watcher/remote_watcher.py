@@ -30,6 +30,7 @@ from nxdrive.alfresco.client.device_sync import (
     DEVICE_SYNC_CLIENT_VERSION,
     DeviceSyncProvisioner,
 )
+from nxdrive.alfresco.client.remote import NODE_FIELDS
 from nxdrive.alfresco.content_compare import content_matches
 from nxdrive.alfresco.engine.processor import LOCKED_ON_SERVER
 from nxdrive.alfresco.sync_filters import is_top_folder_excluded
@@ -422,7 +423,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         indistinguishable from a real answer.
         """
         try:
-            node = self.engine.remote.get_node(child_info.uid)
+            node = self.engine.remote.get_node(child_info.uid, include=["isLocked"])
         except Exception:
             log.debug(
                 f"Could not read the lock state for {child_info.name!r}",
@@ -494,7 +495,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         for pair in parked:
             self._interact()
             try:
-                node = self.engine.remote.get_node(pair.remote_ref)
+                node = self.engine.remote.get_node(
+                    pair.remote_ref, include=["isLocked"]
+                )
             except Exception:
                 log.debug(
                     f"Could not re-check the lock on {pair.local_name!r}",
@@ -1002,7 +1005,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         """
         remote = self.engine.remote
         try:
-            node = remote.get_node(node_id, include=["path"])
+            node = remote.get_node(node_id, include=NODE_FIELDS)
         except AlfrescoAuthError:
             log.exception(f"Cannot fetch unfiltered node {node_id!r}, auth failed")
             raise
@@ -1552,7 +1555,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         """Fetch full node metadata for a newly-created node."""
         remote = self.engine.remote
         try:
-            node = remote.get_node(change.node_id, include=["path"])
+            node = remote.get_node(change.node_id, include=NODE_FIELDS)
         except AlfrescoAuthError:
             # Must reach _do_handle_changes so credentials are flagged invalid;
             # falling back to the payload would insert a half-populated row.

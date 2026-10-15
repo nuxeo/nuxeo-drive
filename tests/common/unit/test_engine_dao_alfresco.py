@@ -560,19 +560,20 @@ class TestForceSyncClearsTheRemoteDigest:
         assert self._digest(dao, pair.id) == "OURUPLOAD"
 
 
-class TestUpdateLocalDigest:
-    """Acknowledging the bytes on disk, without claiming anything else."""
+class TestUpdateLocalSize:
+    """Acknowledging the file on disk, without reading it."""
 
-    def test_only_the_digest_moves(self, dao):
+    def test_only_the_size_moves(self, dao):
         pair = _insert(dao)
         before = dao.get_state_from_id(pair.id)
 
-        dao.update_local_digest(pair, "on-disk-now")
+        dao.update_local_size(pair, 4096)
 
         after = dao.get_state_from_id(pair.id)
-        assert after.local_digest == "on-disk-now"
-        assert pair.local_digest == "on-disk-now"
+        assert after.size == 4096
+        assert pair.size == 4096
         assert (after.pair_state, after.version) == (before.pair_state, before.version)
+        assert after.local_digest == before.local_digest
 
 
 class TestClearRemoteDigest:

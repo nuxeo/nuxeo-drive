@@ -50,6 +50,8 @@ def _processor():
     proc.remote = engine.remote
     proc.dao.get_filters.return_value = []
     proc.dao.get_normal_state_from_remote.return_value = None
+    # The download branch now honours destination filtering too.
+    proc.remote.is_filtered.return_value = False
     # Match ``_pair``'s recorded digest: an untouched file hashes to what the
     # row already holds, so the pre-download edit check stays quiet.
     proc.local.get_info.return_value.get_digest.return_value = "abc"
@@ -333,7 +335,9 @@ class TestLockReleaseNeedsConfirmation:
 
         watcher._lock_was_released(self._parked(), _info(version_label="2.0"))
 
-        watcher.engine.remote.get_node.assert_called_once_with("node-1")
+        watcher.engine.remote.get_node.assert_called_once_with(
+            "node-1", include=["isLocked"]
+        )
 
     def test_only_lock_parked_pairs_qualify(self):
         watcher = self._watcher()

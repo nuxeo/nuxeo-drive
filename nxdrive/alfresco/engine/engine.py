@@ -36,7 +36,7 @@ from nxdrive.alfresco.engine.watcher.remote_watcher import (
 from nxdrive.drive import server_type as _st
 from nxdrive.drive.client.local import LocalClient
 from nxdrive.drive.client.local.base import LocalClientMixin
-from nxdrive.drive.constants import ROOT, UNACCESSIBLE_HASH
+from nxdrive.drive.constants import ROOT
 from nxdrive.drive.engine.engine import Engine
 from nxdrive.drive.exceptions import RemoteUnauthorized
 from nxdrive.drive.feature import Feature
@@ -58,16 +58,19 @@ OPEN_FILE_PERMISSION_ASKED = "open_file_permission_asked"
 
 
 class _ResolveWithRemote(QRunnable):
-    """Carries "Use remote" off the GUI thread, hash and all."""
+    """Carries "Use remote" off the GUI thread, disk access and all."""
 
-    def __init__(self, engine: "AlfrescoEngine", row_id: int, /) -> None:
+    def __init__(
+        self, engine: "AlfrescoEngine", row_id: int, decided_from: str, /
+    ) -> None:
         super().__init__()
         self._engine = engine
         self._row_id = row_id
+        self._decided_from = decided_from
 
     def run(self) -> None:
         try:
-            self._engine._acknowledge_local_bytes(self._row_id)
+            self._engine._acknowledge_local_bytes(self._row_id, self._decided_from)
         except Exception:
             log.exception(f"Could not accept the server copy of {self._row_id}")
 
@@ -634,17 +637,22 @@ class AlfrescoEngine(Engine):
         """Accept the server copy, and record what the user is giving up.
 
         The conflict may have been raised because the file on disk no longer
-        matches ``local_digest`` — a save the watchdog missed. Flipping the
-        states alone leaves that mismatch in place, so the processor raises
-        the same conflict again and "Use remote" can never complete. Writing
-        the current bytes as the baseline settles it, while still leaving a
+        matches the size the row records — a save the watchdog missed.
+        Flipping the states alone leaves that mismatch in place, so the
+        processor raises the same conflict again and "Use remote" can never
+        complete. Recording what is on disk settles it, while still leaving a
         save made *after* this point detectable.
 
-        Hashing reads the whole file, and this is called straight from a GUI
-        slot, so the work is handed to the thread pool: the acknowledgement,
-        the baseline write and the flip stay in that order on one worker.
+        The work is handed to the thread pool so a GUI slot never waits on the
+        disk. The state is snapshotted *here*, synchronously with the click:
+        taken in the worker instead, a "Use local" arriving before the worker
+        starts would already be in both of its reads and would be overridden.
         """
-        runnable = _ResolveWithRemote(self, row_id)
+        row = self.dao.get_state_from_id(row_id)
+        if not row:
+            return
+
+        runnable = _ResolveWithRemote(self, row_id, row.pair_state)
         pool = QThreadPool.globalInstance()
         if pool:
             pool.start(runnable)
@@ -652,40 +660,35 @@ class AlfrescoEngine(Engine):
             log.warning("No thread pool available, resolving inline")
             runnable.run()
 
-    def _acknowledge_local_bytes(self, row_id: int, /) -> None:
+    def _acknowledge_local_bytes(self, row_id: int, decided_from: str, /) -> None:
         """Record what is on disk now, then accept the server copy."""
         row = self.dao.get_state_from_id(row_id)
-        if not row:
+        if not row or row.pair_state != decided_from:
+            log.info(
+                f"Not accepting the server copy of row {row_id}: it was "
+                "decided another way before this could run"
+            )
             return
 
         try:
-            info = self.local.get_info(row.local_path)
-            # The shared client's callback aborts on a paused engine, and this
-            # is an explicit user decision rather than background sync work.
-            # Cleared on this instance only, never on the client.
-            info.digest_callback = None
-            digest = info.get_digest()
-        except Exception:
+            size = self.local.abspath(row.local_path).stat().st_size
+        except OSError:
             log.warning(
-                f"Could not read {row.local_name!r} while accepting the "
+                f"Could not measure {row.local_name!r} while accepting the "
                 "server copy; resolving without a fresh baseline",
                 exc_info=True,
             )
         else:
-            if digest and digest != UNACCESSIBLE_HASH:
-                self.dao.update_local_digest(row, digest)
+            self.dao.update_local_size(row, size)
 
-        # Re-read: hashing takes as long as the file is big, and the user may
-        # have picked the other option in the meantime.
-        current = self.dao.get_state_from_id(row_id)
-        if not current or current.pair_state != row.pair_state:
+        # Predicated on the click, not on anything read since: the base
+        # resolver forces the row unconditionally, so a choice made meanwhile
+        # would be overwritten.
+        if not self.dao.force_remote(row, expected_pair_state=decided_from):
             log.info(
                 f"Not accepting the server copy of {row.local_name!r}: it was "
-                "decided another way while its content was being read"
+                "decided another way while it was being read"
             )
-            return
-
-        super().resolve_with_remote(row_id)
 
     def _defer_conflict(self, row_id: int, emit: bool, /) -> None:
         # ``Engine.start()`` re-checks every existing conflict with

@@ -12,11 +12,11 @@ from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns, sleep
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 
 from alfresco.exceptions import NotFoundError as AlfrescoNotFoundError
 
-from nxdrive.alfresco.content_compare import content_matches
+from nxdrive.alfresco.content_compare import content_matches, local_head_tail_digest
 from nxdrive.drive.client.local import FileInfo
 from nxdrive.drive.constants import (
     CONNECTION_ERROR,
@@ -74,6 +74,10 @@ OPEN_FILE_RETRY = 10
 #: below the Errors-list threshold (``error_count > 3``) so a file the user is
 #: simply working in never shows up as an error.
 MAX_OPEN_FILE_DEFERRALS = 3
+
+#: Returned by ``_keep_aside`` when there was no local file to keep. Compared
+#: by identity: an empty ``Path`` is truthy and equal to ``Path(".")``.
+NOTHING_KEPT = Path()
 
 
 def _fmt_remote_ts(ts: Any) -> str:
@@ -286,18 +290,66 @@ class AlfrescoProcessor(_ProcessorBase):
             return False
         return answer
 
-    def _readable_local_digest(self, doc_pair: DocPair, /) -> str:
-        """Hash the local file, or return ``""`` when it cannot be read.
+    def _local_window(self, doc_pair: DocPair, /) -> Tuple[int, str]:
+        """Return the local file's size and a bounded fingerprint of it.
 
-        An unreadable hash is treated like a failed probe: it compares equal
-        to nothing, so the caller carries on rather than raising a conflict
-        the user cannot act on.
+        At most ``PARTIAL_COMPARE_SIZE`` is read from each end, never the
+        whole file: the server exposes no content hash, so a full read would
+        be paid on every download and would grow without bound with file size.
+        ``(-1, "")`` means the file could not be read, which compares equal to
+        nothing and so lets the caller carry on.
+
+        ACCEPTED LIMITATION: an edit confined to the middle of a file larger
+        than twice that window, which also leaves the size unchanged, is
+        invisible here. The same trade-off is already made by
+        :func:`content_matches`, for the same reason.
+
+        The fingerprint is only ever compared against another value from this
+        method, so it does not have to agree with the full-file digest stored
+        in ``local_digest``.
         """
-        with suppress(Exception):
-            digest = self.local.get_info(doc_pair.local_path).get_digest()
-            if digest and digest != UNACCESSIBLE_HASH:
-                return str(digest)
-        return ""
+        try:
+            path = self.local.abspath(doc_pair.local_path)
+            size = path.stat().st_size
+            return size, local_head_tail_digest(path, size)
+        except OSError:
+            log.debug(f"Could not read {doc_pair.local_name!r}", exc_info=True)
+            return -1, ""
+
+    def _keep_aside(self, doc_pair: DocPair, holding: Path, /) -> Optional[Path]:
+        """Move the local file out of the way, keeping it recoverable.
+
+        ``None`` means the file could not be moved, so the caller must not
+        replace it. :data:`NOTHING_KEPT` means there was nothing there.
+        """
+        source = self.local.abspath(doc_pair.local_path)
+        target = holding / f"{source.name}.previous"
+        try:
+            if not source.exists():
+                return NOTHING_KEPT
+            shutil.move(str(source), str(target))
+        except OSError:
+            log.warning(
+                f"Could not set {doc_pair.local_name!r} aside; leaving it alone",
+                exc_info=True,
+            )
+            return None
+        return target
+
+    def _restore_aside(self, doc_pair: DocPair, kept: Path, /) -> None:
+        """Put the user's copy back after a refused transition."""
+        if kept is NOTHING_KEPT:
+            return
+        destination = self.local.abspath(doc_pair.local_path)
+        try:
+            destination.unlink(missing_ok=True)
+            shutil.move(str(kept), str(destination))
+        except OSError:
+            log.error(
+                f"Could not restore {doc_pair.local_name!r}; the copy is kept "
+                f"at {str(kept)!r}",
+                exc_info=True,
+            )
 
     def _decision_changed(self, doc_pair: DocPair, /) -> bool:
         """Whether the row has been re-decided since the handler read it.
@@ -357,6 +409,9 @@ class AlfrescoProcessor(_ProcessorBase):
             f"(remote={doc_pair.remote_ref!r})"
         )
         local_state = doc_pair.local_state if keep_local_state else "modified"
+        # Predicated on the state the handler read: a resolution taken during
+        # the lookups that led here changes it without touching ``version``,
+        # and burying the user's choice under a fresh conflict is data loss.
         self.dao._force_sync(
             doc_pair,
             local_state,
@@ -364,6 +419,7 @@ class AlfrescoProcessor(_ProcessorBase):
             "conflicted",
             last_error=reason,
             last_error_details=details,
+            expected_pair_state=doc_pair.pair_state,
             clear_remote_digest=True,
         )
 
@@ -695,6 +751,22 @@ class AlfrescoProcessor(_ProcessorBase):
 
     # -- Sync handlers -------------------------------------------------------
 
+    def _local_twin_matches(self, doc_pair: DocPair, /) -> bool:
+        """Whether an untracked local file already holds the server's content.
+
+        The mirror of :meth:`_conflicting_remote_twin`, for when the remote
+        creation is processed first: the same two files, the same question.
+
+        Anything short of a definite match counts as a mismatch.  Unlike the
+        upload side, where an unreadable file can safely fall back to sending
+        the bytes, here a wrong guess marks the pair synchronised and neither
+        side is ever transferred, so the doubt is raised as a conflict.
+        """
+        if doc_pair.folderish:
+            return True
+        local_path = self.local.abspath(doc_pair.local_path)
+        return content_matches(self.remote, local_path, doc_pair.remote_ref) is True
+
     def _synchronize_remotely_created(self, doc_pair: DocPair, /) -> None:
         name = doc_pair.remote_name
         parent_pair = self._get_normal_state_from_remote_ref(doc_pair.remote_parent_ref)
@@ -716,6 +788,16 @@ class AlfrescoProcessor(_ProcessorBase):
                 return
             elif remote_ref:
                 path = self._create_remotely(doc_pair, parent_pair, name)
+            elif not self._local_twin_matches(doc_pair):
+                # An untracked local file of the same name: adopting it would
+                # declare the pair synchronised while the two sides still hold
+                # different bytes, and neither would ever be transferred.
+                log.info(
+                    f"{name!r} exists locally with different content; "
+                    "raising a conflict rather than adopting it"
+                )
+                self._mark_conflicted(doc_pair, reason=DIFFERENT_CONTENT)
+                return
 
         self.local.set_remote_id(path, doc_pair.remote_ref)
         if path != doc_pair.local_path and doc_pair.folderish:
@@ -804,11 +886,19 @@ class AlfrescoProcessor(_ProcessorBase):
                     doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
                 )
             ):
+                if self._parent_is_filtered(doc_pair):
+                    self._synchronize_remotely_deleted(doc_pair)
+                    return
                 if not self._update_remotely(doc_pair, is_renaming):
+                    return
+                # The download writes into ``local_parent_path``, so a node
+                # the server also moved would stay in its old folder and then
+                # be marked synchronised. Only this branch ever skipped it.
+                if not self._follow_remote_move(doc_pair):
                     return
             else:
                 is_move, new_parent_pair = self._is_remote_move(doc_pair)
-                if self.remote.is_filtered(doc_pair.remote_parent_path):
+                if self._parent_is_filtered(doc_pair):
                     self._synchronize_remotely_deleted(doc_pair)
                     return
                 if not new_parent_pair:
@@ -878,6 +968,55 @@ class AlfrescoProcessor(_ProcessorBase):
             if doc_pair.folderish:
                 self.engine.release_folder_lock()
 
+    def _parent_is_filtered(self, doc_pair: DocPair, /) -> bool:
+        """Whether the pair's remote parent is excluded from synchronisation.
+
+        A pair bound to its twin by ``link_remote_ref`` carries a
+        ``remote_ref`` but no ``remote_parent_path``, and a filter cannot be
+        evaluated without one. Unknown means unfiltered here: the user has
+        just asked for this node by name.
+        """
+        if not doc_pair.remote_parent_path:
+            return False
+        return bool(self.remote.is_filtered(doc_pair.remote_parent_path))
+
+    def _follow_remote_move(self, doc_pair: DocPair, /) -> bool:
+        """Relocate a file the server moved, after its content was written.
+
+        Returns whether the caller may carry on; ``False`` means the pair was
+        postponed because its new parent is not synchronised yet.
+        """
+        is_move, new_parent_pair = self._is_remote_move(doc_pair)
+        if not is_move:
+            return True
+        if not new_parent_pair:
+            self._postpone_pair(doc_pair, "PARENT_UNSYNC")
+            return False
+
+        new_path = new_parent_pair.local_path / safe_filename(doc_pair.remote_name)
+        if new_path == doc_pair.local_path:
+            return True
+
+        log.info(
+            f"Moving local file {self.local.abspath(doc_pair.local_path)!r} "
+            f"to {self.local.abspath(new_path)!r}"
+        )
+        updated_info = self.local.move(
+            doc_pair.local_path,
+            new_parent_pair.local_path,
+            name=doc_pair.remote_name,
+        )
+        new_parent_path = (
+            f"{new_parent_pair.remote_parent_path}/{new_parent_pair.remote_ref}"
+        )
+        self.dao.update_remote_parent_path(doc_pair, new_parent_path)
+        if updated_info:
+            self.dao.update_local_parent_path(
+                doc_pair, updated_info.path.name, updated_info.path.parent
+            )
+            self._refresh_local_state(doc_pair, updated_info)
+        return True
+
     def _is_remote_move(self, doc_pair: DocPair, /) -> tuple:
         local_parent = self.dao.get_state_from_local(doc_pair.local_parent_path)
         remote_parent = self._get_normal_state_from_remote_ref(
@@ -910,19 +1049,16 @@ class AlfrescoProcessor(_ProcessorBase):
         # The open-file probe only answers for the instant it is asked, and the
         # user can edit, save and close while the transfer runs. Only the bytes
         # on disk can report that, so they are read on both sides of it.
-        digest_before = self._readable_local_digest(doc_pair)
+        size_before, digest_before = self._local_window(doc_pair)
 
         # This first read already happens after the metadata call above, so a
         # save made since the row was read is baked into both reads and would
-        # compare equal. The recorded digest is the only witness to it, and
-        # ``delete_final`` is past the point where bytes can be recovered.
-        recorded = doc_pair.local_digest
-        if (
-            digest_before
-            and recorded
-            and recorded != UNACCESSIBLE_HASH
-            and digest_before != recorded
-        ):
+        # compare equal. The size the row recorded is the only witness to it,
+        # and ``delete_final`` is past the point where bytes can be recovered.
+        # Size rather than digest, because ``local_digest`` holds a full-file
+        # hash and nothing here may read a whole file to match it.
+        recorded_size = doc_pair.size
+        if size_before >= 0 and recorded_size and size_before != recorded_size:
             log.warning(
                 f"{doc_pair.local_name!r} was edited before the download "
                 "started; raising a conflict rather than overwriting it"
@@ -941,8 +1077,12 @@ class AlfrescoProcessor(_ProcessorBase):
             self._defer_open_file(doc_pair)
             return False
 
-        digest_after = self._readable_local_digest(doc_pair)
-        if digest_before and digest_after and digest_before != digest_after:
+        size_after, digest_after = self._local_window(doc_pair)
+        if (
+            digest_before
+            and digest_after
+            and (size_before != size_after or digest_before != digest_after)
+        ):
             log.warning(
                 f"{doc_pair.local_name!r} was edited while the download ran; "
                 "raising a conflict rather than deleting the local copy"
@@ -962,15 +1102,19 @@ class AlfrescoProcessor(_ProcessorBase):
             return False
 
         remote_id = self.local.get_remote_id(doc_pair.local_path)
-        self.local.delete_final(doc_pair.local_path)
+        # Kept aside rather than deleted: the check above and this replacement
+        # cannot be made atomic with a resolution write, so the user's copy
+        # has to stay recoverable until the guarded transition below lands.
+        kept = self._keep_aside(doc_pair, tmp_file.parent)
+        if kept is None:
+            with suppress(OSError):
+                shutil.rmtree(tmp_file.parent)
+            return False
         if remote_id:
             self.local.set_remote_id(tmp_file, doc_pair.remote_ref)
         updated_info = self.local.move(
             tmp_file, doc_pair.local_parent_path, name=doc_pair.remote_name
         )
-
-        with suppress(OSError):
-            shutil.rmtree(tmp_file.parent)
 
         # change_file_date() parses with the exact "%Y-%m-%d %H:%M:%S" format,
         # so the server's timezone-aware datetime has to be normalised first.
@@ -997,7 +1141,11 @@ class AlfrescoProcessor(_ProcessorBase):
                 f"Leaving {doc_pair.local_name!r} to the next cycle: it was "
                 "re-decided while the file was being replaced"
             )
+            self._restore_aside(doc_pair, kept)
             return False
+
+        with suppress(OSError):
+            shutil.rmtree(tmp_file.parent)
         # Only the pre-transfer snapshot may become the baseline. Fetching one
         # now would record a revision that landed mid-download while the bytes
         # on disk are the older one, and the next poll would compare equal and

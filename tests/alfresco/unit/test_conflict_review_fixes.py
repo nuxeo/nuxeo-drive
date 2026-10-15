@@ -20,25 +20,33 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from nxdrive.alfresco.content_compare import PARTIAL_COMPARE_ATTEMPTS, content_matches
+from nxdrive.alfresco.content_compare import (
+    PARTIAL_COMPARE_ATTEMPTS,
+    PARTIAL_COMPARE_SIZE,
+    content_matches,
+)
 from nxdrive.alfresco.engine.engine import AlfrescoEngine
 from nxdrive.alfresco.engine.processor import (
     DIFFERENT_CONTENT,
     FILE_OPEN_LOCALLY,
     LOCKED_ON_SERVER,
     MAX_OPEN_FILE_DEFERRALS,
+    NOTHING_KEPT,
     REMOTE_DRIFTED,
     AlfrescoProcessor,
 )
 from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
-from nxdrive.drive.constants import UNACCESSIBLE_HASH
 from nxdrive.drive.exceptions import ThreadInterrupt
 
 CONTENT_COMPARE = "nxdrive.alfresco.content_compare"
+PROCESSOR = "nxdrive.alfresco.engine.processor"
 
 #: What the pair last recorded for the local file, and what hashing it yields
 #: when nobody has touched it.
 ON_DISK = "ondisk"
+
+#: Size the pair records for an untouched local file.
+SIZE = 4096
 
 
 # ---------------------------------------------------------------------------
@@ -81,6 +89,8 @@ def _processor():
     proc.dao = engine.dao
     proc.local = engine.local
     proc.remote = engine.remote
+    # The download branch now honours destination filtering too.
+    proc.remote.is_filtered.return_value = False
     # The late re-read before the irreversible delete has its own tests; a
     # bare mock row never matches, so it would abort every other one.
     proc._decision_changed = MagicMock(return_value=False)
@@ -99,6 +109,7 @@ def _pair(**overrides):
     pair.last_remote_updated = "2026-10-06 09:19:59.999000+00:00"
     pair.pair_state = "conflicted"
     pair.local_digest = ON_DISK
+    pair.size = SIZE
     pair.error_count = 0
     for key, value in overrides.items():
         setattr(pair, key, value)
@@ -838,7 +849,6 @@ class TestOpenFileRecheckedAfterTheDownload:
 
         assert proc._update_remotely(_pair(remote_name="file.txt"), False) is False
 
-        proc.local.delete_final.assert_not_called()
         proc.local.move.assert_not_called()
         proc._defer_open_file.assert_called_once()
 
@@ -857,7 +867,7 @@ class TestOpenFileRecheckedAfterTheDownload:
 
         assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
 
-        proc.local.delete_final.assert_called_once()
+        proc.local.move.assert_called_once()
 
     def test_a_deferred_pair_is_not_marked_synchronized(self):
         """``_update_remotely`` cannot stop its caller without saying so."""
@@ -878,9 +888,10 @@ class TestOpenFileRecheckedAfterTheDownload:
 class TestEditDuringTheDownload:
     """An open-file probe answers for one instant; the user can edit, save and
     close inside a transfer that takes minutes. Only the bytes on disk report
-    that, so they are read on both sides of it."""
+    that -- read on both sides of it, and never more than the bounded window.
+    """
 
-    def _proc(self, digests, /):
+    def _proc(self, windows, /):
         proc = _processor()
         proc._download_content = MagicMock(return_value=Path("/tmp/dl/file.txt"))
         proc._local_file_in_use = MagicMock(return_value=False)
@@ -888,80 +899,112 @@ class TestEditDuringTheDownload:
         proc._refresh_local_state = MagicMock()
         proc._refresh_remote = MagicMock()
         proc.local.abspath.return_value = Path("/sync/file.txt")
-        proc.local.get_info.return_value.get_digest.side_effect = digests
+        proc._local_window = MagicMock(side_effect=windows)
         return proc
 
+    def _pair(self, **overrides):
+        overrides.setdefault("size", SIZE)
+        return _pair(remote_name="file.txt", **overrides)
+
     def test_an_edit_made_during_the_transfer_is_not_deleted(self):
-        proc = self._proc([ON_DISK, "after"])
+        proc = self._proc([(SIZE, ON_DISK), (SIZE, "after")])
 
-        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is False
+        assert proc._update_remotely(self._pair(), False) is False
 
-        proc.local.delete_final.assert_not_called()
         proc.local.move.assert_not_called()
 
-    def test_the_edit_becomes_a_conflict_the_user_must_settle(self):
-        """Both sides changed, so neither copy may be chosen for the user."""
-        proc = self._proc([ON_DISK, "after"])
+    def test_a_same_size_edit_is_still_caught(self):
+        """Which is why the window is hashed and not just measured."""
+        proc = self._proc([(SIZE, ON_DISK), (SIZE, "after")])
 
-        proc._update_remotely(_pair(remote_name="file.txt"), False)
+        proc._update_remotely(self._pair(), False)
 
-        proc._mark_conflicted.assert_called_once()
         assert proc._mark_conflicted.call_args.kwargs["reason"] == DIFFERENT_CONTENT
 
+    def test_a_size_change_during_the_transfer_is_caught(self):
+        proc = self._proc([(SIZE, ON_DISK), (SIZE + 1, ON_DISK)])
+
+        assert proc._update_remotely(self._pair(), False) is False
+
     def test_the_abandoned_download_is_cleaned_up(self):
-        proc = self._proc([ON_DISK, "after"])
+        proc = self._proc([(SIZE, ON_DISK), (SIZE, "after")])
 
         with patch("nxdrive.alfresco.engine.processor.shutil.rmtree") as rmtree:
-            proc._update_remotely(_pair(remote_name="file.txt"), False)
+            proc._update_remotely(self._pair(), False)
 
         rmtree.assert_called_once_with(Path("/tmp/dl"))
 
     def test_an_untouched_file_is_still_replaced(self):
-        proc = self._proc([ON_DISK, ON_DISK, ON_DISK])
+        proc = self._proc([(SIZE, ON_DISK), (SIZE, ON_DISK)])
 
-        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
+        assert proc._update_remotely(self._pair(), False) is True
 
-        proc.local.delete_final.assert_called_once()
+        proc.local.move.assert_called_once()
         proc._mark_conflicted.assert_not_called()
 
-    @pytest.mark.parametrize("unreadable", (UNACCESSIBLE_HASH, "", None))
-    def test_an_unreadable_hash_does_not_raise_a_conflict(self, unreadable):
-        """A hash we could not take is not evidence of an edit, and the user
-        cannot act on a conflict raised for one."""
-        proc = self._proc([unreadable, "after", "after"])
+    def test_an_unreadable_file_does_not_raise_a_conflict(self):
+        """A window we could not take is not evidence of an edit."""
+        proc = self._proc([(-1, ""), (SIZE, ON_DISK)])
 
-        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
-
-        proc._mark_conflicted.assert_not_called()
-
-    def test_a_failing_hash_does_not_stop_the_download(self):
-        proc = self._proc(OSError("gone"))
-
-        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
+        assert proc._update_remotely(self._pair(size=0), False) is True
 
         proc._mark_conflicted.assert_not_called()
 
-    def test_an_edit_made_before_the_first_hash_is_caught(self):
-        """The first hash is already taken after the metadata call, so a save
-        made since the row was read is baked into both hashes and they compare
-        equal. The recorded digest is the only witness left."""
-        proc = self._proc([ON_DISK, ON_DISK])
-        pair = _pair(remote_name="file.txt", local_digest="recorded-earlier")
+    def test_an_edit_made_before_the_first_window_is_caught(self):
+        """The first read already happens after the metadata call, so a save
+        made since the row was read is in both windows. The size the row
+        recorded is the only witness left."""
+        proc = self._proc([(SIZE + 99, ON_DISK), (SIZE + 99, ON_DISK)])
 
-        assert proc._update_remotely(pair, False) is False
+        assert proc._update_remotely(self._pair(), False) is False
 
         proc._download_content.assert_not_called()
-        proc.local.delete_final.assert_not_called()
+        proc.local.move.assert_not_called()
         assert proc._mark_conflicted.call_args.kwargs["reason"] == DIFFERENT_CONTENT
 
-    @pytest.mark.parametrize("recorded", (None, "", UNACCESSIBLE_HASH))
-    def test_an_unusable_recorded_digest_is_not_evidence(self, recorded):
-        proc = self._proc([ON_DISK, ON_DISK, ON_DISK])
-        pair = _pair(remote_name="file.txt", local_digest=recorded)
+    @pytest.mark.parametrize("recorded", (None, 0))
+    def test_an_unknown_recorded_size_is_not_evidence(self, recorded):
+        proc = self._proc([(SIZE, ON_DISK), (SIZE, ON_DISK)])
 
-        assert proc._update_remotely(pair, False) is True
+        assert proc._update_remotely(self._pair(size=recorded), False) is True
 
         proc._mark_conflicted.assert_not_called()
+
+
+class TestTheLocalWindowIsBounded:
+    """The server exposes no content hash. Paying a full read per download to
+    compensate is exactly the cost this whole design exists to avoid."""
+
+    def test_only_the_head_and_tail_are_read(self, tmp_path):
+        big = tmp_path / "big.bin"
+        big.write_bytes(b"a" * (2 * PARTIAL_COMPARE_SIZE + 4096))
+        proc = _processor()
+        proc.local.abspath.return_value = big
+
+        with patch(
+            f"{PROCESSOR}.local_head_tail_digest", return_value="digest"
+        ) as bounded:
+            size, digest = proc._local_window(_pair())
+
+        assert (size, digest) == (2 * PARTIAL_COMPARE_SIZE + 4096, "digest")
+        bounded.assert_called_once_with(big, size)
+
+    def test_the_whole_file_is_never_hashed(self, tmp_path):
+        big = tmp_path / "big.bin"
+        big.write_bytes(b"a" * 1024)
+        proc = _processor()
+        proc.local.abspath.return_value = big
+
+        proc._local_window(_pair())
+
+        # ``get_digest`` reads to EOF with no cap; nothing here may call it.
+        proc.local.get_info.assert_not_called()
+
+    def test_an_unreadable_file_answers_nothing(self):
+        proc = _processor()
+        proc.local.abspath.side_effect = OSError("gone")
+
+        assert proc._local_window(_pair()) == (-1, "")
 
 
 class TestBaselineAfterTheReplace:
@@ -1049,72 +1092,70 @@ class TestBaselineAfterTheReplace:
 class TestResolveWithRemoteTerminates:
     """ "Use remote" has to be a way out, not another lap.
 
-    The conflict can be raised because the bytes on disk no longer match
-    ``local_digest`` -- a save the watchdog missed. Flipping the states alone
-    leaves that mismatch, so the processor raises the same conflict again and
-    the user is stuck in a loop with no exit.
+    The conflict can be raised because the file on disk no longer matches the
+    size the row recorded -- a save the watchdog missed. Flipping the states
+    alone leaves that mismatch, so the processor raises the same conflict
+    again and the user is stuck in a loop with no exit.
     """
 
-    def _engine_with(self, on_disk, /):
+    def _engine_with(self, on_disk_size, /):
         engine = _engine()
-        engine.local.get_info.return_value.get_digest.return_value = on_disk
-        engine.dao.get_state_from_id.return_value = _pair(
-            local_digest="recorded-earlier"
+        engine.local.abspath.return_value = MagicMock(
+            stat=MagicMock(return_value=MagicMock(st_size=on_disk_size))
         )
-        # The real DAO writes the value back onto the row it was handed.
-        engine.dao.update_local_digest.side_effect = lambda row, digest: setattr(
-            row, "local_digest", digest
+        engine.dao.get_state_from_id.return_value = _pair(size=SIZE)
+        engine.dao.update_local_size.side_effect = lambda row, size: setattr(
+            row, "size", size
         )
         return engine
 
-    def test_the_stale_baseline_is_replaced_before_the_flip(self):
-        engine = self._engine_with("what-is-on-disk-now")
+    def test_the_stale_record_is_replaced_before_the_flip(self):
+        engine = self._engine_with(SIZE + 99)
 
         with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
-            engine._acknowledge_local_bytes(1)
+            engine._acknowledge_local_bytes(1, "conflicted")
 
-        engine.dao.update_local_digest.assert_called_once()
-        assert engine.dao.update_local_digest.call_args.args[1] == "what-is-on-disk-now"
+        engine.dao.update_local_size.assert_called_once()
+        assert engine.dao.update_local_size.call_args.args[1] == SIZE + 99
 
     def test_the_download_then_runs_instead_of_re_conflicting(self):
-        """The whole point: the second pass must get past the digest check."""
-        engine = self._engine_with("what-is-on-disk-now")
+        """The whole point: the second pass must get past the check."""
+        engine = self._engine_with(SIZE + 99)
         with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
-            engine._acknowledge_local_bytes(1)
-        resolved = engine.dao.update_local_digest.call_args.args[0]
+            engine._acknowledge_local_bytes(1, "conflicted")
+        resolved = engine.dao.update_local_size.call_args.args[0]
 
         proc = _processor()
         proc._download_content = MagicMock(return_value=Path("/tmp/dl/file.txt"))
         proc._local_file_in_use = MagicMock(return_value=False)
         proc._mark_conflicted = MagicMock()
         proc._refresh_local_state = MagicMock(return_value=True)
+        proc._local_window = MagicMock(return_value=(SIZE + 99, ON_DISK))
         proc.local.abspath.return_value = Path("/sync/file.txt")
-        proc.local.get_info.return_value.get_digest.return_value = "what-is-on-disk-now"
         resolved.remote_name = "file.txt"
 
         assert proc._update_remotely(resolved, False) is True
 
         proc._mark_conflicted.assert_not_called()
 
-    @pytest.mark.parametrize("unreadable", (UNACCESSIBLE_HASH, "", None))
-    def test_an_unreadable_file_still_resolves(self, unreadable):
+    def test_nothing_reads_the_whole_file(self):
+        """Acknowledging the bytes must not cost a full hash either."""
+        engine = self._engine_with(SIZE + 99)
+
+        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
+            engine._acknowledge_local_bytes(1, "conflicted")
+
+        engine.local.get_info.assert_not_called()
+
+    def test_an_unreadable_file_still_resolves(self):
         """A missing local file is the commonest "use remote" case of all."""
-        engine = self._engine_with(unreadable)
+        engine = self._engine_with(SIZE)
+        engine.local.abspath.side_effect = OSError("gone")
 
-        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote") as base:
-            engine._acknowledge_local_bytes(1)
+        engine._acknowledge_local_bytes(1, "conflicted")
 
-        engine.dao.update_local_digest.assert_not_called()
-        base.assert_called_once_with(1)
-
-    def test_a_failing_probe_does_not_block_the_resolution(self):
-        engine = self._engine_with("x")
-        engine.local.get_info.side_effect = OSError("gone")
-
-        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote") as base:
-            engine._acknowledge_local_bytes(1)
-
-        base.assert_called_once_with(1)
+        engine.dao.update_local_size.assert_not_called()
+        engine.dao.force_remote.assert_called_once()
 
 
 class TestConflictDropsTheRemoteDigest:
@@ -1130,6 +1171,18 @@ class TestConflictDropsTheRemoteDigest:
 
         kwargs = proc.dao._force_sync.call_args.kwargs
         assert kwargs["clear_remote_digest"] is True
+
+    def test_the_flip_is_guarded_on_the_state_the_handler_read(self):
+        """A resolution taken during the lookups that led here changes the
+        state without touching the version, and burying the user's choice
+        under a fresh conflict is data loss."""
+        proc = _processor()
+        pair = _pair(pair_state="remotely_modified")
+
+        proc._mark_conflicted(pair, reason=REMOTE_DRIFTED)
+
+        kwargs = proc.dao._force_sync.call_args.kwargs
+        assert kwargs["expected_pair_state"] == "remotely_modified"
 
 
 class TestAResolutionDuringTheDownload:
@@ -1159,7 +1212,6 @@ class TestAResolutionDuringTheDownload:
 
         assert proc._update_remotely(self._pair(), False) is False
 
-        proc.local.delete_final.assert_not_called()
         proc.local.move.assert_not_called()
 
     def test_the_download_is_cleaned_up(self):
@@ -1175,21 +1227,21 @@ class TestAResolutionDuringTheDownload:
 
         assert proc._update_remotely(self._pair(), False) is False
 
-        proc.local.delete_final.assert_not_called()
+        proc.local.move.assert_not_called()
 
     def test_a_row_deleted_meanwhile_aborts(self):
         proc = self._proc(None)
 
         assert proc._update_remotely(self._pair(), False) is False
 
-        proc.local.delete_final.assert_not_called()
+        proc.local.move.assert_not_called()
 
     def test_an_undisturbed_row_is_still_replaced(self):
         proc = self._proc(_pair(version=3, pair_state="remotely_modified"))
 
         assert proc._update_remotely(self._pair(), False) is True
 
-        proc.local.delete_final.assert_called_once()
+        proc.local.move.assert_called_once()
 
     def test_no_conflict_is_raised_for_a_decision_already_taken(self):
         """The user settled it; re-parking would hand it back to them."""
@@ -1249,22 +1301,18 @@ class TestLockParkKeepsThePendingOperation:
 
 
 class TestResolveWithRemoteIsNotOnTheGuiThread:
-    """`api.py` calls this straight from a slot, and hashing reads the whole
-    file. It also has to survive a paused engine: the shared client's digest
-    callback aborts then, which would skip the baseline and restart the loop."""
+    """`api.py` calls this straight from a slot, so nothing here may block."""
 
-    def _engine(self, **overrides):
+    def _engine(self):
         engine = _engine()
-        info = MagicMock()
-        info.get_digest.return_value = overrides.get("digest", "on-disk-now")
-        engine.local.get_info.return_value = info
-        engine.dao.get_state_from_id.return_value = _pair(
-            local_digest="recorded-earlier"
+        engine.local.abspath.return_value = MagicMock(
+            stat=MagicMock(return_value=MagicMock(st_size=SIZE))
         )
-        return engine, info
+        engine.dao.get_state_from_id.return_value = _pair(size=SIZE)
+        return engine
 
-    def test_the_hash_is_not_taken_on_the_calling_thread(self):
-        engine, _ = self._engine()
+    def test_the_work_is_handed_to_the_pool(self):
+        engine = self._engine()
 
         with patch("nxdrive.alfresco.engine.engine.QThreadPool") as pool, patch.object(
             AlfrescoEngine.__bases__[0], "resolve_with_remote"
@@ -1272,50 +1320,52 @@ class TestResolveWithRemoteIsNotOnTheGuiThread:
             engine.resolve_with_remote(1)
 
         pool.globalInstance.return_value.start.assert_called_once()
-        engine.local.get_info.assert_not_called()
+        engine.local.abspath.assert_not_called()
 
-    def test_the_pause_callback_is_cleared_for_this_read(self):
-        """``suspend_client`` raises while paused, which would skip the
-        baseline write and leave the resolution to loop on resume."""
-        engine, info = self._engine()
-
-        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
-            engine._acknowledge_local_bytes(1)
-
-        assert info.digest_callback is None
-        engine.dao.update_local_digest.assert_called_once()
-
-    def test_the_shared_client_is_left_alone(self):
-        """Clearing it on the client would disarm every background hash."""
-        engine, _ = self._engine()
-        before = engine.local.digest_callback
-
-        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
-            engine._acknowledge_local_bytes(1)
-
-        assert engine.local.digest_callback is before
-
-    def test_a_choice_made_while_hashing_wins(self):
-        engine, _ = self._engine()
+    def test_a_choice_made_meanwhile_wins(self):
+        engine = self._engine()
         engine.dao.get_state_from_id.side_effect = [
-            _pair(pair_state="conflicted"),
-            _pair(pair_state="locally_resolved"),
+            _pair(size=SIZE, pair_state="conflicted"),
+            _pair(size=SIZE, pair_state="locally_resolved"),
         ]
 
         with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote") as base:
-            engine._acknowledge_local_bytes(1)
+            engine._acknowledge_local_bytes(1, "conflicted")
 
         base.assert_not_called()
 
-    def test_an_unreadable_file_still_resolves(self):
-        engine, _ = self._engine()
-        engine.local.get_info.side_effect = OSError("gone")
+    def test_the_snapshot_is_taken_when_the_user_clicks(self):
+        """Taken in the worker instead, a "Use local" arriving before the
+        worker starts is already in both of its reads and gets overridden."""
+        engine = self._engine()
+        engine.dao.get_state_from_id.return_value = _pair(
+            size=SIZE, pair_state="conflicted"
+        )
 
-        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote") as base:
-            engine._acknowledge_local_bytes(1)
+        with patch("nxdrive.alfresco.engine.engine.QThreadPool") as pool:
+            engine.resolve_with_remote(1)
 
-        engine.dao.update_local_digest.assert_not_called()
-        base.assert_called_once_with(1)
+        runnable = pool.globalInstance.return_value.start.call_args.args[0]
+        assert runnable._decided_from == "conflicted"
+
+    def test_a_decision_taken_before_the_worker_ran_is_not_overridden(self):
+        engine = self._engine()
+        engine.dao.get_state_from_id.return_value = _pair(
+            size=SIZE, pair_state="locally_resolved"
+        )
+
+        engine._acknowledge_local_bytes(1, "conflicted")
+
+        engine.dao.force_remote.assert_not_called()
+        engine.dao.update_local_size.assert_not_called()
+
+    def test_the_final_transition_is_guarded_on_the_click(self):
+        engine = self._engine()
+
+        engine._acknowledge_local_bytes(1, "conflicted")
+
+        kwargs = engine.dao.force_remote.call_args.kwargs
+        assert kwargs["expected_pair_state"] == "conflicted"
 
 
 class TestAdoptionBindsTheXattr:
@@ -1354,6 +1404,209 @@ class TestAdoptionBindsTheXattr:
         engine.newConflict.emit.assert_called_once_with(1)
 
 
+class TestARemoteMoveSurvivesTheDownloadBranch:
+    """Clearing ``remote_digest`` sends every reported change down the
+    download branch, which writes into the *old* parent and never consults
+    ``_is_remote_move``. A file moved on the server would stay put and then
+    be marked synchronised."""
+
+    def _proc(self, new_parent, /):
+        proc = _processor()
+        proc._update_remotely = MagicMock(return_value=True)
+        proc._handle_readonly = MagicMock()
+        proc._refresh_local_state = MagicMock(return_value=True)
+        proc._is_remote_move = MagicMock(return_value=(bool(new_parent), new_parent))
+        proc.local.is_equal_digests.return_value = False
+        proc.local.move.return_value = MagicMock(path=Path("/sync/new/file.txt"))
+        return proc
+
+    def _parent(self):
+        return MagicMock(
+            local_path=Path("/sync/new"),
+            remote_parent_path="/Company Home",
+            remote_ref="parent-2",
+        )
+
+    def _pair(self):
+        return _pair(
+            pair_state="remotely_modified",
+            remote_name="file.txt",
+            local_name="file.txt",
+            local_path=Path("/sync/old/file.txt"),
+            remote_digest=None,
+        )
+
+    def test_the_file_follows_the_server_move(self):
+        parent = self._parent()
+        proc = self._proc(parent)
+
+        proc._synchronize_remotely_modified(self._pair())
+
+        proc.local.move.assert_called_once()
+        assert proc.local.move.call_args.args[1] == Path("/sync/new")
+
+    def test_the_stored_paths_follow_it_too(self):
+        parent = self._parent()
+        proc = self._proc(parent)
+
+        proc._synchronize_remotely_modified(self._pair())
+
+        proc.dao.update_remote_parent_path.assert_called_once()
+        assert (
+            proc.dao.update_remote_parent_path.call_args.args[1]
+            == "/Company Home/parent-2"
+        )
+        proc.dao.update_local_parent_path.assert_called_once()
+
+    def test_a_file_that_did_not_move_is_left_where_it_is(self):
+        proc = self._proc(None)
+
+        proc._synchronize_remotely_modified(self._pair())
+
+        proc.local.move.assert_not_called()
+        proc.dao.synchronize_state.assert_called_once()
+
+    def test_an_unsynced_destination_postpones_instead(self):
+        proc = self._proc(None)
+        proc._is_remote_move = MagicMock(return_value=(True, None))
+        proc._postpone_pair = MagicMock()
+
+        proc._synchronize_remotely_modified(self._pair())
+
+        proc._postpone_pair.assert_called_once()
+        proc.dao.synchronize_state.assert_not_called()
+
+    def test_a_filtered_destination_is_not_downloaded_at_all(self):
+        proc = self._proc(self._parent())
+        proc.remote.is_filtered.return_value = True
+        proc._synchronize_remotely_deleted = MagicMock()
+
+        proc._synchronize_remotely_modified(self._pair())
+
+        proc._update_remotely.assert_not_called()
+        proc._synchronize_remotely_deleted.assert_called_once()
+
+
+class TestTheLocalCopyStaysRecoverable:
+    """The last-moment check and the replacement cannot be made atomic with a
+    resolution write, so the user's copy has to survive a refused write."""
+
+    def _proc(self, refreshed, /):
+        proc = _processor()
+        proc._download_content = MagicMock(return_value=Path("/tmp/dl/file.txt"))
+        proc._local_file_in_use = MagicMock(return_value=False)
+        proc._local_window = MagicMock(return_value=(SIZE, ON_DISK))
+        proc._refresh_local_state = MagicMock(return_value=refreshed)
+        proc._follow_remote_move = MagicMock(return_value=True)
+        proc._keep_aside = MagicMock(return_value=Path("/tmp/dl/file.txt.previous"))
+        proc._restore_aside = MagicMock()
+        proc.local.abspath.return_value = Path("/sync/file.txt")
+        return proc
+
+    def test_the_copy_is_set_aside_rather_than_deleted(self):
+        proc = self._proc(True)
+
+        proc._update_remotely(_pair(remote_name="file.txt"), False)
+
+        proc._keep_aside.assert_called_once()
+        proc.local.delete_final.assert_not_called()
+
+    def test_a_refused_write_puts_the_copy_back(self):
+        proc = self._proc(False)
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is False
+
+        proc._restore_aside.assert_called_once()
+        assert proc._restore_aside.call_args.args[1] == Path(
+            "/tmp/dl/file.txt.previous"
+        )
+
+    def test_a_successful_write_keeps_nothing(self):
+        proc = self._proc(True)
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
+
+        proc._restore_aside.assert_not_called()
+
+    def test_a_copy_that_could_not_be_moved_stops_the_replacement(self):
+        proc = self._proc(True)
+        proc._keep_aside = MagicMock(return_value=None)
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is False
+
+        proc.local.move.assert_not_called()
+
+    def test_nothing_is_restored_when_there_was_nothing_there(self, tmp_path):
+        proc = _processor()
+        proc.local.abspath.return_value = tmp_path / "gone.txt"
+
+        kept = proc._keep_aside(_pair(), tmp_path)
+        proc._restore_aside(_pair(), kept)
+
+        assert kept is NOTHING_KEPT
+
+    def test_a_real_copy_is_moved_and_put_back(self, tmp_path):
+        source = tmp_path / "file.txt"
+        source.write_bytes(b"the user's bytes")
+        holding = tmp_path / "hold"
+        holding.mkdir()
+        proc = _processor()
+        proc.local.abspath.return_value = source
+
+        kept = proc._keep_aside(_pair(), holding)
+        assert not source.exists()
+
+        source.write_bytes(b"the server's bytes")
+        proc._restore_aside(_pair(), kept)
+
+        assert source.read_bytes() == b"the user's bytes"
+
+
+class TestATwinBoundPairCanBeDownloaded:
+    """``link_remote_ref`` binds a conflicted pair to its twin but leaves
+    ``remote_parent_path`` NULL, so the filter check has nothing to evaluate.
+    Crashing there postponed the pair every 60s forever and "Use remote"
+    could never complete."""
+
+    def _pair(self):
+        return _pair(
+            pair_state="remotely_modified",
+            remote_name="file2.txt",
+            local_name="file2.txt",
+            remote_digest=None,
+            remote_parent_path=None,
+        )
+
+    def test_a_missing_parent_path_is_not_filtered(self):
+        proc = _processor()
+
+        assert proc._parent_is_filtered(self._pair()) is False
+        proc.remote.is_filtered.assert_not_called()
+
+    def test_a_known_parent_path_is_still_checked(self):
+        proc = _processor()
+        proc.remote.is_filtered.return_value = True
+
+        assert proc._parent_is_filtered(_pair(remote_parent_path="/Company Home")) is (
+            True
+        )
+        proc.remote.is_filtered.assert_called_once_with("/Company Home")
+
+    def test_the_download_runs_instead_of_raising(self):
+        proc = _processor()
+        proc._update_remotely = MagicMock(return_value=True)
+        proc._follow_remote_move = MagicMock(return_value=True)
+        proc._handle_readonly = MagicMock()
+        proc.local.is_equal_digests.return_value = False
+        # What the real filter does with the path it is handed.
+        proc.remote.is_filtered.side_effect = lambda path, **_: path.endswith("/")
+
+        proc._synchronize_remotely_modified(self._pair())
+
+        proc._update_remotely.assert_called_once()
+        proc.dao.synchronize_state.assert_called_once()
+
+
 # ---------------------------------------------------------------------------
 # Lock sweep
 # ---------------------------------------------------------------------------
@@ -1380,7 +1633,9 @@ class TestSweepLockConflicts:
 
         watcher._sweep_lock_conflicts()
 
-        watcher.engine.remote.get_node.assert_called_once_with(locked.remote_ref)
+        watcher.engine.remote.get_node.assert_called_once_with(
+            locked.remote_ref, include=["isLocked"]
+        )
 
     def test_released_lock_is_requeued(self):
         watcher = _watcher()
@@ -1574,3 +1829,112 @@ class TestContentMatches:
 
         assert content_matches(remote, local, "node-1") is True
         remote.get_node.assert_called_once_with("node-1")
+
+
+class TestAdoptingALocalTwin:
+    """A remote creation landing on an existing, untracked local file.
+
+    Both sides created the same name independently.  Whichever order the
+    race delivers them in, the bytes must be compared before the pair is
+    declared synchronised -- otherwise one of the two edits is silently
+    dropped and never transferred.
+    """
+
+    def _proc_and_pair(self):
+        proc = _processor()
+        pair = _pair(pair_state="remotely_created", remote_name="file.txt")
+        pair.remote_parent_ref = "parent-1"
+        parent = _pair(id=2, local_path=Path("/sync"), remote_ref="parent-1")
+        proc._get_normal_state_from_remote_ref = MagicMock(return_value=parent)
+        proc.local.exists.return_value = True
+        # No xattr: the local file has never been linked to any node.
+        proc.local.get_remote_id.return_value = None
+        proc._mark_conflicted = MagicMock()
+        proc._create_remotely = MagicMock()
+        return proc, pair
+
+    def test_different_content_raises_a_conflict(self):
+        proc, pair = self._proc_and_pair()
+        with patch(f"{PROCESSOR}.content_matches", return_value=False):
+            proc._synchronize_remotely_created(pair)
+
+        proc._mark_conflicted.assert_called_once()
+        assert proc._mark_conflicted.call_args.kwargs["reason"] == DIFFERENT_CONTENT
+        # The pair must not be adopted on the way out.
+        proc.local.set_remote_id.assert_not_called()
+        proc.dao.synchronize_state.assert_not_called()
+
+    def test_identical_content_is_still_adopted(self):
+        proc, pair = self._proc_and_pair()
+        with patch(f"{PROCESSOR}.content_matches", return_value=True):
+            proc._synchronize_remotely_created(pair)
+
+        proc._mark_conflicted.assert_not_called()
+        proc.local.set_remote_id.assert_called_once_with(
+            pair.local_path, pair.remote_ref
+        )
+        proc.dao.synchronize_state.assert_called_once()
+
+    def test_an_undecidable_comparison_raises_a_conflict(self):
+        """Adopting on a guess marks the pair synchronised for good; asking
+        the user costs one dialog."""
+        proc, pair = self._proc_and_pair()
+        with patch(f"{PROCESSOR}.content_matches", return_value=None):
+            proc._synchronize_remotely_created(pair)
+
+        proc._mark_conflicted.assert_called_once()
+        proc.dao.synchronize_state.assert_not_called()
+
+    def test_a_folder_is_adopted_without_comparing(self):
+        proc, pair = self._proc_and_pair()
+        pair.folderish = True
+        with patch(f"{PROCESSOR}.content_matches") as compared:
+            proc._synchronize_remotely_created(pair)
+
+        compared.assert_not_called()
+        proc._mark_conflicted.assert_not_called()
+        proc.dao.synchronize_state.assert_called_once()
+
+    def test_a_file_bound_to_another_node_still_gets_its_own_copy(self):
+        """The existing behaviour for a local file already owned by a
+        different node must not change."""
+        proc, pair = self._proc_and_pair()
+        proc.local.get_remote_id.return_value = "some-other-node"
+        with patch(f"{PROCESSOR}.content_matches") as compared:
+            proc._synchronize_remotely_created(pair)
+
+        compared.assert_not_called()
+        proc._create_remotely.assert_called_once()
+        proc._mark_conflicted.assert_not_called()
+
+
+class TestLockStateIsActuallyRequested:
+    """Alfresco omits ``isLocked`` unless it is asked for, so every fetch
+    whose answer feeds a lock decision must request it -- otherwise every
+    node reads as unlocked and the whole lock feature is inert."""
+
+    def test_the_child_scan_asks_for_the_lock_field(self):
+        watcher = _watcher()
+        watcher.engine.remote.get_node.return_value = MagicMock(
+            is_locked=True, lock_owner="admin"
+        )
+
+        watcher._fill_lock(_info())
+
+        kwargs = watcher.engine.remote.get_node.call_args.kwargs
+        assert "isLocked" in kwargs["include"]
+
+    def test_the_sweep_asks_for_the_lock_field(self):
+        watcher = _watcher()
+        watcher.dao.get_conflicts.return_value = [_pair(last_error=LOCKED_ON_SERVER)]
+        watcher.engine.remote.get_node.return_value = MagicMock(is_locked=True)
+
+        watcher._sweep_lock_conflicts()
+
+        kwargs = watcher.engine.remote.get_node.call_args.kwargs
+        assert "isLocked" in kwargs["include"]
+
+    def test_the_shared_field_list_covers_the_lock(self):
+        from nxdrive.alfresco.client.remote import NODE_FIELDS
+
+        assert "isLocked" in NODE_FIELDS

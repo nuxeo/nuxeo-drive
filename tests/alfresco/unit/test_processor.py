@@ -134,6 +134,7 @@ def proc():
     p.remote = engine.remote
     p.dao = engine.dao
     p.dao.get_filters.return_value = []
+    p.remote.is_filtered.return_value = False
     return p
 
 
@@ -275,6 +276,7 @@ class TestMarkConflicted:
             "conflicted",
             last_error=None,
             last_error_details=None,
+            expected_pair_state=pair.pair_state,
             clear_remote_digest=True,
         )
 
@@ -822,6 +824,7 @@ class TestSynchronizeLocallyCreated:
             "conflicted",
             last_error=DIFFERENT_CONTENT,
             last_error_details=None,
+            expected_pair_state=pair.pair_state,
             clear_remote_digest=True,
         )
 
@@ -1645,6 +1648,7 @@ class TestMarkConflictedExtra:
             "conflicted",
             last_error=None,
             last_error_details=None,
+            expected_pair_state=pair.pair_state,
             clear_remote_digest=True,
         )
 
@@ -1982,6 +1986,7 @@ class TestExecuteEdgeCases:
             "conflicted",
             last_error=None,
             last_error_details=None,
+            expected_pair_state=item.pair_state,
             clear_remote_digest=True,
         )
 
@@ -2085,6 +2090,7 @@ class TestSynchronizeRemotelyModified:
         p.dao = mock_engine.dao
         p.remote = mock_engine.remote
         p.local = mock_engine.local
+        p.remote.is_filtered.return_value = False
         return p
 
     def test_content_differs_calls_update(self, proc):
@@ -2118,6 +2124,8 @@ class TestSynchronizeRemotelyModified:
         proc.local.move.return_value = updated_info
         proc.local.change_file_date = Mock()
         proc.remote.get_fs_info.return_value = Mock()
+        # Nothing moved on the server, so the relocation step is a no-op.
+        proc._is_remote_move = Mock(return_value=(False, None))
 
         proc._synchronize_remotely_modified(pair)
         proc.dao.synchronize_state.assert_called_once_with(

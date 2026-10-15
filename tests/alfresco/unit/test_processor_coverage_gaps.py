@@ -32,6 +32,7 @@ def processor(tmp_path):
     result.pairSyncEnded = MagicMock()
     result._current_metrics = {}
     result.dao.get_filters.return_value = []
+    result.remote.is_filtered.return_value = False
     return result
 
 

@@ -1822,18 +1822,17 @@ class EngineDAO(BaseDAO):
         row.last_remote_updated = info.last_modification_time
         return True
 
-    def update_local_digest(self, row: DocPair, digest: str, /) -> None:
-        """Record *digest* as the known state of the local file.
+    def update_local_size(self, row: DocPair, size: int, /) -> None:
+        """Record *size* as the known state of the local file.
 
-        Only the digest moves: this is for callers acknowledging the bytes
-        currently on disk, not reporting a sync decision about them.
+        Only the size moves: this is for callers acknowledging the file
+        currently on disk, not reporting a sync decision about it. Size rather
+        than a digest because the callers must not read a whole file.
         """
         with self.lock:
             c = self._get_write_connection().cursor()
-            c.execute(
-                "UPDATE States SET local_digest = ? WHERE id = ?", (digest, row.id)
-            )
-        row.local_digest = digest
+            c.execute("UPDATE States SET size = ? WHERE id = ?", (size, row.id))
+        row.size = size
 
     def force_remote_creation(self, row: DocPair, /) -> bool:
         return self._force_sync(row, "unknown", "created", "remotely_created")
