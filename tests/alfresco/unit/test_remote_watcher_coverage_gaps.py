@@ -141,7 +141,9 @@ def test_remote_recursive_formats_string_timestamp():
 
     watcher._scan_remote_recursive(parent, parent_info)
 
-    watcher.dao.force_remote.assert_called_once_with(existing)
+    watcher.dao.force_remote.assert_called_once_with(
+        existing, expected_pair_state=existing.pair_state
+    )
 
 
 def test_existing_remote_folder_is_recursed_into():

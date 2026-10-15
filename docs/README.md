@@ -2,6 +2,7 @@
 
 - [behaviors](behaviors/): Application behavior analysis.
 - [changes](changes/): All changes (including technical ones) introduced in every release since Drive 2.4.6 (2017-06-29). Useful for the **support**.
+- [check_open_helper.md](check_open_helper.md): The macOS open-file detection helper, how it is built and how it reaches a release.
 - [configuration.md](configuration.md): How to permanently configure Drive and the list of command line arguments.
 - [contextual_menu.md](contextual_menu.md): How to install contextual menu items.
 - [deployment.md](deployment.md): How to setup a complete development environment for Drive.

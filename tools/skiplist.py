@@ -30,6 +30,7 @@ DirectDownload._cleanup_batch_folder  # Used in tests
 DirectDownload._update_download_progress  # Used in tests
 DeviceSyncProvisioner.cleanup_orphans  # Manual recovery for orphan subscribers
 DocPair.last_sync_error_date  # Check NXDRIVE-1804
+DocPair.remote_locked  # Written and read as a States column, never as an attribute
 Download.transfer_type  # Used in QML
 Engine.folder  # Used in QML
 EngineDAO.get_direct_downloads_with_status  # Used in tests
