@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Tests for nxdrive/drive/dao/utils.py — fix_db, restore_backup, save_backup."""
 
 import sqlite3

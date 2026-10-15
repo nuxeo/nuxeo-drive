@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Regression tests for the stale-state defects found in the 2026-10-08 run.
 
 Two real failures drove these:

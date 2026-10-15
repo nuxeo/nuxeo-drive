@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Fixtures for Nuxeo Windows integration tests.
 
 Re-exports the ``exe`` fixture from the common integration conftest.

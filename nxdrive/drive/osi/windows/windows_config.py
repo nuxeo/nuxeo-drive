@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Factory for loading server-type-specific Windows addon installer names."""
 
 from nxdrive.drive import server_type as st

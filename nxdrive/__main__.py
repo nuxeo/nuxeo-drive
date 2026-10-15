@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 In this file we cannot use a relative import here, else Drive will not start when packaged.
 See https://github.com/pyinstaller/pyinstaller/issues/2560

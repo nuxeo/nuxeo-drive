@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Environment constants for Alfresco Drive test runs.
 
 Everything here is driven by environment variables so credentials are

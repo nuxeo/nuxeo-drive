@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 This script allows the user to check the project translations files and print on the standard
 output the differences between the reference translation file and the others files.

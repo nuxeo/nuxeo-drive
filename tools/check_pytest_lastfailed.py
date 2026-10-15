@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 This script allows the user to check that the pytest cache folder contains
 a valid lastfailed file. Will return 1 if the cache file is not found or if

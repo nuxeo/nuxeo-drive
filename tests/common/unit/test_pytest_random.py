@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 Tests for pytests_random: a pytest plugin to mitigate random failures.
 Adapted from github.com/pytest-dev/pytest-rerunfailures

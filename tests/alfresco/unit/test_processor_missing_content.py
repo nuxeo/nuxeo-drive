@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Regression tests for the QA report: sync icon never clears.
 
 Nine repository nodes answered ``404 Unable to locate content`` on every

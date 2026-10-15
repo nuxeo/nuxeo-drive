@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 from nxdrive.drive.constants import TransferStatus
 from nxdrive.drive.manager import Manager
 from nxdrive.drive.objects import Session

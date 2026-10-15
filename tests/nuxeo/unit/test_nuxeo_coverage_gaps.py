@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Focused tests for baseline Codecov gaps in Nuxeo implementations."""
 
 import errno

@@ -1,5 +1,10 @@
 #!/bin/bash -eu
 #
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
+#
 # Deploy a release: it means moving artifacts from the staging site to the production's one and
 # converting GitHub pre-release to release.
 #

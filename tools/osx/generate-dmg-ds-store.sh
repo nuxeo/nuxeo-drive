@@ -1,4 +1,9 @@
 #! /bin/bash
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 # Script to generate the .DS_Store file of the .dmg
 # The execution of this script does not work without an active graphical user session
 # hence cannot be run remotely by ssh as done on the Jenkins agent.

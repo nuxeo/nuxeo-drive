@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Nuxeo-specific pytest fixtures.
 
 Imports :mod:`tests.env_nuxeo` for server URLs, credentials, ``WS_DIR`` and

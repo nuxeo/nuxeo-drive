@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 Nuxeo-specific Direct Download implementation.
 
@@ -11,10 +16,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from nxdrive.drive.constants import DirectDownloadStatus
-from nxdrive.drive.direct_download import (
-    DirectDownload as _DirectDownloadBase,
-    DownloadPaused,
-)
+from nxdrive.drive.direct_download import DirectDownload as _DirectDownloadBase
+from nxdrive.drive.direct_download import DownloadPaused
 from nxdrive.drive.objects import DirectDownload as DirectDownloadRecord
 from nxdrive.drive.options import Options  # backward compatibility for tests
 from nxdrive.drive.utils import safe_filename

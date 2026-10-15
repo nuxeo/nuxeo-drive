@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 nautilus -q
 
 # Icon overlay, uncomment when https://hyland.atlassian.net/browse/NXDRIVE-374 is fixed

@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Regression tests for the review findings on PR #6489 (NXDRIVE-3287).
 
 Each test pins one decision that, when it went the other way, silently

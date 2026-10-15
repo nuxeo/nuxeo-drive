@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Nuxeo unit-test fixture bridge.
 
 Re-exports the shared mock-DAO / MockEngine / MockManager / MockProcessor

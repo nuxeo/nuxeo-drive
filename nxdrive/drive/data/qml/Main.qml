@@ -1,3 +1,8 @@
+/*
+ * © 2012-2026 Hyland.
+ * All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+ */
+
 // Import versions are 6.x for Qt 6
 // https://doc.qt.io/qt-6/qtquickcontrols-index.html
 import QtQuick

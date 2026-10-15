@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """
 Functional tests for DAO operations (nxdrive/drive/dao/engine.py)
 and Manager (nxdrive/drive/manager.py).

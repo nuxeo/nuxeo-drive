@@ -1,5 +1,10 @@
 #!/bin/bash -e
 #
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
+#
 # Create a new release, it means:
 #     - creating a new alpha or beta (seen as "release");
 #     - deploying artifacts to the server;

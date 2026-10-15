@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Acknowledgement semantics for the Device Sync delta feed (C10).
 
 The Sync Service is at-least-once: an uncleared sync is re-delivered on the

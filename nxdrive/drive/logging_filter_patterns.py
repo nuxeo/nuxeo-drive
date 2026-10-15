@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """This file contains nxdrive.log filter patterns to mask the sensitive information.
 To add more filters, add it in the form of tuple(). For example: (r"regex_to_filter_data", r"mask_string")
 

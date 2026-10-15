@@ -1,3 +1,8 @@
+#
+# © 2012-2026 Hyland.
+# All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
+#
+
 """Test the tree view classes without creating real Qt tree views."""
 
 from unittest.mock import MagicMock, Mock, patch
