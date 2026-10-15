@@ -43,6 +43,10 @@ __all__ = ("AlfrescoRemote",)
 
 log = getLogger(__name__)
 
+#: Optional fields every node fetch must ask for. ``isLocked`` is not returned
+#: by default, and without it the SDK reports every node as unlocked.
+NODE_FIELDS = ["path", "isLocked"]
+
 ALFRESCO_UPLOAD_BLOCK_SIZE = 65536
 UPLOAD_PROGRESS_INTERVAL = 1.0
 UPLOAD_PROGRESS_PERCENT_STEP = 1.0
@@ -459,7 +463,7 @@ class AlfrescoRemote:
         would still pull the rest and sync them unconditionally
         (root cause of NXDRIVE-3186 "selected 2 files but all synced").
         """
-        nodes = list(self.client.nodes.iter_children(fs_item_id, include=["path"]))
+        nodes = list(self.client.nodes.iter_children(fs_item_id, include=NODE_FIELDS))
         infos = [self._node_to_remote_file_info(n) for n in nodes]
 
         # Always hide Alfresco system folders from the folder-picker
@@ -520,9 +524,13 @@ class AlfrescoRemote:
             can_delete=True,
             can_update=node.is_file,
             can_create_child=node.is_folder,
-            lock_owner=None,
+            lock_owner=node.lock_owner,
             lock_created=None,
             can_scroll_descendants=False,
+            # ``isLocked`` only arrives when it was asked for, and defaults to
+            # ``False`` otherwise. ``cm:lockOwner`` comes with the properties
+            # either way, so one missed ``include`` cannot disable the check.
+            is_locked=bool(node.is_locked or node.lock_owner),
         )
 
     @staticmethod
@@ -569,6 +577,7 @@ class AlfrescoRemote:
             lock_owner=None,
             lock_created=None,
             can_scroll_descendants=False,
+            is_locked=change.is_locked,
         )
 
     # -- Adapter methods (Processor compatibility) ---------------------------
@@ -586,23 +595,16 @@ class AlfrescoRemote:
         refresh remote state, check digests, etc.
         """
         try:
-            node = self.get_node(fs_item_id, include=["path"])
+            node = self.get_node(fs_item_id, include=NODE_FIELDS)
         except Exception:
             raise NotFound(f"Could not find {fs_item_id!r} on {self.server_url!r}")
         info = self._node_to_remote_file_info(node)
-        # Prefer the server-provided digest (``Node.digest`` /
-        # ``Node.digest_algorithm``) when Alfresco returns one.  Fall back
-        # to whatever we stored in the DB during upload so the Processor's
-        # conflict check doesn't see a spurious None-vs-hash mismatch.
-        if info.digest is None:
-            if node.digest:
-                info.digest = node.digest
-                info.digest_algorithm = (node.digest_algorithm or "md5").lower()
-            elif hasattr(self, "dao"):
-                pair = self.dao.get_normal_state_from_remote(fs_item_id)
-                if pair and pair.remote_digest:
-                    info.digest = pair.remote_digest
-                    info.digest_algorithm = "md5"
+        # Only a digest the server actually vouches for may be used. Falling
+        # back to the one stored at upload time would report our own content as
+        # the server's, and the download check would then skip a remote edit.
+        if info.digest is None and node.digest:
+            info.digest = node.digest
+            info.digest_algorithm = (node.digest_algorithm or "md5").lower()
         return info
 
     def stream_content(

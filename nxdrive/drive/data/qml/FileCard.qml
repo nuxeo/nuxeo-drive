@@ -52,8 +52,12 @@ ShadowRectangle {
             // Conflict/Error reason
             SelectableText {
                 id: errorReason
-                visible: type != "conflict"
-                property string reason: type == "ignored" ? "IGNORE_REASON_" : "ERROR_REASON_"
+                // Most conflicts carry no reason; showing one then would
+                // render the raw lookup key.
+                visible: type != "conflict" || !!fileData.last_error
+                property string reason: type == "ignored" ? "IGNORE_REASON_"
+                                      : type == "conflict" ? "CONFLICT_REASON_"
+                                      : "ERROR_REASON_"
                 Layout.fillWidth: true
 
                 text: qsTr(reason + fileData.last_error) + tl.tr

@@ -89,6 +89,7 @@ def _make_doc_pair(**kwargs):
     pair.local_state = kwargs.get("local_state", "synchronized")
     pair.pair_state = kwargs.get("pair_state", "synchronized")
     pair.last_remote_updated = kwargs.get("last_remote_updated", "2024-01-01 00:00:00")
+    pair.remote_version = kwargs.get("remote_version", "1.0")
     pair.local_digest = kwargs.get("local_digest", None)
     pair.processor = kwargs.get("processor", 0)
     return pair
@@ -105,6 +106,8 @@ def _make_remote_info(**kwargs):
         "last_modification_time", datetime(2024, 1, 1, tzinfo=timezone.utc)
     )
     info.digest = kwargs.get("digest", None)
+    info.version_label = kwargs.get("version_label", "1.0")
+    info.is_locked = kwargs.get("is_locked", False)
     return info
 
 
@@ -475,9 +478,14 @@ class TestScanRemoteRecursive:
         watcher.dao.is_filter.return_value = False
 
         parent_pair = _make_doc_pair(remote_ref="parent-node", remote_parent_path="")
-        watcher._scan_remote_recursive(
-            parent_pair, _make_remote_info(uid="parent-node")
-        )
+        # Same second on both sides, so the bytes decide; they match.
+        with patch(
+            "nxdrive.alfresco.engine.watcher.remote_watcher.content_matches",
+            return_value=True,
+        ):
+            watcher._scan_remote_recursive(
+                parent_pair, _make_remote_info(uid="parent-node")
+            )
 
         watcher.dao.update_remote_state.assert_called()
         watcher.dao.force_remote.assert_not_called()
@@ -493,6 +501,9 @@ class TestScanRemoteRecursive:
             uid="child-1",
             name="Doc.txt",
             folderish=False,
+            # A new version label is what proves the content changed; the
+            # timestamp alone also moves on metadata-only edits.
+            version_label="1.1",
             last_modification_time=datetime(
                 2024, 6, 15, 10, 30, 0, tzinfo=timezone.utc
             ),
@@ -512,7 +523,9 @@ class TestScanRemoteRecursive:
             parent_pair, _make_remote_info(uid="parent-node")
         )
 
-        watcher.dao.force_remote.assert_called_once_with(existing_pair)
+        watcher.dao.force_remote.assert_called_once_with(
+            existing_pair, expected_pair_state=existing_pair.pair_state
+        )
 
     def test_missing_children_marked_deleted(self):
         watcher = _make_watcher()
@@ -942,7 +955,7 @@ class TestScanRemoteRecursiveExtended:
         watcher.dao.update_remote_state.assert_not_called()
 
     def test_locally_created_pair_skipped_for_force(self):
-        """locally_created pairs should update state but not force_remote."""
+        """locally_created pairs get their naming refreshed, nothing more."""
         watcher = _make_watcher()
         remote = MagicMock()
         watcher.engine.remote = remote
@@ -970,11 +983,12 @@ class TestScanRemoteRecursiveExtended:
             parent_pair, _make_remote_info(uid="parent-node")
         )
 
-        watcher.dao.update_remote_state.assert_called_once()
+        watcher.dao.update_remote_naming.assert_called_once()
+        watcher.dao.update_remote_state.assert_not_called()
         watcher.dao.force_remote.assert_not_called()
 
     def test_locally_modified_pair_skipped_for_force(self):
-        """locally_modified pairs should update state but not force_remote."""
+        """locally_modified pairs get their naming refreshed, nothing more."""
         watcher = _make_watcher()
         remote = MagicMock()
         watcher.engine.remote = remote
@@ -1002,7 +1016,8 @@ class TestScanRemoteRecursiveExtended:
             parent_pair, _make_remote_info(uid="parent-node")
         )
 
-        watcher.dao.update_remote_state.assert_called_once()
+        watcher.dao.update_remote_naming.assert_called_once()
+        watcher.dao.update_remote_state.assert_not_called()
         watcher.dao.force_remote.assert_not_called()
 
     def test_new_folder_recurses(self):

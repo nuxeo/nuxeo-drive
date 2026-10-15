@@ -21,6 +21,8 @@ def processor(tmp_path):
     engine.queue_manager = MagicMock()
     engine.queue_manager.get_error_threshold.return_value = 3
     engine.download_dir = tmp_path / "downloads"
+    # A bare mock answers "open" to everything, which would defer every download.
+    engine.manager.osi.is_file_open.return_value = False
 
     result = AlfrescoProcessor(engine, MagicMock(return_value=None))
     result.dao = engine.dao
@@ -30,6 +32,7 @@ def processor(tmp_path):
     result.pairSyncEnded = MagicMock()
     result._current_metrics = {}
     result.dao.get_filters.return_value = []
+    result.remote.is_filtered.return_value = False
     return result
 
 
@@ -149,7 +152,10 @@ def test_remote_modify_postpones_until_parent_is_synchronized(processor):
 def test_remote_move_with_already_matching_target_synchronizes(processor):
     pair = MagicMock()
     pair.folderish = False
-    pair.local_digest = None
+    # A digest on record is what says the two sides already agree; without one
+    # the pair is fetched instead of being moved on trust.
+    pair.local_digest = "on-record"
+    processor.local.is_equal_digests.return_value = True
     pair.local_name = "document.txt"
     pair.remote_name = "document.txt"
     pair.local_path = Path("sync/new-parent/document.txt")
@@ -174,6 +180,10 @@ def test_remote_update_renames_download_and_preserves_remote_xattr(processor, tm
     pair.remote_name = "new-name.txt"
     pair.remote_ref = "document-id"
     pair.last_remote_updated = "2026-08-01 12:00:00"
+    pair.local_digest = "untouched"
+    processor.local.get_info.return_value.get_digest.return_value = "untouched"
+    # Nothing re-decided the row while the download ran.
+    processor.dao.get_state_from_id.return_value = pair
     old_os_path = tmp_path / "old-name.txt"
     temporary_path = tmp_path / "transfer" / "new-name.txt"
     processor.local.abspath.return_value = old_os_path
@@ -245,6 +255,7 @@ def test_local_folder_create_recovers_parent_from_xattr(processor):
     pair.local_parent_path = Path("sync")
     pair.local_name = "new-folder"
     pair.folderish = True
+    pair.version = 1
     parent = MagicMock()
     parent.remote_ref = "parent-id"
     parent.remote_can_create_child = True
@@ -257,12 +268,17 @@ def test_local_folder_create_recovers_parent_from_xattr(processor):
     processor.remote.get_fs_info.return_value = MagicMock(path="/Company Home")
     remote_info = MagicMock(uid="new-folder-id", digest=None)
     processor.remote.make_folder.return_value = remote_info
+    processor.dao.get_state_from_id.return_value = MagicMock(
+        version=1, pair_state="locally_created"
+    )
 
     processor._synchronize_locally_created(pair)
 
     processor._get_normal_state_from_remote_ref.assert_called_once_with("parent-id")
     processor.remote.make_folder.assert_called_once_with("parent-id", "new-folder")
-    processor.dao.synchronize_state.assert_called_once_with(pair)
+    processor.dao.synchronize_state.assert_called_once_with(
+        pair, expected_pair_state=pair.pair_state
+    )
 
 
 def test_local_create_postpones_when_digest_remains_inaccessible(processor):
@@ -324,7 +340,9 @@ def test_local_modify_refreshes_an_inaccessible_digest(processor, digest):
         processor.dao.update_local_state.assert_called_once_with(
             pair, local_info, versioned=False, queue=False
         )
-        processor.dao.synchronize_state.assert_called_once_with(pair)
+        processor.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
 
 def test_readonly_local_delete_retries_when_remote_path_lookup_fails(processor):

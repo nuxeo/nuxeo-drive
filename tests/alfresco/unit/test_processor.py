@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nxdrive.alfresco.engine.processor import AlfrescoProcessor
+from nxdrive.alfresco.engine.processor import DIFFERENT_CONTENT, AlfrescoProcessor
 from nxdrive.drive.constants import UNACCESSIBLE_HASH, TransferStatus
 from nxdrive.drive.exceptions import PairInterrupt
 
@@ -28,6 +28,8 @@ def mock_engine():
     engine.queue_manager.get_error_threshold = Mock(return_value=3)
     engine.get_metadata_url = Mock(return_value="http://alfresco/metadata")
     engine.get_remote_url = Mock(return_value="http://alfresco/remote")
+    # A bare mock answers "open" to everything, which would defer every download.
+    engine.manager.osi.is_file_open.return_value = False
     return engine
 
 
@@ -124,12 +126,15 @@ def proc():
     engine.queue_manager = Mock()
     engine.queue_manager.get_error_threshold = Mock(return_value=3)
     engine.download_dir = Path("/tmp/downloads")
+    # A bare mock answers "open" to everything, which would defer every download.
+    engine.manager.osi.is_file_open.return_value = False
     item_getter = Mock(return_value=None)
     p = AlfrescoProcessor(engine, item_getter)
     p.local = engine.local
     p.remote = engine.remote
     p.dao = engine.dao
     p.dao.get_filters.return_value = []
+    p.remote.is_filtered.return_value = False
     return p
 
 
@@ -182,6 +187,7 @@ class TestRemoteHasDrifted:
         pair.folderish = True
         pair.last_remote_updated = "2024-01-01 00:00:00"
         remote_info = Mock()
+        remote_info.version_label = ""
         remote_info.last_modification_time = "2024-06-01 12:00:00"
         proc.remote.get_fs_info.return_value = remote_info
         assert proc._remote_has_drifted(pair) is False
@@ -200,7 +206,10 @@ class TestRemoteHasDrifted:
         proc.remote.get_fs_info.return_value = remote_info
         assert proc._remote_has_drifted(pair) is False
 
-    def test_file_different_timestamp_drift(self, proc) -> None:
+    def test_a_local_edit_alone_is_never_drift(self, proc) -> None:
+        """NXDRIVE-3287: this runs before an upload, so the local file is
+        *meant* to differ. Comparing the bytes here reported every local edit
+        as a remote change and raised a conflict for each one."""
         from datetime import datetime, timezone
 
         pair = Mock()
@@ -208,6 +217,29 @@ class TestRemoteHasDrifted:
         pair.folderish = False
         pair.last_remote_updated = "2024-01-01 00:00:00"
         remote_info = Mock()
+        remote_info.last_modification_time = datetime(
+            2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+        )
+        proc.remote.get_fs_info.return_value = remote_info
+
+        with patch(
+            "nxdrive.alfresco.engine.processor.content_matches", return_value=False
+        ) as compare:
+            assert proc._remote_has_drifted(pair) is False
+
+        # The bytes cannot answer "did the server move?" on this path.
+        compare.assert_not_called()
+
+    def test_file_different_timestamp_drift(self, proc) -> None:
+        from datetime import datetime, timezone
+
+        pair = Mock()
+        pair.remote_ref = "abc"
+        pair.folderish = False
+        pair.remote_version = ""
+        pair.last_remote_updated = "2024-01-01 00:00:00"
+        remote_info = Mock()
+        remote_info.version_label = ""
         remote_info.last_modification_time = datetime(
             2024, 6, 15, 10, 0, 0, tzinfo=timezone.utc
         )
@@ -238,7 +270,14 @@ class TestMarkConflicted:
         pair.remote_ref = "abc"
         proc._mark_conflicted(pair)
         proc.dao._force_sync.assert_called_once_with(
-            pair, "modified", "modified", "conflicted"
+            pair,
+            "modified",
+            "modified",
+            "conflicted",
+            last_error=None,
+            last_error_details=None,
+            expected_pair_state=pair.pair_state,
+            clear_remote_digest=True,
         )
 
 
@@ -427,7 +466,12 @@ class TestRefreshLocalState:
         info = Mock()
         proc._refresh_local_state(pair, info)
         proc.dao.update_local_state.assert_called_once_with(
-            pair, info, versioned=False, queue=False
+            pair,
+            info,
+            versioned=False,
+            queue=False,
+            expected_version=None,
+            expected_pair_state=None,
         )
 
 
@@ -440,7 +484,13 @@ class TestRefreshRemote:
         proc._refresh_remote(pair)
         proc.remote.get_fs_info.assert_called_once_with("abc")
         proc.dao.update_remote_state.assert_called_once_with(
-            pair, remote_info, versioned=False, queue=False
+            pair,
+            remote_info,
+            versioned=False,
+            queue=False,
+            force_update=True,
+            expected_version=None,
+            expected_pair_state=None,
         )
 
     def test_uses_provided_info(self, proc) -> None:
@@ -450,7 +500,13 @@ class TestRefreshRemote:
         proc._refresh_remote(pair, provided_info)
         proc.remote.get_fs_info.assert_not_called()
         proc.dao.update_remote_state.assert_called_once_with(
-            pair, provided_info, versioned=False, queue=False
+            pair,
+            provided_info,
+            versioned=False,
+            queue=False,
+            force_update=True,
+            expected_version=None,
+            expected_pair_state=None,
         )
 
     def test_none_info_no_update(self, proc) -> None:
@@ -626,6 +682,9 @@ class TestSynchronizeLocallyCreated:
         pair.local_digest = "local-hash"
         pair.folderish = False
         pair.id = 42
+        # Compared against the row re-read after the upload, so it must be a
+        # real value: two Mocks always differ.
+        pair.version = 1
 
         parent = Mock()
         parent.remote_ref = "parent-ref"
@@ -671,6 +730,7 @@ class TestSynchronizeLocallyCreated:
         pair.local_name = "NewFolder"
         pair.folderish = True
         pair.id = 99
+        pair.version = 1
 
         parent = Mock()
         parent.remote_ref = "parent-ref"
@@ -683,10 +743,15 @@ class TestSynchronizeLocallyCreated:
         fs_info.uid = "new-folder-id"
         fs_info.digest = None
         proc.remote.make_folder.return_value = fs_info
+        proc.dao.get_state_from_id.return_value = Mock(
+            version=1, pair_state="locally_created"
+        )
 
         proc._synchronize_locally_created(pair)
         proc.remote.make_folder.assert_called_once_with("parent-ref", "NewFolder")
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_local_file_removes_exact_stale_filter(self, proc) -> None:
         pair, parent = self._file_pair_and_parent()
@@ -750,8 +815,17 @@ class TestSynchronizeLocallyCreated:
             proc._synchronize_locally_created(pair)
 
         proc.remote.stream_file.assert_not_called()
+        # The reason lets the resolver surface this without asking the server
+        # to compare the content all over again.
         proc.dao._force_sync.assert_called_once_with(
-            pair, "modified", "modified", "conflicted"
+            pair,
+            "modified",
+            "modified",
+            "conflicted",
+            last_error=DIFFERENT_CONTENT,
+            last_error_details=None,
+            expected_pair_state=pair.pair_state,
+            clear_remote_digest=True,
         )
 
     def test_conflicted_pair_is_bound_to_the_twin(self, proc) -> None:
@@ -805,7 +879,9 @@ class TestSynchronizeLocallyCreated:
         proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
         proc.remote.stream_file.return_value.uid = "new-file-id"
         proc.dao.get_normal_state_from_remote.return_value = None
-        proc.dao.get_state_from_id.return_value = Mock(pair_state="conflicted")
+        proc.dao.get_state_from_id.return_value = Mock(
+            version=2, pair_state="conflicted"
+        )
 
         with patch.object(proc, "_conflicting_remote_twin", return_value=None):
             proc._synchronize_locally_created(pair)
@@ -822,13 +898,17 @@ class TestSynchronizeLocallyCreated:
         proc.local.abspath.return_value = Path("/local/Shared/newfile.txt")
         proc.remote.stream_file.return_value.uid = "new-file-id"
         proc.dao.get_normal_state_from_remote.return_value = None
-        proc.dao.get_state_from_id.return_value = Mock(pair_state="locally_created")
+        proc.dao.get_state_from_id.return_value = Mock(
+            version=1, pair_state="locally_created"
+        )
 
         with patch.object(proc, "_conflicting_remote_twin", return_value=None):
             proc._synchronize_locally_created(pair)
 
         proc.dao.update_remote_state.assert_called_once()
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_resolved_pair_is_never_re_conflicted(self, proc) -> None:
         """ "Use local" must upload, not bounce back into conflict.
@@ -890,12 +970,17 @@ class TestSynchronizeLocallyCreated:
         owner.id = pair.id
         owner.local_path = pair.local_path
         proc.dao.get_normal_state_from_remote.return_value = owner
+        proc.dao.get_state_from_id.return_value = Mock(
+            version=1, pair_state="locally_created"
+        )
 
         proc._synchronize_locally_created(pair)
 
         proc.dao.remove_state.assert_not_called()
         proc.dao.update_remote_state.assert_called_once()
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
 
 class TestRemoteTwinDiffers:
@@ -972,7 +1057,7 @@ class TestRemoteTwinDiffers:
         proc.remote.find_file_child.return_value = self._twin(len(data))
         proc.remote.get_content_range.side_effect = RuntimeError("boom")
 
-        with patch("nxdrive.alfresco.engine.processor.sleep"):
+        with patch("nxdrive.alfresco.content_compare.sleep"):
             assert proc._conflicting_remote_twin(pair, "parent-ref") is None
 
         assert proc.remote.get_content_range.call_count == 3
@@ -983,11 +1068,11 @@ class TestRemoteTwinDiffers:
         proc.remote.find_file_child.return_value = self._twin(len(data))
         proc.remote.get_content_range.side_effect = [RuntimeError("boom"), data]
 
-        with patch("nxdrive.alfresco.engine.processor.sleep"):
+        with patch("nxdrive.alfresco.content_compare.sleep"):
             assert proc._conflicting_remote_twin(pair, "parent-ref") is None
 
     def test_large_file_hashes_head_and_tail(self, proc, tmp_path) -> None:
-        from nxdrive.alfresco.engine.processor import PARTIAL_COMPARE_SIZE
+        from nxdrive.alfresco.content_compare import PARTIAL_COMPARE_SIZE
 
         size = 2 * PARTIAL_COMPARE_SIZE + 1024
         path = tmp_path / "big.bin"
@@ -1011,7 +1096,7 @@ class TestRemoteTwinDiffers:
         Both sides must then hash the head alone, else every large file
         would compare as different.
         """
-        from nxdrive.alfresco.engine.processor import PARTIAL_COMPARE_SIZE
+        from nxdrive.alfresco.content_compare import PARTIAL_COMPARE_SIZE
 
         size = 2 * PARTIAL_COMPARE_SIZE + 1024
         path = tmp_path / "big.bin"
@@ -1032,7 +1117,7 @@ class TestRemoteTwinDiffers:
         assert proc._conflicting_remote_twin(pair, "parent-ref") is None
 
     def test_head_only_still_detects_a_different_head(self, proc, tmp_path) -> None:
-        from nxdrive.alfresco.engine.processor import PARTIAL_COMPARE_SIZE
+        from nxdrive.alfresco.content_compare import PARTIAL_COMPARE_SIZE
 
         size = 2 * PARTIAL_COMPARE_SIZE + 1024
         path = tmp_path / "big.bin"
@@ -1072,7 +1157,9 @@ class TestSynchronizeLocallyModified:
 
         proc._synchronize_locally_modified(pair)
         proc.remote.stream_update.assert_called_once()
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_readonly_unsynchronizes(self, proc) -> None:
         pair = Mock()
@@ -1105,7 +1192,9 @@ class TestSynchronizeLocallyModified:
 
         proc._synchronize_locally_modified(pair)
         proc.remote.stream_update.assert_not_called()
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_a_folder_settles_without_hashing_it(self, proc) -> None:
         """Directories are unhashable: never take the content path."""
@@ -1553,7 +1642,14 @@ class TestMarkConflictedExtra:
         pair.remote_ref = "node-123"
         proc._mark_conflicted(pair)
         proc.dao._force_sync.assert_called_once_with(
-            pair, "modified", "modified", "conflicted"
+            pair,
+            "modified",
+            "modified",
+            "conflicted",
+            last_error=None,
+            last_error_details=None,
+            expected_pair_state=pair.pair_state,
+            clear_remote_digest=True,
         )
 
 
@@ -1592,6 +1688,7 @@ class TestRemoteHasDriftedExtra:
             last_remote_updated="2024-01-01 00:00:00",
         )
         remote_info = Mock()
+        remote_info.version_label = ""
         remote_info.last_modification_time = Mock()
         remote_info.last_modification_time.strftime.return_value = "2024-06-15 12:00:00"
         proc.remote.get_fs_info.return_value = remote_info
@@ -1613,9 +1710,11 @@ class TestRemoteHasDriftedExtra:
         pair = Mock(
             remote_ref="node-abc",
             folderish=False,
+            remote_version="",
             last_remote_updated="2024-01-01 00:00:00",
         )
         remote_info = Mock()
+        remote_info.version_label = ""
         remote_info.last_modification_time = Mock()
         remote_info.last_modification_time.strftime.return_value = "2024-06-15 12:00:00"
         proc.remote.get_fs_info.return_value = remote_info
@@ -1625,6 +1724,7 @@ class TestRemoteHasDriftedExtra:
         pair = Mock(
             remote_ref="node-abc",
             folderish=False,
+            remote_version="",
             last_remote_updated="2024-01-01 00:00:00",
         )
         proc.remote.get_fs_info.return_value = None
@@ -1880,7 +1980,14 @@ class TestExecuteEdgeCases:
         proc._handle_doc_pair_sync = Mock(side_effect=RemoteConflict("conflict"))
         proc._execute()
         proc.dao._force_sync.assert_called_once_with(
-            item, "modified", "modified", "conflicted"
+            item,
+            "modified",
+            "modified",
+            "conflicted",
+            last_error=None,
+            last_error_details=None,
+            expected_pair_state=item.pair_state,
+            clear_remote_digest=True,
         )
 
     def test_download_paused_sets_transfer_doc(self, proc):
@@ -1983,6 +2090,7 @@ class TestSynchronizeRemotelyModified:
         p.dao = mock_engine.dao
         p.remote = mock_engine.remote
         p.local = mock_engine.local
+        p.remote.is_filtered.return_value = False
         return p
 
     def test_content_differs_calls_update(self, proc):
@@ -2000,6 +2108,10 @@ class TestSynchronizeRemotelyModified:
         proc.local.is_equal_digests.return_value = False
         proc.local.abspath.return_value = Path("/abs/file.txt")
         proc.local.get_remote_id.return_value = None
+        # An untouched file hashes to what the row already records.
+        proc.local.get_info.return_value.get_digest.return_value = "abc"
+        # Nothing re-decided the row while the download ran.
+        proc.dao.get_state_from_id.return_value = pair
 
         # _update_remotely needs download + move + etc
         proc.engine.download_dir = Path("/tmp/downloads")
@@ -2012,9 +2124,14 @@ class TestSynchronizeRemotelyModified:
         proc.local.move.return_value = updated_info
         proc.local.change_file_date = Mock()
         proc.remote.get_fs_info.return_value = Mock()
+        # Nothing moved on the server, so the relocation step is a no-op. The
+        # parent is still known: no parent at all means "cannot place it yet".
+        proc._is_remote_move = Mock(return_value=(False, Mock()))
 
         proc._synchronize_remotely_modified(pair)
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_is_move_moves_locally(self, proc):
         pair = Mock()
@@ -2047,7 +2164,9 @@ class TestSynchronizeRemotelyModified:
         proc.local.abspath.return_value = Path("/abs")
 
         proc._synchronize_remotely_modified(pair)
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_filtered_path_deletes_remotely(self, proc):
         pair = Mock()
@@ -2104,7 +2223,9 @@ class TestSynchronizeRemotelyModified:
 
         proc._synchronize_remotely_modified(pair)
         proc.local.rename.assert_called_once_with(Path("/old-name.txt"), "new-name.txt")
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
 
 # ------------------------------------------------------------------ _create_remotely

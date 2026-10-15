@@ -93,6 +93,35 @@ class AbstractOSIntegration(QObject):
     def get_system_configuration(self) -> Dict[str, Any]:
         return {}
 
+    def is_file_open(self, path: Path, /) -> Optional[bool]:
+        """Return whether *path* is currently open in another application.
+
+        ``None`` means the question could not be answered on this platform;
+        callers must not read that as "closed".
+        """
+        return None
+
+    def has_file_open_detection(self) -> bool:
+        """Return whether :meth:`is_file_open` can give a real answer here."""
+        return False
+
+    def has_file_open_permission(self) -> bool:
+        """Return whether the permission :meth:`is_file_open` needs is granted.
+
+        Read without prompting, so it can be called on every start. Platforms
+        that need no permission are granted as soon as detection exists.
+        """
+        return self.has_file_open_detection()
+
+    def request_file_open_permission(self) -> bool:
+        """Ask the user for any permission :meth:`is_file_open` needs.
+
+        The answer is not available by the time this returns on platforms
+        whose prompt is asynchronous; use :meth:`has_file_open_permission` to
+        read the outcome. No-op where the platform needs no permission.
+        """
+        return self.has_file_open_detection()
+
     @staticmethod
     def cb_get() -> str:
         """Get the text data from the clipboard."""

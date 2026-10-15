@@ -127,6 +127,14 @@ build_alfresco_installer() {
         cp -r "${alfresco_icon_folder}"* "${destination_folder}"
     fi
 
+    # Rebuilt before freezing so the bundled helper always matches its source;
+    # the committed binary is only a convenience for local runs.
+    # See docs/check_open_helper.md
+    if [ "${OSI}" = "osx" ]; then
+        echo ">>> Building the open-file detection helper"
+        bash tools/osx/utilities/build_check_open.sh
+    fi
+
     echo ">>> Building the release package"
     ${PYTHON_VENV} -m PyInstaller alfresco.spec --clean --noconfirm
 

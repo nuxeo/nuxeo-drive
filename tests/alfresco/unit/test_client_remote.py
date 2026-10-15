@@ -1185,7 +1185,14 @@ class TestGetFsInfoDigestFallback:
         assert info.digest == "server_digest"
         assert info.digest_algorithm == "sha256"
 
-    def test_falls_back_to_dao_pair(self, _client_patch) -> None:
+    def test_never_reports_the_stored_digest_as_the_servers(
+        self, _client_patch
+    ) -> None:
+        """Alfresco serves no content hash, so the stored one is our own upload.
+
+        Reporting it back would make a remote edit look identical to the local
+        copy, and the download that edit needs would be skipped.
+        """
         remote = _build_remote(_client_patch)
         node = MagicMock()
         node.name = "file.txt"
@@ -1202,14 +1209,14 @@ class TestGetFsInfoDigestFallback:
         remote.client.nodes.get.return_value = node
 
         dao = MagicMock()
-        pair_mock = MagicMock()
-        pair_mock.remote_digest = "db_digest"
-        dao.get_normal_state_from_remote.return_value = pair_mock
+        dao.get_normal_state_from_remote.return_value = MagicMock(
+            remote_digest="db_digest"
+        )
         remote.dao = dao
 
         info = remote.get_fs_info("n1")
-        assert info.digest == "db_digest"
-        assert info.digest_algorithm == "md5"
+        assert info.digest is None
+        dao.get_normal_state_from_remote.assert_not_called()
 
 
 class TestFetch:
