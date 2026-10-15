@@ -81,3 +81,30 @@ class Open_Source_Attribution(QDialog):
             )
         finally:
             return content
+
+
+def get_open_source_attribution_console_message(server_type: str = "Nuxeo") -> None:
+    """Prints the open source attribution text in console"""
+
+    from ..utils import find_resource
+
+    file_path = find_resource(
+        "LICENSES", file=f"{server_type}_OPEN_SOURCE_ATTRIBUTION.txt"
+    )
+    content = None
+    try:
+        with open(file_path, mode="r") as f:
+            content = f.read().strip()
+    except Exception as e:
+        log.error(f"Unable to read {server_type}_OPEN_SOURCE_ATTRIBUTION.txt : {e}")
+        return
+
+    if content:
+        print(content)
+        print()  # Just a new line break
+        print("Enter any key to proceed:")
+        input()
+    else:
+        # If content is empty, we just log a warning
+        # This notice is not mandatory, so it should not block execution
+        log.warning("No content in Open Source Attribution text")

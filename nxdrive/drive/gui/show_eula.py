@@ -141,18 +141,22 @@ class EULA(QApplication):
 
         import locale
 
-        locale.setlocale(locale.LC_ALL, "")
-        locale_info = locale.getlocale()
-        user_lang = (
-            locale_info[0].split("_")[0]
-            if locale_info and locale_info[0]
-            else "English"
-        )
-        lang_code = (
-            locale.normalize(user_lang)[:2].lower()
-            if locale.normalize(user_lang)
-            else "en"
-        )
+        lang_code = "en"
+        try:
+            locale.setlocale(locale.LC_ALL, "")
+            locale_info = locale.getlocale()
+            user_lang = (
+                locale_info[0].split("_")[0]
+                if locale_info and locale_info[0]
+                else "English"
+            )
+            lang_code = (
+                locale.normalize(user_lang)[:2].lower()
+                if locale.normalize(user_lang)
+                else "en"
+            )
+        except Exception as e:
+            log.warning(f"Could not load locale for EULA dialog. Using English. : {e}")
         Translator(find_resource("i18n"), lang=lang_code)
         self.translator_singleton = Translator.singleton
         self.installTranslator(self.translator_singleton)
@@ -214,3 +218,37 @@ def get_eula_dialog(server_type: str = "Nuxeo") -> QDialog:
     dialog.setMinimumSize(500, 500)
 
     return dialog
+
+
+def get_eula_console_message(server_type: str = "Nuxeo") -> bool:
+    """Prints the eula message in console and asks acceptance choice"""
+
+    file_path = find_resource("LICENSES", file=f"{server_type}_EULA.txt")
+    content = None
+    try:
+        with open(file_path, mode="r") as f:
+            content = f.read().strip()
+    except Exception as e:
+        log.error(f"Unable to read {server_type}_EULA.txt : {e}")
+        return False
+
+    if content:
+        print(content)
+        print()  # Just a new line break
+        answer = ""
+        while answer.upper() not in ("Y", "N"):
+            print("Enter Y to accept, N to reject:")
+            answer = input()
+
+        if answer == "Y":
+            from .show_open_source_attribution import (
+                get_open_source_attribution_console_message,
+            )
+
+            get_open_source_attribution_console_message(server_type)
+        else:
+            return False
+        return True
+    else:
+        log.warning("No content in EULA text")
+        return False
