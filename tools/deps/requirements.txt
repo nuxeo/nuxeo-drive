@@ -2,9 +2,9 @@
 # Modules needed by the application.
 # This file is used to build fresh binaries.
 #
-alfresco-rest-client==1.0.3 \
-    --hash=sha256:e91343152f99b337b06bd231c5bbc5e464b23405153bc936041adf7eb452c4ae \
-    --hash=sha256:6b7c322228fe5a1218b7e33d6918638dcde577c76e4192f797abd29c80b17d56
+alfresco-rest-client==1.0.4 \
+    --hash=sha256:dc02d48b7a37cedeb82b4b129f1d5e07fd7305ea36f50ce4332d18cd43996b88 \
+    --hash=sha256:c54aa39137cb221224eb8ab35fbcdc465105536a40c4f2b6b5129d0c1f3bfd51
 authlib==1.6.12 \
     --hash=sha256:0656d8482f28fc8221929d5f35b2bde5d13e10555ebc06b4561b0d622e83b1bd \
     --hash=sha256:e9229ad7fde610b139dd12f5edbe97eab9ee78bfb85691247e767727850b99ab

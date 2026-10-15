@@ -451,7 +451,12 @@ def test_reconcile_child_leaves_healthy_row_alone():
     info = _remote_info("file.txt")
     info.last_modification_time = stamp
 
-    watcher._reconcile_child(pair, info, "/parent", PurePosixPath("local"))
+    # Same second on both sides, so the bytes decide; they match.
+    with patch(
+        "nxdrive.alfresco.engine.watcher.remote_watcher.content_matches",
+        return_value=True,
+    ):
+        watcher._reconcile_child(pair, info, "/parent", PurePosixPath("local"))
 
     watcher.dao.force_remote.assert_not_called()
 

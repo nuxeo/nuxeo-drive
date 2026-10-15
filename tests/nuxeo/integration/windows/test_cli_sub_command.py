@@ -13,10 +13,7 @@ import pytest
 from nuxeo.documents import Document
 
 from nxdrive.drive.constants import WINDOWS
-from tests.common.integration.windows.utils import (
-    cb_get,
-    fatal_error_dlg,
-)
+from tests.common.integration.windows.utils import cb_get, fatal_error_dlg
 
 from .... import env_nuxeo as env
 
@@ -56,12 +53,17 @@ def test_console(exe):
         # --local-folder argument is tested in test_unbind()
     ],
 )
-def test_bind_server(nuxeo_url, exe, args):
+def test_bind_server(nuxeo_url, exe, tmp, args):
     """
     Test only with no access to the server to prevent useless binds.
     Real binds are tested in test_unbind_server().
     """
-    assert bind(exe, args.format(user=env.NXDRIVE_TEST_USERNAME, url=nuxeo_url))
+    # Each case needs its own folder: the previous bind is remembered and
+    # the app refuses to attach a second account to the same folder.
+    folder = tmp()
+    folder.mkdir(parents=True, exist_ok=True)
+    args = args.format(user=env.NXDRIVE_TEST_USERNAME, url=nuxeo_url)
+    assert bind(exe, f'{args} --local-folder="{folder}"')
 
 
 @pytest.mark.parametrize(

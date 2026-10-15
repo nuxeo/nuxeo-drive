@@ -8,7 +8,7 @@ import subprocess
 import sys
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import win32api
 from win32com.client import Dispatch
@@ -21,7 +21,7 @@ from ...qt.imports import Slot
 from ...translator import Translator
 from ...utils import force_encode, get_value, if_frozen
 from .. import AbstractOSIntegration
-from . import registry
+from . import open_files, registry
 from .extension import (
     WindowsExtensionListener,
     disable_overlay,
@@ -275,3 +275,11 @@ class WindowsIntegration(AbstractOSIntegration):
     def get_extension_listener(self) -> WindowsExtensionListener:
         assert self._manager
         return WindowsExtensionListener(self._manager)
+
+    # -- Open-file detection -------------------------------------------------
+
+    def is_file_open(self, path: Path, /) -> Optional[bool]:
+        return open_files.is_file_open(path)
+
+    def has_file_open_detection(self) -> bool:
+        return open_files.available()

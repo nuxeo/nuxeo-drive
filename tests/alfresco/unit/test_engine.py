@@ -5,6 +5,7 @@
 
 """Unit tests for nxdrive.alfresco.engine.engine — targets uncovered lines."""
 
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -144,6 +145,88 @@ class TestStartCleanup:
         # Should not raise
         engine._cleanup_after_sync_disabled()
         engine.dao.delete_config.assert_called_with("filters_configured")
+
+
+# ------------------------------------------------------------------ open-file permission
+
+
+class TestOpenFilePermission:
+    """The grant can be given or withdrawn outside the application, so it is
+    read on every start instead of being remembered from the first prompt.
+    """
+
+    def _engine(self, *, granted, asked=None):
+        engine = _make_engine()
+        engine._threadpool = None
+        engine.manager.osi.has_file_open_detection.return_value = True
+        engine.manager.osi.has_file_open_permission.return_value = granted
+        engine.dao.get_config.return_value = asked
+        return engine
+
+    def test_a_grant_made_outside_the_app_is_picked_up(self):
+        engine = self._engine(granted=True, asked="1")
+
+        engine._check_open_file_permission()
+
+        engine.manager.osi.has_file_open_permission.assert_called_once()
+        engine.manager.osi.request_file_open_permission.assert_not_called()
+
+    def test_the_first_start_prompts(self):
+        engine = self._engine(granted=False)
+
+        engine._check_open_file_permission()
+
+        engine.manager.osi.request_file_open_permission.assert_called_once()
+        engine.dao.update_config.assert_called_with("open_file_permission_asked", "1")
+
+    def test_a_refusal_does_not_nag_on_every_start(self):
+        engine = self._engine(granted=False, asked="1")
+
+        engine._check_open_file_permission()
+
+        engine.manager.osi.request_file_open_permission.assert_not_called()
+
+    def test_switching_sync_on_asks_again(self):
+        engine = self._engine(granted=False, asked="1")
+
+        engine._on_feature_update("synchronization", True)
+
+        engine.manager.osi.request_file_open_permission.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "name, value", (("synchronization", False), ("direct_edit", True))
+    )
+    def test_other_feature_changes_are_ignored(self, name, value):
+        engine = self._engine(granted=False, asked="1")
+
+        engine._on_feature_update(name, value)
+
+        engine.manager.osi.has_file_open_permission.assert_not_called()
+
+    def test_a_platform_without_detection_is_never_probed(self):
+        engine = self._engine(granted=False)
+        engine.manager.osi.has_file_open_detection.return_value = False
+
+        engine._check_open_file_permission()
+
+        engine.manager.osi.has_file_open_permission.assert_not_called()
+        engine.manager.osi.request_file_open_permission.assert_not_called()
+
+    def test_a_failing_probe_never_escapes(self):
+        engine = self._engine(granted=False)
+        engine.manager.osi.has_file_open_permission.side_effect = OSError("boom")
+
+        engine._check_open_file_permission()
+
+    def test_the_probe_runs_off_the_calling_thread(self):
+        """Reached from the GUI thread, and it spawns a helper process."""
+        engine = self._engine(granted=True)
+        engine._threadpool = MagicMock()
+
+        engine._check_open_file_permission()
+
+        engine._threadpool.start.assert_called_once()
+        engine.manager.osi.has_file_open_permission.assert_not_called()
 
 
 # ------------------------------------------------------------------ _check_sync_start
@@ -446,6 +529,7 @@ class TestConflictResolver:
     def test_file_remote_unchanged_resets(self):
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = False
         pair.remote_ref = "node-123"
         pair.last_remote_updated = "2024-01-01 00:00:00"
@@ -453,16 +537,21 @@ class TestConflictResolver:
         engine.dao.get_state_from_id.return_value = pair
 
         remote_info = MagicMock()
-        remote_info.last_modification_time = MagicMock()
-        remote_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
+        remote_info.last_modification_time = datetime(
+            2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+        )
         engine.remote.get_fs_info.return_value = remote_info
 
-        engine.conflict_resolver(42)
-        engine.dao._force_sync.assert_called_once()
+        # Same second on both sides, so the bytes decide; they match.
+        with patch("nxdrive.alfresco.engine.engine.content_matches", return_value=True):
+            engine._decide_conflict(42)
+
+        engine.dao.force_sync_if_conflicted.assert_called_once()
 
     def test_file_remote_drifted_emits_conflict(self):
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = False
         pair.remote_ref = "node-123"
         pair.last_remote_updated = "2024-01-01 00:00:00"
@@ -475,33 +564,39 @@ class TestConflictResolver:
         remote_info.last_modification_time.strftime.return_value = "2024-06-15 12:30:00"
         engine.remote.get_fs_info.return_value = remote_info
 
-        engine.conflict_resolver(42)
+        engine._decide_conflict(42)
         engine.newConflict.emit.assert_called_once_with(42)
 
     def test_folder_matching_uid_resolves(self):
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = True
         pair.remote_ref = "folder-abc"
         pair.local_path = "/test-folder"
         pair.local_name = "TestFolder"
+        pair.last_error = None
         engine.dao.get_state_from_id.return_value = pair
         engine.local.get_remote_id.return_value = "folder-abc"
 
-        engine.conflict_resolver(42)
-        engine.dao.synchronize_state.assert_called_once_with(pair)
+        engine._decide_conflict(42)
+        engine.dao.synchronize_state.assert_called_once_with(
+            pair, only_if_conflicted=True, expected_last_error=None
+        )
 
     def test_folder_mismatched_uid_emits_conflict(self):
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = True
         pair.remote_ref = "folder-abc"
         pair.local_path = "/test-folder"
         pair.local_name = "TestFolder"
+        pair.last_error = None
         engine.dao.get_state_from_id.return_value = pair
         engine.local.get_remote_id.return_value = "different-id"
 
-        engine.conflict_resolver(42)
+        engine._decide_conflict(42)
         engine.newConflict.emit.assert_called_once_with(42)
 
     def test_created_both_sides_ignores_freshness_check(self):
@@ -513,10 +608,13 @@ class TestConflictResolver:
         """
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = False
         pair.remote_ref = "node-123"
         pair.local_state = "created"
         pair.remote_state = "created"
+        # Never synchronised: this is what makes the timestamp meaningless.
+        pair.last_sync_date = None
         pair.last_remote_updated = "2024-01-01 00:00:00"
         pair.local_name = "file.txt"
         pair.local_path = "/test"
@@ -527,7 +625,7 @@ class TestConflictResolver:
         remote_info.last_modification_time.strftime.return_value = "2024-01-01 00:00:00"
         engine.remote.get_fs_info.return_value = remote_info
 
-        engine.conflict_resolver(42)
+        engine._decide_conflict(42)
 
         engine.dao._force_sync.assert_not_called()
         engine.newConflict.emit.assert_called_once_with(42)
@@ -536,14 +634,16 @@ class TestConflictResolver:
         """An in-flight upload must be stopped before the conflict is shown."""
         engine = _make_engine()
         pair = MagicMock()
+        pair.pair_state = "conflicted"
         pair.folderish = True
         pair.remote_ref = "folder-abc"
         pair.local_path = "/test-folder"
         pair.local_name = "TestFolder"
+        pair.last_error = None
         engine.dao.get_state_from_id.return_value = pair
         engine.local.get_remote_id.return_value = "different-id"
 
-        engine.conflict_resolver(42)
+        engine._decide_conflict(42)
 
         engine.queue_manager.interrupt_processors_on.assert_called_once_with(
             pair.local_path, exact_match=True

@@ -23,7 +23,7 @@ DefaultGroupName={#MyAppPublisher}
 DisableProgramGroupPage=yes
 
 ; License file
-LicenseFile=..\..\..\LICENSE_ALFRESCO.txt
+LicenseFile=..\..\..\ALFRESCO_EULA.txt
 
 ; Icons
 UninstallDisplayIcon={app}\{#MyAppExeName}

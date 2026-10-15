@@ -15,7 +15,8 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 """
 
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, Type
+from threading import Lock
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type
 from urllib.parse import urlsplit
 
 from alfresco.exceptions import AuthenticationError
@@ -25,7 +26,14 @@ from nxdrive.alfresco.client.device_sync import (
     DeviceSyncProvisioner,
 )
 from nxdrive.alfresco.client.remote import AlfrescoRemote
-from nxdrive.alfresco.engine.processor import AlfrescoProcessor
+from nxdrive.alfresco.content_compare import content_matches
+from nxdrive.alfresco.engine.processor import (
+    DIFFERENT_CONTENT,
+    FILE_OPEN_LOCALLY,
+    LOCKED_ON_SERVER,
+    REMOTE_DRIFTED,
+    AlfrescoProcessor,
+)
 from nxdrive.alfresco.engine.watcher.remote_watcher import (
     DEVICE_OS,
     AlfrescoRemoteWatcher,
@@ -37,9 +45,9 @@ from nxdrive.drive.constants import ROOT
 from nxdrive.drive.engine.engine import Engine
 from nxdrive.drive.exceptions import RemoteUnauthorized
 from nxdrive.drive.feature import Feature
-from nxdrive.drive.objects import Binder, EngineDef
+from nxdrive.drive.objects import Binder, DocPair, EngineDef
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import Signal, Slot
+from nxdrive.drive.qt.imports import QRunnable, QThreadPool, Signal, Slot
 from nxdrive.drive.utils import set_path_readonly, unset_path_readonly
 
 if TYPE_CHECKING:
@@ -48,6 +56,38 @@ if TYPE_CHECKING:
 __all__ = ("AlfrescoEngine",)
 
 log = getLogger(__name__)
+
+#: DAO config key recording that the open-file detection permission prompt has
+#: already been shown, so a refusal is not re-asked on every start.
+OPEN_FILE_PERMISSION_ASKED = "open_file_permission_asked"
+
+
+class _ResolveWithRemote(QRunnable):
+    """Carries "Use remote" off the GUI thread, disk access and all."""
+
+    def __init__(
+        self, engine: "AlfrescoEngine", row_id: int, decided_from: str, /
+    ) -> None:
+        super().__init__()
+        self._engine = engine
+        self._row_id = row_id
+        self._decided_from = decided_from
+
+    def run(self) -> None:
+        try:
+            self._engine._acknowledge_local_bytes(self._row_id, self._decided_from)
+        except Exception:
+            log.exception(f"Could not accept the server copy of {self._row_id}")
+
+
+#: Conflicts the engine raised deliberately. The reason already states the
+#: verdict, so the resolver surfaces them without asking the server again.
+REASONED_CONFLICTS = (
+    FILE_OPEN_LOCALLY,
+    LOCKED_ON_SERVER,
+    DIFFERENT_CONTENT,
+    REMOTE_DRIFTED,
+)
 
 
 class AlfrescoEngine(Engine):
@@ -83,6 +123,11 @@ class AlfrescoEngine(Engine):
         # calls self.bind() which triggers init_remote() which reads this.
         self._alfresco_ticket: str = ""
 
+        # ``newConflict`` is delivered on the GUI thread, so any decision that
+        # needs the server is parked here for the remote watcher to make.
+        self._deferred_conflicts: Dict[int, bool] = {}
+        self._deferred_conflicts_lock = Lock()
+
         super().__init__(
             manager,
             definition,
@@ -91,6 +136,8 @@ class AlfrescoEngine(Engine):
             remote_cls=remote_cls,
             local_cls=local_cls,
         )
+
+        manager.featureUpdate.connect(self._on_feature_update)
 
     # -- Filter selection tracking -------------------------------------------
 
@@ -185,7 +232,68 @@ class AlfrescoEngine(Engine):
         """
         if not Feature.synchronization and self.dao.get_config("filters_configured"):
             self._cleanup_after_sync_disabled()
+        elif Feature.synchronization:
+            self._check_open_file_permission()
         super().start()
+
+    @Slot(str, bool)
+    def _on_feature_update(self, name: str, value: bool, /) -> None:
+        """Re-ask for the open-file permission when sync is switched on.
+
+        Switching the feature on is the moment the user expects to be asked,
+        and it is an explicit action — so a prompt dismissed earlier is worth
+        showing again, which a plain start never does.
+        """
+        if name == "synchronization" and value:
+            self._check_open_file_permission(prompt_again=True)
+
+    def _check_open_file_permission(self, *, prompt_again: bool = False) -> None:
+        """Make sure the open-file check has the permission it needs.
+
+        Runs on the thread pool: the probe spawns a helper process, and this is
+        reached from the GUI thread when the feature is toggled.
+        """
+        if not self.manager.osi.has_file_open_detection():
+            return
+
+        from nxdrive.drive.engine.workers import Runner
+
+        runner = Runner(self._check_open_file_permission_async, prompt_again)
+        if self._threadpool:
+            self._threadpool.start(runner)
+        else:
+            self._check_open_file_permission_async(prompt_again)
+
+    def _check_open_file_permission_async(self, prompt_again: bool, /) -> None:
+        """Read the permission, and prompt for it if that is still useful.
+
+        Conflict detection defers a download while the user has the file open
+        locally, which on macOS needs Accessibility. The grant can be made or
+        withdrawn outside the application at any time, so it is read on every
+        start rather than remembered. The prompt itself is shown at most once
+        unless the user asks for sync again, because a refusal must not nag.
+        """
+        osi = self.manager.osi
+        try:
+            if osi.has_file_open_permission():
+                log.debug("Open-file detection has the permission it needs")
+                return
+
+            if self.dao.get_config(OPEN_FILE_PERMISSION_ASKED) and not prompt_again:
+                log.info(
+                    "Open-file detection is running without its permission; "
+                    "only the kernel check is available"
+                )
+                return
+
+            self.dao.update_config(OPEN_FILE_PERMISSION_ASKED, "1")
+            # The system dialog outlives this call, so the answer is read on a
+            # later check rather than from the return value.
+            osi.request_file_open_permission()
+        except Exception:
+            log.warning(
+                "Could not check the open-file detection permission", exc_info=True
+            )
 
     def _cleanup_after_sync_disabled(self) -> None:
         """Wipe DB-level sync state after the user disables sync.
@@ -504,7 +612,118 @@ class AlfrescoEngine(Engine):
             self.syncCompleted.emit()
 
     def conflict_resolver(self, row_id: int, /, *, emit: bool = True) -> None:
-        """Alfresco-specific conflict resolver.
+        """Decide a conflict without ever touching the network here.
+
+        This runs as a ``newConflict`` slot and from ``Engine.start()``, both
+        on the GUI thread. Anything that has to ask the server is parked for
+        :meth:`resolve_deferred_conflicts`, which the remote watcher calls on
+        its own thread — otherwise a burst of conflicts freezes the window for
+        one round trip per file.
+        """
+        pair = self.dao.get_state_from_id(row_id)
+        if not pair:
+            log.debug("Alfresco conflict resolver: empty pair, skipping")
+            return
+
+        # Conflicts the engine raised deliberately carry their reason in
+        # ``last_error``; auto-resolving them reinstates the data loss they
+        # exist to prevent. Checked first, so no later branch can decide one.
+        if pair.last_error in REASONED_CONFLICTS:
+            log.debug(
+                f"Alfresco conflict resolver: {pair.local_name!r} is parked as "
+                f"{pair.last_error!r}, leaving it to the user"
+            )
+            self._surface_conflict(pair, row_id, emit=emit)
+            return
+
+        self._defer_conflict(row_id, emit)
+
+    def resolve_with_remote(self, row_id: int, /) -> None:
+        """Accept the server copy, and record what the user is giving up.
+
+        The conflict may have been raised because the file on disk no longer
+        matches the size the row records — a save the watchdog missed.
+        Flipping the states alone leaves that mismatch in place, so the
+        processor raises the same conflict again and "Use remote" can never
+        complete. Recording what is on disk settles it, while still leaving a
+        save made *after* this point detectable.
+
+        The work is handed to the thread pool so a GUI slot never waits on the
+        disk. The state is snapshotted *here*, synchronously with the click:
+        taken in the worker instead, a "Use local" arriving before the worker
+        starts would already be in both of its reads and would be overridden.
+        """
+        row = self.dao.get_state_from_id(row_id)
+        if not row:
+            return
+
+        runnable = _ResolveWithRemote(self, row_id, row.pair_state)
+        pool = QThreadPool.globalInstance()
+        if pool:
+            pool.start(runnable)
+        else:
+            log.warning("No thread pool available, resolving inline")
+            runnable.run()
+
+    def _acknowledge_local_bytes(self, row_id: int, decided_from: str, /) -> None:
+        """Record what is on disk now, then accept the server copy."""
+        row = self.dao.get_state_from_id(row_id)
+        if not row or row.pair_state != decided_from:
+            log.info(
+                f"Not accepting the server copy of row {row_id}: it was "
+                "decided another way before this could run"
+            )
+            return
+
+        try:
+            size = self.local.abspath(row.local_path).stat().st_size
+        except OSError:
+            log.warning(
+                f"Could not measure {row.local_name!r} while accepting the "
+                "server copy; resolving without a fresh baseline",
+                exc_info=True,
+            )
+        else:
+            self.dao.update_local_size(row, size)
+
+        # Predicated on the click, not on anything read since: the base
+        # resolver forces the row unconditionally, so a choice made meanwhile
+        # would be overwritten.
+        if not self.dao.force_remote(row, expected_pair_state=decided_from):
+            log.info(
+                f"Not accepting the server copy of {row.local_name!r}: it was "
+                "decided another way while it was being read"
+            )
+
+    def _defer_conflict(self, row_id: int, emit: bool, /) -> None:
+        # ``Engine.start()`` re-checks every existing conflict with
+        # ``emit=False``; losing that would pop a notification for each one.
+        with self._deferred_conflicts_lock:
+            self._deferred_conflicts[row_id] = (
+                self._deferred_conflicts.get(row_id, True) and emit
+            )
+
+    def resolve_deferred_conflicts(self) -> None:
+        """Decide the conflicts :meth:`conflict_resolver` could not judge cheaply.
+
+        Called from the remote watcher's thread, so the server calls here never
+        reach the GUI thread.
+        """
+        with self._deferred_conflicts_lock:
+            pending, self._deferred_conflicts = self._deferred_conflicts, {}
+
+        if not pending:
+            return
+
+        log.debug(f"Deciding {len(pending)} deferred conflict(s)")
+        for row_id, emit in pending.items():
+            try:
+                self._decide_conflict(row_id, emit=emit)
+            except Exception:
+                log.warning(f"Could not decide conflict {row_id}", exc_info=True)
+
+    def _decide_conflict(self, row_id: int, /, *, emit: bool = True) -> None:
+        """Alfresco-specific conflict decision. Performs network calls.
 
         Alfresco doesn't expose a content digest, so the base resolver's
         digest-based auto-resolve (``local_digest == remote_digest``)
@@ -526,19 +745,41 @@ class AlfrescoEngine(Engine):
         ``same_digests`` check is unsafe when both digests are ``None``.
         """
         pair = self.dao.get_state_from_id(row_id)
-        if not pair:
-            log.debug("Alfresco conflict resolver: empty pair, skipping")
+        if not pair or pair.pair_state != "conflicted":
             return
 
-        # Created on both sides: ``last_remote_updated`` was written from
-        # this very node when the pair was linked, so the freshness check
-        # below would always report "unchanged" and cancel a real conflict.
-        created_both_sides = (
-            pair.local_state == "created" and pair.remote_state == "created"
-        )
+        # The reason can arrive after ``conflict_resolver`` deferred this row —
+        # a processor parking it as LOCKED_ON_SERVER, say. The state alone
+        # still reads as "conflicted", so it has to be re-checked here or the
+        # auto-resolve below clears a conflict raised to prevent data loss.
+        if pair.last_error in REASONED_CONFLICTS:
+            log.debug(
+                f"Alfresco conflict resolver: {pair.local_name!r} became "
+                f"{pair.last_error!r} while deferred, leaving it to the user"
+            )
+            self._surface_conflict(pair, row_id, emit=emit)
+            return
 
-        # File path: timestamp-based freshness check.
-        if not pair.folderish and pair.remote_ref and not created_both_sides:
+        # The probes below take seconds, and a reason can land in that gap
+        # without touching ``version`` or ``pair_state``. Every transition
+        # taken afterwards is predicated on the reason as it reads here.
+        reason_at_entry = pair.last_error
+
+        # The freshness check needs a baseline from an earlier successful sync.
+        # A pair that has never synchronised had ``last_remote_updated`` written
+        # from this very node, so the comparison can only ever say "unchanged"
+        # and would cancel a real conflict. Enumerating state pairs is not
+        # enough — a remote-first creation lands as ``("unknown", "created")``.
+        never_synced = not pair.last_sync_date
+
+        if not pair.folderish and pair.remote_ref and never_synced:
+            self._resolve_unsynced_conflict(
+                pair, row_id, emit=emit, reason_at_entry=reason_at_entry
+            )
+            return
+
+        # File path: is the server still on the revision we last recorded?
+        if not pair.folderish and pair.remote_ref:
             remote_info = None
             try:
                 remote_info = self.remote.get_fs_info(pair.remote_ref)
@@ -549,18 +790,22 @@ class AlfrescoEngine(Engine):
                     exc_info=True,
                 )
             if remote_info is not None:
-                from nxdrive.alfresco.engine.processor import _fmt_remote_ts
-
-                remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
-                db_ts = str(pair.last_remote_updated or "")[:19]
-                if remote_ts and remote_ts == db_ts:
+                if self._remote_is_unchanged(pair, remote_info):
                     log.debug(
                         f"Alfresco conflict resolver: remote unchanged for "
                         f"{pair.local_name!r}, resetting to locally_modified"
                     )
-                    self.dao._force_sync(
-                        pair, "modified", "synchronized", "locally_modified"
-                    )
+                    if not self.dao.force_sync_if_conflicted(
+                        pair,
+                        "modified",
+                        "synchronized",
+                        "locally_modified",
+                        expected_last_error=reason_at_entry,
+                    ):
+                        log.debug(
+                            f"Alfresco conflict resolver: {pair.local_name!r} was "
+                            "resolved while the server was being read; leaving it"
+                        )
                     return
 
         # Folder path: match local xattr remote_id.
@@ -574,22 +819,114 @@ class AlfrescoEngine(Engine):
                     f"Alfresco conflict resolver: folder {pair.local_name!r} "
                     "has matching remote UID, auto-resolving"
                 )
-                self.dao.synchronize_state(pair)
+                self.dao.synchronize_state(
+                    pair,
+                    only_if_conflicted=True,
+                    expected_last_error=reason_at_entry,
+                )
                 return
 
         # Cannot auto-resolve — surface the conflict to the user.
-        if emit:
-            log.warning(
-                f"Alfresco conflict resolver: surfacing conflict for "
-                f"{pair.local_name!r}"
+        self._surface_conflict(pair, row_id, emit=emit)
+
+    def _remote_is_unchanged(self, pair: DocPair, remote_info: Any, /) -> bool:
+        """Whether the server still holds the revision we last recorded.
+
+        Alfresco exposes no content digest, so the modification timestamp
+        decides, and because it is truncated to whole seconds a timestamp that
+        matches is confirmed against the bytes. Without that, an edit landing
+        in the same second as our baseline would read as "nothing changed" and
+        the retry would overwrite it.
+
+        ACCEPTED LIMITATION: an edit inside that same second which also leaves
+        both 10 MB comparison windows byte-identical is invisible to us. The
+        version label used to close this gap, but it is absent on nodes
+        without ``cm:versionable`` and is not dependable across deployments.
+        """
+        from nxdrive.alfresco.engine.processor import _fmt_remote_ts
+
+        remote_ts = _fmt_remote_ts(remote_info.last_modification_time)
+        db_ts = str(pair.last_remote_updated or "")[:19]
+        if not remote_ts or remote_ts != db_ts:
+            return False
+
+        local_path = self.local.abspath(pair.local_path)
+        return content_matches(self.remote, local_path, pair.remote_ref) is True
+
+    def _resolve_unsynced_conflict(
+        self,
+        pair: DocPair,
+        row_id: int,
+        /,
+        *,
+        emit: bool = True,
+        reason_at_entry: Optional[str] = None,
+    ) -> None:
+        """Decide a conflict on a pair that has never synchronised.
+
+        Such a pair has no version or timestamp baseline — both were written
+        from the fetch that created it — so metadata cannot say whether the two
+        sides actually differ. Compare the bytes instead: identical content is
+        not a conflict, it is the same file reached from both ends.
+
+        Anything other than a definite match is surfaced to the user, so an
+        unreadable file or a server error can never silently discard an edit.
+        """
+        local_path = self.local.abspath(pair.local_path)
+        if not local_path.is_file():
+            self._surface_conflict(pair, row_id, emit=emit)
+            return
+
+        matches = content_matches(self.remote, local_path, pair.remote_ref)
+        if matches:
+            # The watcher leaves the xattr unset for an independently created
+            # file, and ``_synchronize_remotely_deleted`` refuses to delete
+            # anything whose xattr does not name the node. Adopting without
+            # it would strand the file on disk when the server deletes it.
+            try:
+                self.local.set_remote_id(pair.local_path, pair.remote_ref)
+            except Exception:
+                log.warning(
+                    f"Alfresco conflict resolver: could not bind "
+                    f"{pair.local_name!r} to {pair.remote_ref!r}, keeping "
+                    "the conflict",
+                    exc_info=True,
+                )
+                self._surface_conflict(pair, row_id, emit=emit)
+                return
+
+            log.info(
+                f"Alfresco conflict resolver: {pair.local_name!r} is identical "
+                "on both sides, auto-resolving"
             )
-            # Stop any processor still working this path, else an in-flight
-            # upload completes and silently overwrites the remote.
-            self.queue_manager.interrupt_processors_on(
-                pair.local_path, exact_match=True
+            # Comparing the bytes can take seconds, which is long enough for
+            # the user to have resolved this conflict themselves, or for a
+            # processor to have parked it for a deliberate reason.
+            self.dao.synchronize_state(
+                pair, only_if_conflicted=True, expected_last_error=reason_at_entry
             )
-            self.newConflict.emit(row_id)
-            self.manager.osi.send_sync_status(pair, self.local.abspath(pair.local_path))
+            return
+
+        log.info(
+            f"Alfresco conflict resolver: {pair.local_name!r} has never synced "
+            f"and content differs (matches={matches!r}), surfacing"
+        )
+        self._surface_conflict(pair, row_id, emit=emit)
+
+    def _surface_conflict(
+        self, pair: DocPair, row_id: int, /, *, emit: bool = True
+    ) -> None:
+        """Hand a conflict to the user via the systray."""
+        if not emit:
+            return
+        log.warning(
+            f"Alfresco conflict resolver: surfacing conflict for {pair.local_name!r}"
+        )
+        # Stop any processor still working this path, else an in-flight
+        # upload completes and silently overwrites the remote.
+        self.queue_manager.interrupt_processors_on(pair.local_path, exact_match=True)
+        self.newConflict.emit(row_id)
+        self.manager.osi.send_sync_status(pair, self.local.abspath(pair.local_path))
 
     # -- Overrides for engine-generic features (disabled in Phase 1) ---------
 

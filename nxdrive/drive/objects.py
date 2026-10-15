@@ -126,6 +126,10 @@ class RemoteFileInfo:
     lock_created: Optional[datetime]  # lock creation time
     # True if the API to scroll through the descendants can be used
     can_scroll_descendants: bool
+    # Alfresco: whether the node is locked (checked out) on the server.
+    # Defaulted so the positional construction in from_dict() keeps working for
+    # Nuxeo.
+    is_locked: bool = False
 
     @staticmethod
     def from_dict(fs_item: Dict[str, Any], /) -> "RemoteFileInfo":
@@ -214,6 +218,7 @@ class DocPair(Row):
     last_remote_updated: str
     local_digest: Optional[str]
     remote_digest: str
+    remote_locked: bool
     local_path: Path
     remote_ref: str
     local_parent_path: Path

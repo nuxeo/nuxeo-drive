@@ -35,6 +35,7 @@ DirectDownload._cleanup_batch_folder  # Used in tests
 DirectDownload._update_download_progress  # Used in tests
 DeviceSyncProvisioner.cleanup_orphans  # Manual recovery for orphan subscribers
 DocPair.last_sync_error_date  # Check NXDRIVE-1804
+DocPair.remote_locked  # States column filled by the SQLite row factory
 Download.transfer_type  # Used in QML
 Engine.folder  # Used in QML
 EngineDAO.get_direct_downloads_with_status  # Used in tests
@@ -177,6 +178,8 @@ relogin  # Used in QML
 oauth2_password_auth  # Used in QML
 can_open_remote_metadata  # Used in QML
 log_qml  # Used in QML
+show_open_source_attribution  # Used in QML
+show_eula_dialog  # Used in QML
 
 # Drive application
 Application._workflow_cls  # Set at init, used by workflow dispatch
