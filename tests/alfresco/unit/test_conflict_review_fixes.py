@@ -1459,12 +1459,26 @@ class TestARemoteMoveSurvivesTheDownloadBranch:
         proc.dao.update_local_parent_path.assert_called_once()
 
     def test_a_file_that_did_not_move_is_left_where_it_is(self):
-        proc = self._proc(None)
+        proc = self._proc(self._parent())
+        # Known parent, no move: the only combination that means "stay put".
+        proc._is_remote_move = MagicMock(return_value=(False, self._parent()))
 
         proc._synchronize_remotely_modified(self._pair())
 
         proc.local.move.assert_not_called()
         proc.dao.synchronize_state.assert_called_once()
+
+    def test_an_unknown_destination_is_postponed_before_downloading(self):
+        """A parent the database has never seen makes the move read as "no
+        move", which would strand the file in its old folder."""
+        proc = self._proc(None)
+        proc._postpone_pair = MagicMock()
+
+        proc._synchronize_remotely_modified(self._pair())
+
+        proc._postpone_pair.assert_called_once()
+        proc._update_remotely.assert_not_called()
+        proc.dao.synchronize_state.assert_not_called()
 
     def test_an_unsynced_destination_postpones_instead(self):
         proc = self._proc(None)
@@ -2089,3 +2103,48 @@ class TestAPairWithNoRecordedDigestIsFetched:
         )
 
         proc._update_remotely.assert_not_called()
+
+
+class TestTheReplacementIsAlwaysBoundToItsNode:
+    """A file adopted from a same-name conflict has no id of its own. Leaving
+    the downloaded replacement unmarked makes the pair synchronised but
+    unlinked, and a later server delete refuses to touch it."""
+
+    def _proc(self, tmp_path, /):
+        proc = _processor()
+        proc.engine.download_dir = tmp_path / "dl"
+        transfer = proc.engine.download_dir / "node-1"
+        transfer.mkdir(parents=True)
+        tmp_file = transfer / "file.txt"
+        tmp_file.write_bytes(b"the server's bytes")
+        proc._download_content = MagicMock(return_value=tmp_file)
+        proc._local_file_in_use = MagicMock(return_value=False)
+        proc._local_window = MagicMock(return_value=(SIZE, ON_DISK))
+        proc._refresh_local_state = MagicMock(return_value=True)
+        proc._refresh_remote = MagicMock(return_value=True)
+        local = tmp_path / "sync" / "file.txt"
+        local.parent.mkdir(parents=True)
+        local.write_bytes(b"the user's bytes")
+        proc.local.abspath.return_value = local
+        info = MagicMock()
+        info.filepath = local
+        info.path = Path("sync/file.txt")
+        proc.local.move.return_value = info
+        return proc, tmp_file
+
+    def test_an_untracked_local_file_still_gets_the_id(self, tmp_path):
+        proc, tmp_file = self._proc(tmp_path)
+        # No xattr: the file was adopted, never downloaded by us.
+        proc.local.get_remote_id.return_value = None
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
+
+        proc.local.set_remote_id.assert_called_once_with(tmp_file, "node-1")
+
+    def test_a_tracked_file_is_unaffected(self, tmp_path):
+        proc, tmp_file = self._proc(tmp_path)
+        proc.local.get_remote_id.return_value = "node-1"
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
+
+        proc.local.set_remote_id.assert_called_once_with(tmp_file, "node-1")

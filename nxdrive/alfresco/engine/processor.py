@@ -909,6 +909,12 @@ class AlfrescoProcessor(_ProcessorBase):
                 if self._parent_is_filtered(doc_pair):
                     self._synchronize_remotely_deleted(doc_pair)
                     return
+                # Asked before the transfer as well as after it: a destination
+                # the database does not know yet cannot receive the file, and
+                # finding that out afterwards wastes the whole download.
+                if not self._is_remote_move(doc_pair)[1]:
+                    self._postpone_pair(doc_pair, "PARENT_UNSYNC")
+                    return
                 if not self._update_remotely(doc_pair, is_renaming):
                     return
                 # The download writes into ``local_parent_path``, so a node
@@ -1016,11 +1022,14 @@ class AlfrescoProcessor(_ProcessorBase):
         postponed because its new parent is not synchronised yet.
         """
         is_move, new_parent_pair = self._is_remote_move(doc_pair)
-        if not is_move:
-            return True
+        # An unknown destination makes the move read as "no move", so without
+        # this the file would be blessed where it already sits and the pending
+        # move lost: nothing revisits a synchronised pair.
         if not new_parent_pair:
             self._postpone_pair(doc_pair, "PARENT_UNSYNC")
             return False
+        if not is_move:
+            return True
 
         new_path = new_parent_pair.local_path / safe_filename(doc_pair.remote_name)
         if new_path == doc_pair.local_path:
@@ -1130,7 +1139,6 @@ class AlfrescoProcessor(_ProcessorBase):
                 shutil.rmtree(tmp_file.parent)
             return False
 
-        remote_id = self.local.get_remote_id(doc_pair.local_path)
         # Kept aside rather than deleted: the check above and this replacement
         # cannot be made atomic with a resolution write, so the user's copy
         # has to stay recoverable until the guarded transition below lands.
@@ -1147,8 +1155,10 @@ class AlfrescoProcessor(_ProcessorBase):
 
         updated_info: Optional[FileInfo] = None
         try:
-            if remote_id:
-                self.local.set_remote_id(tmp_file, doc_pair.remote_ref)
+            # Unconditionally: a file adopted from a same-name conflict has no
+            # id of its own, and leaving the replacement unmarked would strand
+            # it, with later server deletes refusing to touch it.
+            self.local.set_remote_id(tmp_file, doc_pair.remote_ref)
             updated_info = self.local.move(
                 tmp_file, doc_pair.local_parent_path, name=doc_pair.remote_name
             )

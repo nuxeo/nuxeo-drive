@@ -2124,8 +2124,9 @@ class TestSynchronizeRemotelyModified:
         proc.local.move.return_value = updated_info
         proc.local.change_file_date = Mock()
         proc.remote.get_fs_info.return_value = Mock()
-        # Nothing moved on the server, so the relocation step is a no-op.
-        proc._is_remote_move = Mock(return_value=(False, None))
+        # Nothing moved on the server, so the relocation step is a no-op. The
+        # parent is still known: no parent at all means "cannot place it yet".
+        proc._is_remote_move = Mock(return_value=(False, Mock()))
 
         proc._synchronize_remotely_modified(pair)
         proc.dao.synchronize_state.assert_called_once_with(
