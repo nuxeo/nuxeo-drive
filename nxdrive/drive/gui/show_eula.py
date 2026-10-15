@@ -177,7 +177,7 @@ def fetch_license(server_type: str) -> QTextDocument | None:
     file_path = find_resource("LICENSES", file=f"{server_type}_EULA.txt")
     content = None
     try:
-        with open(file_path, mode="r") as f:
+        with open(file_path, mode="r", encoding="utf-8") as f:
             content = QTextDocument(f.read().strip())
     except Exception as e:
         log.error(f"Unable to read {server_type}_EULA.txt : {e}")
@@ -226,7 +226,7 @@ def get_eula_console_message(server_type: str = "Nuxeo") -> bool:
     file_path = find_resource("LICENSES", file=f"{server_type}_EULA.txt")
     content = None
     try:
-        with open(file_path, mode="r") as f:
+        with open(file_path, mode="r", encoding="utf-8") as f:
             content = f.read().strip()
     except Exception as e:
         log.error(f"Unable to read {server_type}_EULA.txt : {e}")

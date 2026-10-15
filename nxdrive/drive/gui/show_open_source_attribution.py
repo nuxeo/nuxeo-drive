@@ -73,7 +73,7 @@ class Open_Source_Attribution(QDialog):
         )
         content = None
         try:
-            with open(file_path, mode="r") as f:
+            with open(file_path, mode="r", encoding="utf-8") as f:
                 content = QTextDocument(f.read().strip())
         except Exception as e:
             log.error(
@@ -93,7 +93,7 @@ def get_open_source_attribution_console_message(server_type: str = "Nuxeo") -> N
     )
     content = None
     try:
-        with open(file_path, mode="r") as f:
+        with open(file_path, mode="r", encoding="utf-8") as f:
             content = f.read().strip()
     except Exception as e:
         log.error(f"Unable to read {server_type}_OPEN_SOURCE_ATTRIBUTION.txt : {e}")
