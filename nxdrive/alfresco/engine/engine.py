@@ -9,7 +9,6 @@ Phase 1 scope: account addition + synchronization only.
 Excluded features: Direct Edit, Direct Transfer, Direct Download.
 """
 
-from contextlib import suppress
 from logging import getLogger
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Dict, Optional, Type
@@ -43,7 +42,7 @@ from nxdrive.drive.exceptions import RemoteUnauthorized
 from nxdrive.drive.feature import Feature
 from nxdrive.drive.objects import Binder, DocPair, EngineDef
 from nxdrive.drive.options import Options
-from nxdrive.drive.qt.imports import Signal, Slot
+from nxdrive.drive.qt.imports import QRunnable, QThreadPool, Signal, Slot
 from nxdrive.drive.utils import set_path_readonly, unset_path_readonly
 
 if TYPE_CHECKING:
@@ -56,6 +55,22 @@ log = getLogger(__name__)
 #: DAO config key recording that the open-file detection permission prompt has
 #: already been shown, so a refusal is not re-asked on every start.
 OPEN_FILE_PERMISSION_ASKED = "open_file_permission_asked"
+
+
+class _ResolveWithRemote(QRunnable):
+    """Carries "Use remote" off the GUI thread, hash and all."""
+
+    def __init__(self, engine: "AlfrescoEngine", row_id: int, /) -> None:
+        super().__init__()
+        self._engine = engine
+        self._row_id = row_id
+
+    def run(self) -> None:
+        try:
+            self._engine._acknowledge_local_bytes(self._row_id)
+        except Exception:
+            log.exception(f"Could not accept the server copy of {self._row_id}")
+
 
 #: Conflicts the engine raised deliberately. The reason already states the
 #: verdict, so the resolver surfaces them without asking the server again.
@@ -624,17 +639,51 @@ class AlfrescoEngine(Engine):
         the same conflict again and "Use remote" can never complete. Writing
         the current bytes as the baseline settles it, while still leaving a
         save made *after* this point detectable.
+
+        Hashing reads the whole file, and this is called straight from a GUI
+        slot, so the work is handed to the thread pool: the acknowledgement,
+        the baseline write and the flip stay in that order on one worker.
         """
+        runnable = _ResolveWithRemote(self, row_id)
+        pool = QThreadPool.globalInstance()
+        if pool:
+            pool.start(runnable)
+        else:
+            log.warning("No thread pool available, resolving inline")
+            runnable.run()
+
+    def _acknowledge_local_bytes(self, row_id: int, /) -> None:
+        """Record what is on disk now, then accept the server copy."""
         row = self.dao.get_state_from_id(row_id)
         if not row:
             return
 
-        with suppress(Exception):
+        try:
             info = self.local.get_info(row.local_path)
+            # The shared client's callback aborts on a paused engine, and this
+            # is an explicit user decision rather than background sync work.
+            # Cleared on this instance only, never on the client.
+            info.digest_callback = None
             digest = info.get_digest()
+        except Exception:
+            log.warning(
+                f"Could not read {row.local_name!r} while accepting the "
+                "server copy; resolving without a fresh baseline",
+                exc_info=True,
+            )
+        else:
             if digest and digest != UNACCESSIBLE_HASH:
-                row.local_digest = digest
                 self.dao.update_local_digest(row, digest)
+
+        # Re-read: hashing takes as long as the file is big, and the user may
+        # have picked the other option in the meantime.
+        current = self.dao.get_state_from_id(row_id)
+        if not current or current.pair_state != row.pair_state:
+            log.info(
+                f"Not accepting the server copy of {row.local_name!r}: it was "
+                "decided another way while its content was being read"
+            )
+            return
 
         super().resolve_with_remote(row_id)
 
@@ -822,6 +871,22 @@ class AlfrescoEngine(Engine):
 
         matches = content_matches(self.remote, local_path, pair.remote_ref)
         if matches:
+            # The watcher leaves the xattr unset for an independently created
+            # file, and ``_synchronize_remotely_deleted`` refuses to delete
+            # anything whose xattr does not name the node. Adopting without
+            # it would strand the file on disk when the server deletes it.
+            try:
+                self.local.set_remote_id(pair.local_path, pair.remote_ref)
+            except Exception:
+                log.warning(
+                    f"Alfresco conflict resolver: could not bind "
+                    f"{pair.local_name!r} to {pair.remote_ref!r}, keeping "
+                    "the conflict",
+                    exc_info=True,
+                )
+                self._surface_conflict(pair, row_id, emit=emit)
+                return
+
             log.info(
                 f"Alfresco conflict resolver: {pair.local_name!r} is identical "
                 "on both sides, auto-resolving"

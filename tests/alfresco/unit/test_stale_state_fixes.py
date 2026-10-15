@@ -55,6 +55,9 @@ def _processor():
     proc.local.get_info.return_value.get_digest.return_value = "abc"
     proc._conflicting_remote_twin = MagicMock(return_value=None)
     proc.remove_void_transfers = MagicMock()
+    # Covered by its own tests; a bare mock row never matches, so leaving it
+    # live would abort every download here.
+    proc._decision_changed = MagicMock(return_value=False)
 
     parent = MagicMock(
         remote_ref="parent-1",

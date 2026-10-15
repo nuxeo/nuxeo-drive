@@ -81,6 +81,9 @@ def _processor():
     proc.dao = engine.dao
     proc.local = engine.local
     proc.remote = engine.remote
+    # The late re-read before the irreversible delete has its own tests; a
+    # bare mock row never matches, so it would abort every other one.
+    proc._decision_changed = MagicMock(return_value=False)
     return proc
 
 
@@ -650,6 +653,31 @@ class TestReconcileChildEarlyReturns:
         kwargs = watcher.dao.force_remote.call_args.kwargs
         assert kwargs["expected_pair_state"] == "synchronized"
 
+    def test_the_baseline_waits_for_the_transition(self):
+        """The drift check reads ``last_remote_updated``. Advancing it on a row
+        that stays locally modified tells that check the server never moved,
+        and the upload goes straight over the remote edit."""
+        watcher = _watcher()
+        watcher._lock_was_released = MagicMock(return_value=False)
+        watcher._content_changed = MagicMock(return_value=True)
+        pair = _pair(pair_state="synchronized", remote_state="synchronized")
+
+        watcher._reconcile_child(pair, _info(), "/remote", Path("/sync"))
+
+        assert watcher.dao.update_remote_state.call_args.kwargs["no_baseline"] is True
+        watcher.dao.update_remote_baseline.assert_called_once()
+
+    def test_a_refused_transition_leaves_the_baseline_behind(self):
+        watcher = _watcher()
+        watcher._lock_was_released = MagicMock(return_value=False)
+        watcher._content_changed = MagicMock(return_value=True)
+        watcher.dao.force_remote.return_value = False
+        pair = _pair(pair_state="synchronized", remote_state="synchronized")
+
+        watcher._reconcile_child(pair, _info(), "/remote", Path("/sync"))
+
+        watcher.dao.update_remote_baseline.assert_not_called()
+
     def test_the_unchanged_path_is_guarded_too(self):
         """It is reached *after* the byte comparison, so it has had just as
         long for a decision to land: a same-second rename with matching bytes
@@ -1033,13 +1061,17 @@ class TestResolveWithRemoteTerminates:
         engine.dao.get_state_from_id.return_value = _pair(
             local_digest="recorded-earlier"
         )
+        # The real DAO writes the value back onto the row it was handed.
+        engine.dao.update_local_digest.side_effect = lambda row, digest: setattr(
+            row, "local_digest", digest
+        )
         return engine
 
     def test_the_stale_baseline_is_replaced_before_the_flip(self):
         engine = self._engine_with("what-is-on-disk-now")
 
         with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
-            engine.resolve_with_remote(1)
+            engine._acknowledge_local_bytes(1)
 
         engine.dao.update_local_digest.assert_called_once()
         assert engine.dao.update_local_digest.call_args.args[1] == "what-is-on-disk-now"
@@ -1048,7 +1080,7 @@ class TestResolveWithRemoteTerminates:
         """The whole point: the second pass must get past the digest check."""
         engine = self._engine_with("what-is-on-disk-now")
         with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
-            engine.resolve_with_remote(1)
+            engine._acknowledge_local_bytes(1)
         resolved = engine.dao.update_local_digest.call_args.args[0]
 
         proc = _processor()
@@ -1070,7 +1102,7 @@ class TestResolveWithRemoteTerminates:
         engine = self._engine_with(unreadable)
 
         with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote") as base:
-            engine.resolve_with_remote(1)
+            engine._acknowledge_local_bytes(1)
 
         engine.dao.update_local_digest.assert_not_called()
         base.assert_called_once_with(1)
@@ -1080,7 +1112,7 @@ class TestResolveWithRemoteTerminates:
         engine.local.get_info.side_effect = OSError("gone")
 
         with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote") as base:
-            engine.resolve_with_remote(1)
+            engine._acknowledge_local_bytes(1)
 
         base.assert_called_once_with(1)
 
@@ -1098,6 +1130,228 @@ class TestConflictDropsTheRemoteDigest:
 
         kwargs = proc.dao._force_sync.call_args.kwargs
         assert kwargs["clear_remote_digest"] is True
+
+
+class TestAResolutionDuringTheDownload:
+    """The digest checks only see *edits*. Choosing "Use local" changes the
+    row and leaves the file alone, so it sails past them -- and the local copy
+    the user just chose to keep gets replaced by the server's."""
+
+    def _proc(self, current, /):
+        proc = _processor()
+        # The shared builder stubs this out; these tests exercise the real one.
+        del proc._decision_changed
+        proc._download_content = MagicMock(return_value=Path("/tmp/dl/file.txt"))
+        proc._local_file_in_use = MagicMock(return_value=False)
+        proc._mark_conflicted = MagicMock()
+        proc._refresh_local_state = MagicMock(return_value=True)
+        proc.local.abspath.return_value = Path("/sync/file.txt")
+        proc.local.get_info.return_value.get_digest.return_value = ON_DISK
+        proc.dao.get_state_from_id.return_value = current
+        return proc
+
+    def _pair(self):
+        return _pair(remote_name="file.txt", version=3, pair_state="remotely_modified")
+
+    def test_the_chosen_local_copy_is_not_replaced(self):
+        resolved = _pair(version=3, pair_state="locally_resolved")
+        proc = self._proc(resolved)
+
+        assert proc._update_remotely(self._pair(), False) is False
+
+        proc.local.delete_final.assert_not_called()
+        proc.local.move.assert_not_called()
+
+    def test_the_download_is_cleaned_up(self):
+        proc = self._proc(_pair(version=3, pair_state="locally_resolved"))
+
+        with patch("nxdrive.alfresco.engine.processor.shutil.rmtree") as rmtree:
+            proc._update_remotely(self._pair(), False)
+
+        rmtree.assert_called_once_with(Path("/tmp/dl"))
+
+    def test_a_version_bump_also_aborts(self):
+        proc = self._proc(_pair(version=9, pair_state="remotely_modified"))
+
+        assert proc._update_remotely(self._pair(), False) is False
+
+        proc.local.delete_final.assert_not_called()
+
+    def test_a_row_deleted_meanwhile_aborts(self):
+        proc = self._proc(None)
+
+        assert proc._update_remotely(self._pair(), False) is False
+
+        proc.local.delete_final.assert_not_called()
+
+    def test_an_undisturbed_row_is_still_replaced(self):
+        proc = self._proc(_pair(version=3, pair_state="remotely_modified"))
+
+        assert proc._update_remotely(self._pair(), False) is True
+
+        proc.local.delete_final.assert_called_once()
+
+    def test_no_conflict_is_raised_for_a_decision_already_taken(self):
+        """The user settled it; re-parking would hand it back to them."""
+        proc = self._proc(_pair(version=3, pair_state="locally_resolved"))
+
+        proc._update_remotely(self._pair(), False)
+
+        proc._mark_conflicted.assert_not_called()
+
+
+class TestLockParkKeepsThePendingOperation:
+    """A server lock is temporary. Resuming a move as a modification runs the
+    content handler, which never calls the server's move API -- the rename is
+    marked synchronised and silently lost."""
+
+    def test_a_move_keeps_its_local_state_while_parked(self):
+        proc = _processor()
+        pair = _pair(local_state="moved", pair_state="locally_moved")
+
+        proc._mark_locked_on_server(pair, "alice")
+
+        assert proc.dao._force_sync.call_args.args[1] == "moved"
+
+    def test_an_edit_is_parked_as_before(self):
+        proc = _processor()
+        pair = _pair(local_state="modified", pair_state="locally_modified")
+
+        proc._mark_locked_on_server(pair, "alice")
+
+        assert proc.dao._force_sync.call_args.args[1] == "modified"
+
+    def test_other_conflicts_still_normalise_the_local_state(self):
+        """Only a temporary park has something to hand back."""
+        proc = _processor()
+
+        proc._mark_conflicted(_pair(local_state="moved"), reason=DIFFERENT_CONTENT)
+
+        assert proc.dao._force_sync.call_args.args[1] == "modified"
+
+    def test_a_released_move_goes_back_to_the_move_handler(self):
+        watcher = _watcher()
+        pair = _pair(pair_state="conflicted", local_state="moved")
+
+        watcher._release_lock_conflict(pair)
+
+        args = watcher.dao.force_sync_if_conflicted.call_args.args
+        assert args[1:] == ("moved", "synchronized", "locally_moved")
+
+    def test_a_released_edit_goes_back_to_the_content_handler(self):
+        watcher = _watcher()
+        pair = _pair(pair_state="conflicted", local_state="modified")
+
+        watcher._release_lock_conflict(pair)
+
+        args = watcher.dao.force_sync_if_conflicted.call_args.args
+        assert args[1:] == ("modified", "synchronized", "locally_modified")
+
+
+class TestResolveWithRemoteIsNotOnTheGuiThread:
+    """`api.py` calls this straight from a slot, and hashing reads the whole
+    file. It also has to survive a paused engine: the shared client's digest
+    callback aborts then, which would skip the baseline and restart the loop."""
+
+    def _engine(self, **overrides):
+        engine = _engine()
+        info = MagicMock()
+        info.get_digest.return_value = overrides.get("digest", "on-disk-now")
+        engine.local.get_info.return_value = info
+        engine.dao.get_state_from_id.return_value = _pair(
+            local_digest="recorded-earlier"
+        )
+        return engine, info
+
+    def test_the_hash_is_not_taken_on_the_calling_thread(self):
+        engine, _ = self._engine()
+
+        with patch("nxdrive.alfresco.engine.engine.QThreadPool") as pool, patch.object(
+            AlfrescoEngine.__bases__[0], "resolve_with_remote"
+        ):
+            engine.resolve_with_remote(1)
+
+        pool.globalInstance.return_value.start.assert_called_once()
+        engine.local.get_info.assert_not_called()
+
+    def test_the_pause_callback_is_cleared_for_this_read(self):
+        """``suspend_client`` raises while paused, which would skip the
+        baseline write and leave the resolution to loop on resume."""
+        engine, info = self._engine()
+
+        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
+            engine._acknowledge_local_bytes(1)
+
+        assert info.digest_callback is None
+        engine.dao.update_local_digest.assert_called_once()
+
+    def test_the_shared_client_is_left_alone(self):
+        """Clearing it on the client would disarm every background hash."""
+        engine, _ = self._engine()
+        before = engine.local.digest_callback
+
+        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote"):
+            engine._acknowledge_local_bytes(1)
+
+        assert engine.local.digest_callback is before
+
+    def test_a_choice_made_while_hashing_wins(self):
+        engine, _ = self._engine()
+        engine.dao.get_state_from_id.side_effect = [
+            _pair(pair_state="conflicted"),
+            _pair(pair_state="locally_resolved"),
+        ]
+
+        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote") as base:
+            engine._acknowledge_local_bytes(1)
+
+        base.assert_not_called()
+
+    def test_an_unreadable_file_still_resolves(self):
+        engine, _ = self._engine()
+        engine.local.get_info.side_effect = OSError("gone")
+
+        with patch.object(AlfrescoEngine.__bases__[0], "resolve_with_remote") as base:
+            engine._acknowledge_local_bytes(1)
+
+        engine.dao.update_local_digest.assert_not_called()
+        base.assert_called_once_with(1)
+
+
+class TestAdoptionBindsTheXattr:
+    """The watcher leaves the xattr unset for an independently created file,
+    and ``_synchronize_remotely_deleted`` refuses to delete anything whose
+    xattr does not name the node. Adopting without it strands the file."""
+
+    def _engine_matching(self):
+        engine = _engine()
+        engine.local.abspath.return_value = MagicMock(is_file=lambda: True)
+        return engine
+
+    def test_the_file_is_bound_before_it_is_adopted(self):
+        engine = self._engine_matching()
+        pair = _pair(last_sync_date=None)
+        engine.dao.get_state_from_id.return_value = pair
+
+        with patch("nxdrive.alfresco.engine.engine.content_matches", return_value=True):
+            engine._decide_conflict(1)
+
+        engine.local.set_remote_id.assert_called_once_with(
+            pair.local_path, pair.remote_ref
+        )
+        engine.dao.synchronize_state.assert_called_once()
+
+    def test_a_failed_binding_keeps_the_conflict(self):
+        """Adopting anyway is what leaves the file behind on deletion."""
+        engine = self._engine_matching()
+        engine.dao.get_state_from_id.return_value = _pair(last_sync_date=None)
+        engine.local.set_remote_id.side_effect = OSError("no xattr")
+
+        with patch("nxdrive.alfresco.engine.engine.content_matches", return_value=True):
+            engine._decide_conflict(1)
+
+        engine.dao.synchronize_state.assert_not_called()
+        engine.newConflict.emit.assert_called_once_with(1)
 
 
 # ---------------------------------------------------------------------------
@@ -1264,6 +1518,30 @@ class TestContentMatches:
         remote.get_content_range.side_effect = _delete_then_answer
 
         assert content_matches(remote, local, "node-1", remote_size=5) is None
+
+    def test_a_file_appended_to_while_hashing_is_unknown(self, tmp_path):
+        """The size doubles as the tail offset and was measured before the
+        remote reads, so an append is hashed at the old offset and simply not
+        looked at -- the two windows then match."""
+        local = tmp_path / "file.txt"
+        local.write_bytes(b"hello")
+        remote = MagicMock()
+
+        def _append_then_answer(*_args, **_kwargs):
+            local.write_bytes(b"hello-and-more")
+            return b"hello"
+
+        remote.get_content_range.side_effect = _append_then_answer
+
+        assert content_matches(remote, local, "node-1", remote_size=5) is None
+
+    def test_a_stable_file_is_still_compared(self, tmp_path):
+        local = tmp_path / "file.txt"
+        local.write_bytes(b"hello")
+        remote = MagicMock()
+        remote.get_content_range.return_value = b"hello"
+
+        assert content_matches(remote, local, "node-1", remote_size=5) is True
 
     def test_a_persistent_server_error_is_unknown(self, tmp_path):
         local = tmp_path / "file.txt"

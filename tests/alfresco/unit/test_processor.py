@@ -2104,6 +2104,8 @@ class TestSynchronizeRemotelyModified:
         proc.local.get_remote_id.return_value = None
         # An untouched file hashes to what the row already records.
         proc.local.get_info.return_value.get_digest.return_value = "abc"
+        # Nothing re-decided the row while the download ran.
+        proc.dao.get_state_from_id.return_value = pair
 
         # _update_remotely needs download + move + etc
         proc.engine.download_dir = Path("/tmp/downloads")

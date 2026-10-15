@@ -437,15 +437,23 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
     def _release_lock_conflict(self, pair: DocPair, /) -> None:
         """Hand a no-longer-locked pair back to the processor.
 
+        Resumed in whatever state the park preserved: a rename or move goes
+        back to ``locally_moved``, because the handler that actually calls the
+        server's move API is a different one from the content handler.
+
         Conditional on the pair still being lock-deferred: the re-check reads
         the row, then makes a network call, and the user can resolve the
         conflict in that gap.
         """
+        moved = pair.local_state == "moved"
+        local_state = "moved" if moved else "modified"
+        pair_state = "locally_moved" if moved else "locally_modified"
+
         released = self.dao.force_sync_if_conflicted(
             pair,
-            "modified",
+            local_state,
             "synchronized",
-            "locally_modified",
+            pair_state,
             expected_last_error=LOCKED_ON_SERVER,
         )
         if not released:
@@ -456,7 +464,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             return
         log.info(
             f"Server lock released on {pair.local_name!r}; retrying the "
-            "deferred upload"
+            f"deferred {'move' if moved else 'upload'}"
         )
 
     def _sweep_lock_conflicts(self) -> None:
@@ -649,18 +657,23 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 f"old={child_pair.last_remote_updated!r} "
                 f"new={child_info.last_modification_time!r}"
             )
-            # Step 1: update metadata (esp. last_remote_updated)
-            # without bumping version, so force_remote can match
-            # the current version with its optimistic lock. Guarded on the row
-            # we read: a byte comparison can take seconds, and the local
-            # scanner may have claimed it. The state is guarded too because
-            # ``_force_sync`` raises a conflict without bumping ``version``.
+            # Step 1: update metadata without bumping version, so force_remote
+            # can match the current version with its optimistic lock. Guarded
+            # on the row we read: a byte comparison can take seconds, and the
+            # local scanner may have claimed it. The state is guarded too
+            # because ``_force_sync`` raises a conflict without bumping
+            # ``version``.
+            # ``no_baseline`` holds ``last_remote_updated`` back: if step 2 is
+            # refused, a new timestamp left on a ``locally_modified`` row would
+            # tell the pre-upload drift check that the server never moved, and
+            # the upload would go straight over this remote edit.
             if not self.dao.update_remote_state(
                 child_pair,
                 child_info,
                 remote_parent_path=remote_parent_path,
                 force_update=True,
                 versioned=False,
+                no_baseline=True,
                 expected_version=child_pair.version,
                 expected_pair_state=child_pair.pair_state,
             ):
@@ -679,7 +692,13 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             # None in (local_digest, None)), so we must
             # override it with force_remote. Guarded on the state step 1
             # committed, since a conflict raised in between keeps the version.
-            self.dao.force_remote(child_pair, expected_pair_state=child_pair.pair_state)
+            if self.dao.force_remote(
+                child_pair, expected_pair_state=child_pair.pair_state
+            ):
+                # Step 3: only now is the baseline safe to advance.
+                self.dao.update_remote_baseline(
+                    child_pair, child_info, expected_pair_state="remotely_modified"
+                )
         else:
             # Reached after the byte comparison above, which takes seconds on
             # a reported change, so the same decisions can have landed here.

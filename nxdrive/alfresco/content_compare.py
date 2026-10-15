@@ -142,6 +142,15 @@ def content_matches(
         local_digest = local_head_tail_digest(
             local_path, local_size, head_only=head_only
         )
+        # ``local_size`` is also the tail offset, and it was measured before
+        # the remote reads. An append since then is hashed at the old offset,
+        # so the new bytes are simply not looked at and the two windows match.
+        if local_path.stat().st_size != local_size:
+            log.info(
+                f"{str(local_path)!r} changed size while it was being hashed; "
+                "the comparison cannot be trusted"
+            )
+            return None
     except OSError:
         log.warning(f"Could not read {str(local_path)!r}", exc_info=True)
         return None

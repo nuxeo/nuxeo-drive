@@ -1785,6 +1785,43 @@ class EngineDAO(BaseDAO):
             c.execute("UPDATE States SET remote_digest = NULL WHERE id = ?", (row.id,))
         row.remote_digest = None
 
+    def update_remote_baseline(
+        self,
+        row: DocPair,
+        info: RemoteFileInfo,
+        /,
+        *,
+        expected_pair_state: str = None,
+    ) -> bool:
+        """Record the server revision the pair is now tracking.
+
+        Split out of ``update_remote_state`` for callers that must not advance
+        the baseline until the state transition behind it has landed: the
+        pre-upload drift check reads this value, so a timestamp written onto a
+        row that stayed locally modified tells it the server never moved.
+        """
+        state_clause = "" if expected_pair_state is None else "   AND pair_state = ?"
+        state_value = () if expected_pair_state is None else (expected_pair_state,)
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE States"
+                "   SET last_remote_updated = ?,"
+                "       remote_locked = ?"
+                " WHERE id = ?"
+                f"{state_clause}",
+                (
+                    info.last_modification_time,
+                    int(info.is_locked),
+                    row.id,
+                    *state_value,
+                ),
+            )
+            if c.rowcount != 1:
+                return False
+        row.last_remote_updated = info.last_modification_time
+        return True
+
     def update_local_digest(self, row: DocPair, digest: str, /) -> None:
         """Record *digest* as the known state of the local file.
 

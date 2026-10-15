@@ -226,7 +226,14 @@ class AlfrescoProcessor(_ProcessorBase):
             f"Remote node is locked, deferring {doc_pair.local_name!r} "
             f"(owner={owner!r})"
         )
-        self._mark_conflicted(doc_pair, reason=LOCKED_ON_SERVER, details=owner or "")
+        # The lock is temporary, so the operation waiting behind it has to
+        # survive the park: a move resumed as a modification is never made.
+        self._mark_conflicted(
+            doc_pair,
+            reason=LOCKED_ON_SERVER,
+            details=owner or "",
+            keep_local_state=True,
+        )
 
     def _defer_open_file(self, doc_pair: DocPair, /) -> None:
         """Hold back a download while the user has the file open.
@@ -292,8 +299,36 @@ class AlfrescoProcessor(_ProcessorBase):
                 return str(digest)
         return ""
 
+    def _decision_changed(self, doc_pair: DocPair, /) -> bool:
+        """Whether the row has been re-decided since the handler read it.
+
+        Replacing a file cannot be made atomic with a database predicate, so
+        this is asked as late as possible instead: it narrows the exposure
+        from the whole transfer to the delete-and-move that follows it.
+        """
+        current = self.dao.get_state_from_id(doc_pair.id, from_write=True)
+        if current is None:
+            log.debug(f"{doc_pair.local_name!r} disappeared while syncing")
+            return True
+        if (
+            current.version == doc_pair.version
+            and current.pair_state == doc_pair.pair_state
+        ):
+            return False
+        log.info(
+            f"Leaving {doc_pair.local_name!r} to the next cycle: it became "
+            f"{current.pair_state!r} while the server was being read"
+        )
+        return True
+
     def _mark_conflicted(
-        self, doc_pair: DocPair, /, *, reason: str = None, details: str = None
+        self,
+        doc_pair: DocPair,
+        /,
+        *,
+        reason: str = None,
+        details: str = None,
+        keep_local_state: bool = False,
     ) -> None:
         """Atomically flip a pair to ``pair_state='conflicted'`` and fire
         the ``newConflict`` signal via ``_queue_pair_state``.
@@ -302,6 +337,11 @@ class AlfrescoProcessor(_ProcessorBase):
         also set to ``modified`` — otherwise the next
         ``update_remote_state`` call would recompute ``pair_state`` from
         ``PAIR_STATES`` and undo the conflict marking.
+
+        *keep_local_state* holds on to the pending local operation instead.
+        A park that is meant to be temporary must not forget that the user
+        moved the file rather than edited it: ``pair_state`` still reads
+        ``conflicted``, so nothing picks the row up meanwhile.
 
         *reason* travels in the same statement so a resolver woken by the
         signal cannot see the conflict before knowing why it was raised.
@@ -316,9 +356,10 @@ class AlfrescoProcessor(_ProcessorBase):
             f"Marking pair as conflicted: {doc_pair.local_name!r} "
             f"(remote={doc_pair.remote_ref!r})"
         )
+        local_state = doc_pair.local_state if keep_local_state else "modified"
         self.dao._force_sync(
             doc_pair,
-            "modified",
+            local_state,
             "modified",
             "conflicted",
             last_error=reason,
@@ -909,6 +950,15 @@ class AlfrescoProcessor(_ProcessorBase):
             with suppress(OSError):
                 shutil.rmtree(tmp_file.parent)
             self._mark_conflicted(doc_pair, reason=DIFFERENT_CONTENT)
+            return False
+
+        # Last look before the irreversible part. The digest checks above only
+        # see edits; a resolution taken while the download ran changes the row
+        # and not the file, so "Use local" would otherwise land here, have its
+        # copy replaced by the server's, and then upload those bytes back.
+        if self._decision_changed(doc_pair):
+            with suppress(OSError):
+                shutil.rmtree(tmp_file.parent)
             return False
 
         remote_id = self.local.get_remote_id(doc_pair.local_path)
