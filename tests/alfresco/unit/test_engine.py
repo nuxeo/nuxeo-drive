@@ -570,12 +570,13 @@ class TestConflictResolver:
         pair.remote_ref = "folder-abc"
         pair.local_path = "/test-folder"
         pair.local_name = "TestFolder"
+        pair.last_error = None
         engine.dao.get_state_from_id.return_value = pair
         engine.local.get_remote_id.return_value = "folder-abc"
 
         engine._decide_conflict(42)
         engine.dao.synchronize_state.assert_called_once_with(
-            pair, only_if_conflicted=True
+            pair, only_if_conflicted=True, expected_last_error=None
         )
 
     def test_folder_mismatched_uid_emits_conflict(self):
@@ -586,6 +587,7 @@ class TestConflictResolver:
         pair.remote_ref = "folder-abc"
         pair.local_path = "/test-folder"
         pair.local_name = "TestFolder"
+        pair.last_error = None
         engine.dao.get_state_from_id.return_value = pair
         engine.local.get_remote_id.return_value = "different-id"
 
@@ -632,6 +634,7 @@ class TestConflictResolver:
         pair.remote_ref = "folder-abc"
         pair.local_path = "/test-folder"
         pair.local_name = "TestFolder"
+        pair.last_error = None
         engine.dao.get_state_from_id.return_value = pair
         engine.local.get_remote_id.return_value = "different-id"
 

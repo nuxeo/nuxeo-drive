@@ -446,7 +446,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             "modified",
             "synchronized",
             "locally_modified",
-            last_error=LOCKED_ON_SERVER,
+            expected_last_error=LOCKED_ON_SERVER,
         )
         if not released:
             log.debug(

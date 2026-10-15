@@ -11,7 +11,7 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 
 from logging import getLogger
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Dict, Type
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type
 from urllib.parse import urlsplit
 
 from alfresco.exceptions import AuthenticationError
@@ -679,6 +679,11 @@ class AlfrescoEngine(Engine):
             self._surface_conflict(pair, row_id, emit=emit)
             return
 
+        # The probes below take seconds, and a reason can land in that gap
+        # without touching ``version`` or ``pair_state``. Every transition
+        # taken afterwards is predicated on the reason as it reads here.
+        reason_at_entry = pair.last_error
+
         # The freshness check needs a baseline from an earlier successful sync.
         # A pair that has never synchronised had ``last_remote_updated`` written
         # from this very node, so the comparison can only ever say "unchanged"
@@ -687,7 +692,9 @@ class AlfrescoEngine(Engine):
         never_synced = not pair.last_sync_date
 
         if not pair.folderish and pair.remote_ref and never_synced:
-            self._resolve_unsynced_conflict(pair, row_id, emit=emit)
+            self._resolve_unsynced_conflict(
+                pair, row_id, emit=emit, reason_at_entry=reason_at_entry
+            )
             return
 
         # File path: is the server still on the revision we last recorded?
@@ -708,7 +715,11 @@ class AlfrescoEngine(Engine):
                         f"{pair.local_name!r}, resetting to locally_modified"
                     )
                     if not self.dao.force_sync_if_conflicted(
-                        pair, "modified", "synchronized", "locally_modified"
+                        pair,
+                        "modified",
+                        "synchronized",
+                        "locally_modified",
+                        expected_last_error=reason_at_entry,
                     ):
                         log.debug(
                             f"Alfresco conflict resolver: {pair.local_name!r} was "
@@ -727,7 +738,11 @@ class AlfrescoEngine(Engine):
                     f"Alfresco conflict resolver: folder {pair.local_name!r} "
                     "has matching remote UID, auto-resolving"
                 )
-                self.dao.synchronize_state(pair, only_if_conflicted=True)
+                self.dao.synchronize_state(
+                    pair,
+                    only_if_conflicted=True,
+                    expected_last_error=reason_at_entry,
+                )
                 return
 
         # Cannot auto-resolve — surface the conflict to the user.
@@ -758,7 +773,13 @@ class AlfrescoEngine(Engine):
         return content_matches(self.remote, local_path, pair.remote_ref) is True
 
     def _resolve_unsynced_conflict(
-        self, pair: DocPair, row_id: int, /, *, emit: bool = True
+        self,
+        pair: DocPair,
+        row_id: int,
+        /,
+        *,
+        emit: bool = True,
+        reason_at_entry: Optional[str] = None,
     ) -> None:
         """Decide a conflict on a pair that has never synchronised.
 
@@ -782,8 +803,11 @@ class AlfrescoEngine(Engine):
                 "on both sides, auto-resolving"
             )
             # Comparing the bytes can take seconds, which is long enough for
-            # the user to have resolved this conflict themselves.
-            self.dao.synchronize_state(pair, only_if_conflicted=True)
+            # the user to have resolved this conflict themselves, or for a
+            # processor to have parked it for a deliberate reason.
+            self.dao.synchronize_state(
+                pair, only_if_conflicted=True, expected_last_error=reason_at_entry
+            )
             return
 
         log.info(

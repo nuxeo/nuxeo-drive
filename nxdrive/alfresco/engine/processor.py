@@ -139,8 +139,23 @@ class AlfrescoProcessor(_ProcessorBase):
         )
         self.engine.queue_manager.push_error(doc_pair, exception=exception)
 
-    def _refresh_local_state(self, doc_pair: DocPair, local_info: FileInfo, /) -> None:
-        self.dao.update_local_state(doc_pair, local_info, versioned=False, queue=False)
+    def _refresh_local_state(
+        self,
+        doc_pair: DocPair,
+        local_info: FileInfo,
+        /,
+        *,
+        expected_version: int = None,
+        expected_pair_state: str = None,
+    ) -> bool:
+        return self.dao.update_local_state(
+            doc_pair,
+            local_info,
+            versioned=False,
+            queue=False,
+            expected_version=expected_version,
+            expected_pair_state=expected_pair_state,
+        )
 
     def _remote_has_drifted(
         self, doc_pair: DocPair, /, *, remote_info: RemoteFileInfo = None
@@ -849,6 +864,24 @@ class AlfrescoProcessor(_ProcessorBase):
         # on disk can report that, so they are read on both sides of it.
         digest_before = self._readable_local_digest(doc_pair)
 
+        # This first read already happens after the metadata call above, so a
+        # save made since the row was read is baked into both reads and would
+        # compare equal. The recorded digest is the only witness to it, and
+        # ``delete_final`` is past the point where bytes can be recovered.
+        recorded = doc_pair.local_digest
+        if (
+            digest_before
+            and recorded
+            and recorded != UNACCESSIBLE_HASH
+            and digest_before != recorded
+        ):
+            log.warning(
+                f"{doc_pair.local_name!r} was edited before the download "
+                "started; raising a conflict rather than overwriting it"
+            )
+            self._mark_conflicted(doc_pair, reason=DIFFERENT_CONTENT)
+            return False
+
         tmp_file = self._download_content(doc_pair, new_os_path)
 
         # The transfer can take minutes, and ``delete_final`` is permanent, so
@@ -894,7 +927,20 @@ class AlfrescoProcessor(_ProcessorBase):
         )
         doc_pair.local_digest = updated_info.get_digest()
         self.dao.update_last_transfer(doc_pair.id, "download")
-        self._refresh_local_state(doc_pair, updated_info)
+        # First write after the replacement, so it is the one that has to carry
+        # the guard: it sets ``pair_state`` from the stale row, and every later
+        # predicate would then be comparing against its own write.
+        if not self._refresh_local_state(
+            doc_pair,
+            updated_info,
+            expected_version=doc_pair.version,
+            expected_pair_state=doc_pair.pair_state,
+        ):
+            log.debug(
+                f"Leaving {doc_pair.local_name!r} to the next cycle: it was "
+                "re-decided while the file was being replaced"
+            )
+            return False
         # Only the pre-transfer snapshot may become the baseline. Fetching one
         # now would record a revision that landed mid-download while the bytes
         # on disk are the older one, and the next poll would compare equal and

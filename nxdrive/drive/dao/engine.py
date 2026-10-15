@@ -55,6 +55,21 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
+#: Sentinel for "do not check the conflict reason". ``None`` cannot serve as
+#: that default: it is the reason of an unreasoned conflict, so a caller
+#: passing it means "the reason must still be absent".
+ANY_REASON = object()
+
+
+def _reason_predicate(expected: Any, /) -> Tuple[str, Tuple[Any, ...]]:
+    """Build the ``last_error`` clause for *expected*, NULL included."""
+    if expected is ANY_REASON:
+        return "", ()
+    if expected is None:
+        return "   AND last_error IS NULL", ()
+    return "   AND last_error = ?", (expected,)
+
+
 # Summary status from last known pair of states
 # (local_state, remote_state)
 PAIR_STATES: Dict[Tuple[str, str], str] = {
@@ -1061,7 +1076,16 @@ class EngineDAO(BaseDAO):
         *,
         versioned: bool = True,
         queue: bool = True,
-    ) -> None:
+        expected_version: int = None,
+        expected_pair_state: str = None,
+    ) -> bool:
+        """Apply *info* to *row*.
+
+        The predicates are for callers that decided on a copy read before slow
+        work: this writes ``local_state``, ``remote_state`` and ``pair_state``
+        from the in-memory row, so without them a decision taken meanwhile is
+        overwritten before any later guard can see it.
+        """
         row.pair_state = self._get_pair_state(row)
         log.debug(f"Updating local state for row={row!r} with info={info!r}")
 
@@ -1069,6 +1093,15 @@ class EngineDAO(BaseDAO):
         if versioned:
             version = ", version = version + 1"
             log.debug(f"Increasing version to {row.version + 1} for pair {row!r}")
+
+        guard = ""
+        guard_values: Tuple[Any, ...] = ()
+        if expected_version is not None:
+            guard += "   AND version = ?"
+            guard_values = (*guard_values, expected_version)
+        if expected_pair_state is not None:
+            guard += "   AND pair_state = ?"
+            guard_values = (*guard_values, expected_pair_state)
 
         with self.lock:
             parent_path = info.path.parent
@@ -1084,7 +1117,8 @@ class EngineDAO(BaseDAO):
                 "       size = ?,"
                 "       remote_state = ?, "
                 f"       pair_state = ? {version}"
-                " WHERE id = ?",
+                " WHERE id = ?"
+                f"{guard}",
                 (
                     info.last_modification_time,
                     row.local_digest,
@@ -1096,8 +1130,11 @@ class EngineDAO(BaseDAO):
                     row.remote_state,
                     row.pair_state,
                     row.id,
+                    *guard_values,
                 ),
             )
+            if c.rowcount != 1:
+                return False
             if queue:
                 parent = c.execute(
                     "SELECT * FROM States WHERE local_path = ?", (parent_path,)
@@ -1109,6 +1146,7 @@ class EngineDAO(BaseDAO):
                     self._queue_pair_state(
                         row.id, info.folderish, row.pair_state, pair=row
                     )
+        return True
 
     def update_local_modification_time(self, row: DocPair, info: FileInfo, /) -> None:
         with self.lock:
@@ -1677,7 +1715,7 @@ class EngineDAO(BaseDAO):
         pair: str,
         /,
         *,
-        last_error: str = None,
+        expected_last_error: Optional[str],
     ) -> bool:
         """Flip a pair, but only while it is still the conflict we decided on.
 
@@ -1686,12 +1724,13 @@ class EngineDAO(BaseDAO):
         written back after the user resolved the same conflict, would still
         match and silently undo their choice.
 
-        *last_error* narrows the predicate further to conflicts raised for one
-        specific reason; omit it to accept any conflict.
+        *expected_last_error* is the reason read before that probe, and has no
+        default so it cannot be forgotten: ``None`` means the reason must still
+        be absent, which is a predicate, not the lack of one. A processor can
+        park the row for a deliberate reason while the probe runs without
+        touching ``version`` or ``pair_state``.
         """
-        reason_clause = "" if last_error is None else "   AND last_error = ?"
-        reason_value = () if last_error is None else (last_error,)
-
+        reason_clause, reason_value = _reason_predicate(expected_last_error)
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(
@@ -1812,6 +1851,7 @@ class EngineDAO(BaseDAO):
         dynamic_states: bool = False,
         only_if_conflicted: bool = False,
         expected_pair_state: str = None,
+        expected_last_error: Any = ANY_REASON,
     ) -> bool:
         """Mark *row* synchronised.
 
@@ -1823,6 +1863,10 @@ class EngineDAO(BaseDAO):
         callers whose preceding write committed it. ``_force_sync`` leaves
         ``version`` alone, so a conflict raised since would otherwise satisfy
         the version predicate and be cleared here.
+
+        *expected_last_error* requires the reason to be unchanged. ``None``
+        means it must still be absent, which is why it cannot double as "do
+        not check" — that is :data:`ANY_REASON`.
         """
         if version is None:
             version = row.version
@@ -1837,7 +1881,12 @@ class EngineDAO(BaseDAO):
             row.local_state = row.remote_state = "synchronized"
         row.pair_state = self._get_pair_state(row)
 
-        conditional = only_if_conflicted or expected_pair_state is not None
+        reason_clause, reason_value = _reason_predicate(expected_last_error)
+        conditional = (
+            only_if_conflicted
+            or expected_pair_state is not None
+            or expected_last_error is not ANY_REASON
+        )
         conflicted_clause = (
             "   AND pair_state = 'conflicted'" if only_if_conflicted else ""
         )
@@ -1860,7 +1909,7 @@ class EngineDAO(BaseDAO):
                 "       last_sync_error_date = NULL"
                 " WHERE id = ?"
                 "   AND version = ?"
-                f"{conflicted_clause}{state_clause}",
+                f"{conflicted_clause}{state_clause}{reason_clause}",
                 (
                     row.local_state,
                     row.remote_state,
@@ -1870,6 +1919,7 @@ class EngineDAO(BaseDAO):
                     row.id,
                     version,
                     *state_value,
+                    *reason_value,
                 ),
             )
             result = bool(c.rowcount == 1)

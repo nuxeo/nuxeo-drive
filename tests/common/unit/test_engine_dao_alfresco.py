@@ -268,28 +268,43 @@ class TestSynchronizeStateOnlyIfConflicted:
         assert self._state(dao, pair.id) == "synchronized"
 
 
-class TestForceSyncIfConflictedWithoutAReason:
-    """Conflicts raised by the state machine carry no reason to match on."""
+class TestForceSyncIfConflictedAbsentReason:
+    """``None`` is the reason of an unreasoned conflict, so it has to mean
+    "still has no reason" rather than "do not check the reason"."""
 
     def _conflicted(self, dao, *, reason=None):
         pair = _insert(dao)
         dao._force_sync(pair, "modified", "modified", "conflicted", last_error=reason)
         return dao.get_state_from_id(pair.id)
 
-    def test_any_conflict_qualifies_when_no_reason_is_given(self, dao):
+    def test_an_unreasoned_conflict_qualifies(self, dao):
         pair = self._conflicted(dao)
 
         assert dao.force_sync_if_conflicted(
-            pair, "modified", "synchronized", "locally_modified"
+            pair,
+            "modified",
+            "synchronized",
+            "locally_modified",
+            expected_last_error=None,
         )
         assert dao.get_state_from_id(pair.id).pair_state == "locally_modified"
 
-    def test_a_reasoned_conflict_also_qualifies(self, dao):
-        pair = self._conflicted(dao, reason="REMOTE_DRIFTED")
+    def test_a_reason_raised_in_the_gap_is_refused(self, dao):
+        """The data-loss case: a processor parks the row while the resolver is
+        probing the server, and the resolver then clears the park."""
+        pair = self._conflicted(dao, reason="LOCKED_ON_SERVER")
 
-        assert dao.force_sync_if_conflicted(
-            pair, "modified", "synchronized", "locally_modified"
+        released = dao.force_sync_if_conflicted(
+            pair,
+            "modified",
+            "synchronized",
+            "locally_modified",
+            expected_last_error=None,
         )
+
+        assert released is False
+        row = dao.get_state_from_id(pair.id)
+        assert (row.pair_state, row.last_error) == ("conflicted", "LOCKED_ON_SERVER")
 
     def test_a_resolved_row_is_still_refused(self, dao):
         pair = self._conflicted(dao)
@@ -297,11 +312,24 @@ class TestForceSyncIfConflictedWithoutAReason:
 
         assert (
             dao.force_sync_if_conflicted(
-                pair, "modified", "synchronized", "locally_modified"
+                pair,
+                "modified",
+                "synchronized",
+                "locally_modified",
+                expected_last_error=None,
             )
             is False
         )
         assert dao.get_state_from_id(pair.id).pair_state == "locally_resolved"
+
+    def test_the_argument_cannot_be_omitted(self, dao):
+        """No default, so "accept any reason" cannot creep back in."""
+        pair = self._conflicted(dao)
+
+        with pytest.raises(TypeError):
+            dao.force_sync_if_conflicted(
+                pair, "modified", "synchronized", "locally_modified"
+            )
 
 
 class TestUpdateRemoteStateExpectedVersion:
@@ -593,7 +621,7 @@ class TestForceSyncIfConflicted:
             "modified",
             "synchronized",
             "locally_modified",
-            last_error="LOCKED_ON_SERVER",
+            expected_last_error="LOCKED_ON_SERVER",
         )
 
         assert released is True
@@ -608,7 +636,7 @@ class TestForceSyncIfConflicted:
             "modified",
             "synchronized",
             "locally_modified",
-            last_error="LOCKED_ON_SERVER",
+            expected_last_error="LOCKED_ON_SERVER",
         )
 
         assert released is False
@@ -624,7 +652,7 @@ class TestForceSyncIfConflicted:
             "modified",
             "synchronized",
             "locally_modified",
-            last_error="LOCKED_ON_SERVER",
+            expected_last_error="LOCKED_ON_SERVER",
         )
 
         assert released is False
@@ -641,7 +669,7 @@ class TestForceSyncIfConflicted:
                 "modified",
                 "synchronized",
                 "locally_modified",
-                last_error="LOCKED_ON_SERVER",
+                expected_last_error="LOCKED_ON_SERVER",
             )
             is False
         )

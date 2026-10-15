@@ -50,6 +50,9 @@ def _processor():
     proc.remote = engine.remote
     proc.dao.get_filters.return_value = []
     proc.dao.get_normal_state_from_remote.return_value = None
+    # Match ``_pair``'s recorded digest: an untouched file hashes to what the
+    # row already holds, so the pre-download edit check stays quiet.
+    proc.local.get_info.return_value.get_digest.return_value = "abc"
     proc._conflicting_remote_twin = MagicMock(return_value=None)
     proc.remove_void_transfers = MagicMock()
 
@@ -357,7 +360,7 @@ class TestLockReleaseIsConditional:
 
         watcher.dao._force_sync.assert_not_called()
         kwargs = watcher.dao.force_sync_if_conflicted.call_args.kwargs
-        assert kwargs["last_error"] == LOCKED_ON_SERVER
+        assert kwargs["expected_last_error"] == LOCKED_ON_SERVER
 
     def test_a_row_the_user_already_resolved_is_left_alone(self):
         watcher = _watcher()

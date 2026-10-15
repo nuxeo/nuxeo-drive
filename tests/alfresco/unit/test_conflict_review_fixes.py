@@ -36,6 +36,10 @@ from nxdrive.drive.exceptions import ThreadInterrupt
 
 CONTENT_COMPARE = "nxdrive.alfresco.content_compare"
 
+#: What the pair last recorded for the local file, and what hashing it yields
+#: when nobody has touched it.
+ON_DISK = "ondisk"
+
 
 # ---------------------------------------------------------------------------
 # Builders
@@ -91,6 +95,7 @@ def _pair(**overrides):
     pair.last_error = None
     pair.last_remote_updated = "2026-10-06 09:19:59.999000+00:00"
     pair.pair_state = "conflicted"
+    pair.local_digest = ON_DISK
     pair.error_count = 0
     for key, value in overrides.items():
         setattr(pair, key, value)
@@ -127,7 +132,7 @@ class TestConflictResolverNeverSynced:
             engine._decide_conflict(1)
 
         engine.dao.synchronize_state.assert_called_once_with(
-            pair, only_if_conflicted=True
+            pair, only_if_conflicted=True, expected_last_error=None
         )
         engine.newConflict.emit.assert_not_called()
         # The timestamp shortcut must not run for a pair with no baseline.
@@ -276,7 +281,11 @@ class TestConflictResolverReasoned:
             engine._decide_conflict(1)
 
         engine.dao.force_sync_if_conflicted.assert_called_once_with(
-            pair, "modified", "synchronized", "locally_modified"
+            pair,
+            "modified",
+            "synchronized",
+            "locally_modified",
+            expected_last_error=None,
         )
         engine.newConflict.emit.assert_not_called()
 
@@ -778,6 +787,7 @@ class TestOpenFileRecheckedAfterTheDownload:
         proc._refresh_local_state = MagicMock()
         proc._refresh_remote = MagicMock()
         proc.local.abspath.return_value = Path("/sync/file.txt")
+        proc.local.get_info.return_value.get_digest.return_value = ON_DISK
         return proc
 
     def test_a_file_opened_during_the_download_is_not_destroyed(self):
@@ -813,7 +823,7 @@ class TestOpenFileRecheckedAfterTheDownload:
         pair = _pair(
             pair_state="remotely_modified",
             remote_name="file.txt",
-            local_digest="aaa",
+            local_digest=ON_DISK,
             remote_digest="bbb",
         )
 
@@ -839,7 +849,7 @@ class TestEditDuringTheDownload:
         return proc
 
     def test_an_edit_made_during_the_transfer_is_not_deleted(self):
-        proc = self._proc(["before", "after"])
+        proc = self._proc([ON_DISK, "after"])
 
         assert proc._update_remotely(_pair(remote_name="file.txt"), False) is False
 
@@ -848,7 +858,7 @@ class TestEditDuringTheDownload:
 
     def test_the_edit_becomes_a_conflict_the_user_must_settle(self):
         """Both sides changed, so neither copy may be chosen for the user."""
-        proc = self._proc(["before", "after"])
+        proc = self._proc([ON_DISK, "after"])
 
         proc._update_remotely(_pair(remote_name="file.txt"), False)
 
@@ -856,7 +866,7 @@ class TestEditDuringTheDownload:
         assert proc._mark_conflicted.call_args.kwargs["reason"] == DIFFERENT_CONTENT
 
     def test_the_abandoned_download_is_cleaned_up(self):
-        proc = self._proc(["before", "after"])
+        proc = self._proc([ON_DISK, "after"])
 
         with patch("nxdrive.alfresco.engine.processor.shutil.rmtree") as rmtree:
             proc._update_remotely(_pair(remote_name="file.txt"), False)
@@ -864,7 +874,7 @@ class TestEditDuringTheDownload:
         rmtree.assert_called_once_with(Path("/tmp/dl"))
 
     def test_an_untouched_file_is_still_replaced(self):
-        proc = self._proc(["same", "same", "same"])
+        proc = self._proc([ON_DISK, ON_DISK, ON_DISK])
 
         assert proc._update_remotely(_pair(remote_name="file.txt"), False) is True
 
@@ -888,6 +898,28 @@ class TestEditDuringTheDownload:
 
         proc._mark_conflicted.assert_not_called()
 
+    def test_an_edit_made_before_the_first_hash_is_caught(self):
+        """The first hash is already taken after the metadata call, so a save
+        made since the row was read is baked into both hashes and they compare
+        equal. The recorded digest is the only witness left."""
+        proc = self._proc([ON_DISK, ON_DISK])
+        pair = _pair(remote_name="file.txt", local_digest="recorded-earlier")
+
+        assert proc._update_remotely(pair, False) is False
+
+        proc._download_content.assert_not_called()
+        proc.local.delete_final.assert_not_called()
+        assert proc._mark_conflicted.call_args.kwargs["reason"] == DIFFERENT_CONTENT
+
+    @pytest.mark.parametrize("recorded", (None, "", UNACCESSIBLE_HASH))
+    def test_an_unusable_recorded_digest_is_not_evidence(self, recorded):
+        proc = self._proc([ON_DISK, ON_DISK, ON_DISK])
+        pair = _pair(remote_name="file.txt", local_digest=recorded)
+
+        assert proc._update_remotely(pair, False) is True
+
+        proc._mark_conflicted.assert_not_called()
+
 
 class TestBaselineAfterTheReplace:
     """The local file is written before the baseline is recorded, and the
@@ -897,9 +929,9 @@ class TestBaselineAfterTheReplace:
         proc = _processor()
         proc._download_content = MagicMock(return_value=Path("/tmp/dl/file.txt"))
         proc._local_file_in_use = MagicMock(return_value=False)
-        proc._refresh_local_state = MagicMock()
+        proc._refresh_local_state = MagicMock(return_value=True)
         proc.local.abspath.return_value = Path("/sync/file.txt")
-        proc.local.get_info.return_value.get_digest.return_value = "same"
+        proc.local.get_info.return_value.get_digest.return_value = ON_DISK
         return proc
 
     def test_the_baseline_write_is_guarded(self):
@@ -926,7 +958,7 @@ class TestBaselineAfterTheReplace:
         pair = _pair(
             pair_state="remotely_modified",
             remote_name="file.txt",
-            local_digest="aaa",
+            local_digest=ON_DISK,
             remote_digest="bbb",
         )
 
@@ -940,7 +972,7 @@ class TestBaselineAfterTheReplace:
         pair = _pair(
             pair_state="remotely_modified",
             remote_name="file.txt",
-            local_digest="aaa",
+            local_digest=ON_DISK,
             remote_digest="bbb",
         )
 
@@ -948,6 +980,27 @@ class TestBaselineAfterTheReplace:
 
         kwargs = proc.dao.synchronize_state.call_args.kwargs
         assert kwargs["expected_pair_state"] == "remotely_modified"
+
+    def test_the_local_state_write_is_guarded_too(self):
+        """It runs first and writes ``pair_state`` from the stale row, so a
+        guard on any later write is only comparing against this one."""
+        proc = self._proc()
+        proc._refresh_local_state = MagicMock(return_value=True)
+        pair = _pair(remote_name="file.txt", version=4, pair_state="remotely_modified")
+
+        proc._update_remotely(pair, False)
+
+        kwargs = proc._refresh_local_state.call_args.kwargs
+        assert kwargs["expected_version"] == 4
+        assert kwargs["expected_pair_state"] == "remotely_modified"
+
+    def test_a_refused_local_state_write_stops_the_handler(self):
+        proc = self._proc()
+        proc._refresh_local_state = MagicMock(return_value=False)
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is False
+
+        proc.dao.update_remote_state.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -991,7 +1044,7 @@ class TestSweepLockConflicts:
             "modified",
             "synchronized",
             "locally_modified",
-            last_error=LOCKED_ON_SERVER,
+            expected_last_error=LOCKED_ON_SERVER,
         )
 
     def test_a_server_error_does_not_abort_the_sweep(self):
@@ -1011,7 +1064,7 @@ class TestSweepLockConflicts:
             "modified",
             "synchronized",
             "locally_modified",
-            last_error=LOCKED_ON_SERVER,
+            expected_last_error=LOCKED_ON_SERVER,
         )
 
 

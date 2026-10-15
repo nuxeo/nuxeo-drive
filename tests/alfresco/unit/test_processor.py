@@ -463,7 +463,12 @@ class TestRefreshLocalState:
         info = Mock()
         proc._refresh_local_state(pair, info)
         proc.dao.update_local_state.assert_called_once_with(
-            pair, info, versioned=False, queue=False
+            pair,
+            info,
+            versioned=False,
+            queue=False,
+            expected_version=None,
+            expected_pair_state=None,
         )
 
 
@@ -2093,6 +2098,8 @@ class TestSynchronizeRemotelyModified:
         proc.local.is_equal_digests.return_value = False
         proc.local.abspath.return_value = Path("/abs/file.txt")
         proc.local.get_remote_id.return_value = None
+        # An untouched file hashes to what the row already records.
+        proc.local.get_info.return_value.get_digest.return_value = "abc"
 
         # _update_remotely needs download + move + etc
         proc.engine.download_dir = Path("/tmp/downloads")

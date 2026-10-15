@@ -176,6 +176,8 @@ def test_remote_update_renames_download_and_preserves_remote_xattr(processor, tm
     pair.remote_name = "new-name.txt"
     pair.remote_ref = "document-id"
     pair.last_remote_updated = "2026-08-01 12:00:00"
+    pair.local_digest = "untouched"
+    processor.local.get_info.return_value.get_digest.return_value = "untouched"
     old_os_path = tmp_path / "old-name.txt"
     temporary_path = tmp_path / "transfer" / "new-name.txt"
     processor.local.abspath.return_value = old_os_path
