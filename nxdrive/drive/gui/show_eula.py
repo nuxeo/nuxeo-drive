@@ -27,7 +27,7 @@ log = getLogger(__name__)
 
 
 class EULA_Dialog(QDialog):
-    """Custom EULA Dialog with overriden closeEvent"""
+    """Custom EULA Dialog with overridden closeEvent"""
 
     def __init__(self, f: Qt.WindowType | None = None):
         if not f:
@@ -35,7 +35,7 @@ class EULA_Dialog(QDialog):
         else:
             super().__init__(f=f)
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event) -> None:  # type: ignore
         """Overriding close event of QDialog and ignoring it"""
 
         event.ignore()
@@ -61,7 +61,7 @@ class EULA_Scroller(QScrollArea):
         if not license_doc:
             raise Exception("License doc not found")
 
-        eula_text.setDocument(license_doc)  # type: ignore
+        eula_text.setDocument(license_doc)
         eula_text.setReadOnly(True)
         eula_text.setWordWrapMode(QTextOption.WrapMode.WordWrap)
         eula_text.setSizePolicy(
@@ -240,7 +240,7 @@ def get_eula_console_message(server_type: str = "Nuxeo") -> bool:
             print("Enter Y to accept, N to reject:")
             answer = input()
 
-        if answer == "Y":
+        if answer.upper() == "Y":
             from .show_open_source_attribution import (
                 get_open_source_attribution_console_message,
             )

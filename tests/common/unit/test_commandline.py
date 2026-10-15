@@ -64,6 +64,8 @@ def cmd(tmp):
     path.mkdir(parents=True, exist_ok=True)
     Options.set("nxdrive_home", normalized_path(path), setter="local")
     Options.server_type = "NUXEO"
+    # Without that marker, launch() would open the modal EULA dialog.
+    (path / "eula_accepted").touch()
 
     yield CliHandler()
 
@@ -302,7 +304,7 @@ def test_restore_server_type_found(cmd):
     """
     from nxdrive.drive.feature import DisabledFeatures, Feature
 
-    saved_feature = {k: v for k, v in vars(Feature).items()}
+    saved_feature = dict(vars(Feature))
     saved_disabled = list(DisabledFeatures)
     saved_server_type = Options.server_type
     try:
@@ -326,7 +328,7 @@ def test_restore_server_type_not_found(cmd):
     """
     from nxdrive.drive.feature import DisabledFeatures, Feature
 
-    saved_feature = {k: v for k, v in vars(Feature).items()}
+    saved_feature = dict(vars(Feature))
     saved_disabled = list(DisabledFeatures)
     saved_server_type = Options.server_type
     try:
