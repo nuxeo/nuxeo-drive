@@ -135,7 +135,17 @@ def content_matches(
             f"{node_id!r}: the server does not honour Range"
         )
 
-    local_digest = local_head_tail_digest(local_path, local_size, head_only=head_only)
+    # Re-read after the remote round trips: the file may have gone away while
+    # they were running, and an escaping OSError would lose the caller's
+    # decision instead of sending it down its documented safe path.
+    try:
+        local_digest = local_head_tail_digest(
+            local_path, local_size, head_only=head_only
+        )
+    except OSError:
+        log.warning(f"Could not read {str(local_path)!r}", exc_info=True)
+        return None
+
     if local_digest == remote_digest:
         return True
 

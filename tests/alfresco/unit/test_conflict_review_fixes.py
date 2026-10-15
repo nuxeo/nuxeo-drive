@@ -32,6 +32,7 @@ from nxdrive.alfresco.engine.processor import (
 )
 from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
 from nxdrive.drive.constants import UNACCESSIBLE_HASH
+from nxdrive.drive.exceptions import ThreadInterrupt
 
 CONTENT_COMPARE = "nxdrive.alfresco.content_compare"
 
@@ -888,6 +889,67 @@ class TestEditDuringTheDownload:
         proc._mark_conflicted.assert_not_called()
 
 
+class TestBaselineAfterTheReplace:
+    """The local file is written before the baseline is recorded, and the
+    watcher can register an edit in between."""
+
+    def _proc(self):
+        proc = _processor()
+        proc._download_content = MagicMock(return_value=Path("/tmp/dl/file.txt"))
+        proc._local_file_in_use = MagicMock(return_value=False)
+        proc._refresh_local_state = MagicMock()
+        proc.local.abspath.return_value = Path("/sync/file.txt")
+        proc.local.get_info.return_value.get_digest.return_value = "same"
+        return proc
+
+    def test_the_baseline_write_is_guarded(self):
+        proc = self._proc()
+        pair = _pair(remote_name="file.txt", version=7, pair_state="remotely_modified")
+
+        proc._update_remotely(pair, False)
+
+        kwargs = proc.dao.update_remote_state.call_args.kwargs
+        assert kwargs["expected_version"] == 7
+        assert kwargs["expected_pair_state"] == "remotely_modified"
+
+    def test_a_refused_baseline_stops_the_handler(self):
+        """Carrying on would mark a newer local edit as already synchronised."""
+        proc = self._proc()
+        proc.dao.update_remote_state.return_value = False
+
+        assert proc._update_remotely(_pair(remote_name="file.txt"), False) is False
+
+    def test_a_refused_baseline_is_not_synchronized(self):
+        proc = self._proc()
+        proc.dao.update_remote_state.return_value = False
+        proc.local.is_equal_digests.return_value = False
+        pair = _pair(
+            pair_state="remotely_modified",
+            remote_name="file.txt",
+            local_digest="aaa",
+            remote_digest="bbb",
+        )
+
+        proc._synchronize_remotely_modified(pair)
+
+        proc.dao.synchronize_state.assert_not_called()
+
+    def test_the_final_synchronization_carries_the_committed_state(self):
+        proc = self._proc()
+        proc.local.is_equal_digests.return_value = False
+        pair = _pair(
+            pair_state="remotely_modified",
+            remote_name="file.txt",
+            local_digest="aaa",
+            remote_digest="bbb",
+        )
+
+        proc._synchronize_remotely_modified(pair)
+
+        kwargs = proc.dao.synchronize_state.call_args.kwargs
+        assert kwargs["expected_pair_state"] == "remotely_modified"
+
+
 # ---------------------------------------------------------------------------
 # Lock sweep
 # ---------------------------------------------------------------------------
@@ -953,6 +1015,57 @@ class TestSweepLockConflicts:
         )
 
 
+class TestShutdownIsNotSwallowed:
+    """``ThreadInterrupt`` is an ``Exception``, and ``_interact()`` raises it
+    to ask the worker to stop. A broad handler that keeps it turns a stop into
+    a logged failure followed by more network work."""
+
+    def _watcher_at_the_post_poll_blocks(self):
+        watcher = _watcher()
+        watcher.engine.remote = MagicMock()
+        watcher._ensure_provisioned = MagicMock(return_value=True)
+        watcher._bootstrap_if_needed = MagicMock(return_value=True)
+        watcher._apply_unfiltered = MagicMock()
+        watcher._poll_device_sync = MagicMock(return_value=True)
+        watcher._scan_local_changes = MagicMock()
+        watcher._sweep_lock_conflicts = MagicMock()
+        watcher.engine.queue_manager.get_overall_size.return_value = 0
+        watcher.empty_polls = 0
+        watcher.dao.get_config.return_value = None
+        watcher.updated = MagicMock()
+        return watcher
+
+    @pytest.mark.parametrize(
+        "blocking",
+        ("_scan_local_changes", "_sweep_lock_conflicts"),
+    )
+    def test_a_stop_request_travels_out_of_the_post_poll_blocks(self, blocking):
+        watcher = self._watcher_at_the_post_poll_blocks()
+        getattr(watcher, blocking).side_effect = ThreadInterrupt
+
+        with pytest.raises(ThreadInterrupt):
+            watcher._do_handle_changes(False)
+
+    def test_a_stop_during_the_scan_skips_the_remaining_network_work(self):
+        watcher = self._watcher_at_the_post_poll_blocks()
+        watcher._scan_local_changes.side_effect = ThreadInterrupt
+
+        with pytest.raises(ThreadInterrupt):
+            watcher._do_handle_changes(False)
+
+        watcher._sweep_lock_conflicts.assert_not_called()
+        watcher.engine.resolve_deferred_conflicts.assert_not_called()
+
+    def test_an_ordinary_failure_is_still_absorbed(self):
+        """Only the stop travels; a real error must not kill the poll loop."""
+        watcher = self._watcher_at_the_post_poll_blocks()
+        watcher._sweep_lock_conflicts.side_effect = OSError("boom")
+
+        watcher._do_handle_changes(False)
+
+        watcher.engine.resolve_deferred_conflicts.assert_called_once()
+
+
 # ---------------------------------------------------------------------------
 # content_compare
 # ---------------------------------------------------------------------------
@@ -985,6 +1098,22 @@ class TestContentMatches:
 
     def test_an_unreadable_local_file_is_unknown(self, tmp_path):
         assert content_matches(MagicMock(), tmp_path / "nope.txt", "node-1") is None
+
+    def test_a_file_that_vanishes_during_the_server_reads_is_unknown(self, tmp_path):
+        """The remote range requests take seconds, and the contract promises
+        ``None`` for a local file that cannot be read -- callers rely on that
+        to take their safe path rather than having the error thrown at them."""
+        local = tmp_path / "file.txt"
+        local.write_bytes(b"hello")
+        remote = MagicMock()
+
+        def _delete_then_answer(*_args, **_kwargs):
+            local.unlink(missing_ok=True)
+            return b"hello"
+
+        remote.get_content_range.side_effect = _delete_then_answer
+
+        assert content_matches(remote, local, "node-1", remote_size=5) is None
 
     def test_a_persistent_server_error_is_unknown(self, tmp_path):
         local = tmp_path / "file.txt"

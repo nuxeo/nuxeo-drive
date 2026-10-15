@@ -476,7 +476,13 @@ class TestRefreshRemote:
         proc._refresh_remote(pair)
         proc.remote.get_fs_info.assert_called_once_with("abc")
         proc.dao.update_remote_state.assert_called_once_with(
-            pair, remote_info, versioned=False, queue=False, force_update=True
+            pair,
+            remote_info,
+            versioned=False,
+            queue=False,
+            force_update=True,
+            expected_version=None,
+            expected_pair_state=None,
         )
 
     def test_uses_provided_info(self, proc) -> None:
@@ -486,7 +492,13 @@ class TestRefreshRemote:
         proc._refresh_remote(pair, provided_info)
         proc.remote.get_fs_info.assert_not_called()
         proc.dao.update_remote_state.assert_called_once_with(
-            pair, provided_info, versioned=False, queue=False, force_update=True
+            pair,
+            provided_info,
+            versioned=False,
+            queue=False,
+            force_update=True,
+            expected_version=None,
+            expected_pair_state=None,
         )
 
     def test_none_info_no_update(self, proc) -> None:
@@ -2095,7 +2107,9 @@ class TestSynchronizeRemotelyModified:
         proc.remote.get_fs_info.return_value = Mock()
 
         proc._synchronize_remotely_modified(pair)
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_is_move_moves_locally(self, proc):
         pair = Mock()
@@ -2128,7 +2142,9 @@ class TestSynchronizeRemotelyModified:
         proc.local.abspath.return_value = Path("/abs")
 
         proc._synchronize_remotely_modified(pair)
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
     def test_filtered_path_deletes_remotely(self, proc):
         pair = Mock()
@@ -2185,7 +2201,9 @@ class TestSynchronizeRemotelyModified:
 
         proc._synchronize_remotely_modified(pair)
         proc.local.rename.assert_called_once_with(Path("/old-name.txt"), "new-name.txt")
-        proc.dao.synchronize_state.assert_called_once_with(pair)
+        proc.dao.synchronize_state.assert_called_once_with(
+            pair, expected_pair_state=pair.pair_state
+        )
 
 
 # ------------------------------------------------------------------ _create_remotely

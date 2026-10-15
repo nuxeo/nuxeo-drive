@@ -866,13 +866,20 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         # Detect local changes that the watchdog may have missed
         # (atomic saves, copies during busy event loop, etc.)
+        # ``_interact()`` signals a stop by raising, so the shutdown has to
+        # travel through these blocks rather than be logged as a failure and
+        # followed by more network work.
         try:
             self._scan_local_changes()
+        except ThreadInterrupt:
+            raise
         except Exception:
             log.warning("Error during local change scan", exc_info=True)
 
         try:
             self._sweep_lock_conflicts()
+        except ThreadInterrupt:
+            raise
         except Exception:
             log.warning("Error during lock-conflict sweep", exc_info=True)
 
@@ -880,6 +887,8 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # the GUI thread, and one round trip per conflicting file freezes it.
         try:
             self.engine.resolve_deferred_conflicts()
+        except ThreadInterrupt:
+            raise
         except Exception:
             log.warning("Error while deciding deferred conflicts", exc_info=True)
 

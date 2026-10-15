@@ -351,23 +351,40 @@ class AlfrescoProcessor(_ProcessorBase):
         return twin
 
     def _refresh_remote(
-        self, doc_pair: DocPair, remote_info: RemoteFileInfo = None, /
-    ) -> None:
+        self,
+        doc_pair: DocPair,
+        remote_info: RemoteFileInfo = None,
+        /,
+        *,
+        expected_version: int = None,
+        expected_pair_state: str = None,
+    ) -> bool:
+        """Record *remote_info* as the pair's baseline.
+
+        The predicates are for callers that wrote the local file first: the
+        watcher can register an edit while that was happening, and this write
+        would otherwise put the stale states back over it.
+        """
         if remote_info is None:
             remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
-        if remote_info:
-            # ``force_update`` skips the "not dirty" shortcut, which returns
-            # before recording the version and timestamp. Alfresco sends no
-            # content hash, so that shortcut always triggers and the baseline
-            # would never move -- the next local edit then sees the server as
-            # drifted and raises a conflict that does not exist.
+        if not remote_info:
+            return False
+        # ``force_update`` skips the "not dirty" shortcut, which returns
+        # before recording the version and timestamp. Alfresco sends no
+        # content hash, so that shortcut always triggers and the baseline
+        # would never move -- the next local edit then sees the server as
+        # drifted and raises a conflict that does not exist.
+        return bool(
             self.dao.update_remote_state(
                 doc_pair,
                 remote_info,
                 versioned=False,
                 queue=False,
                 force_update=True,
+                expected_version=expected_version,
+                expected_pair_state=expected_pair_state,
             )
+        )
 
     def _handle_readonly(self, doc_pair: DocPair, /) -> None:
         if doc_pair.folderish and WINDOWS:
@@ -789,7 +806,11 @@ class AlfrescoProcessor(_ProcessorBase):
                             )
                             self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(doc_pair)
-            self.dao.synchronize_state(doc_pair)
+            # Guarded on the state the writes above committed: a conflict or a
+            # local edit landing in between keeps the same version.
+            self.dao.synchronize_state(
+                doc_pair, expected_pair_state=doc_pair.pair_state
+            )
         finally:
             if doc_pair.folderish:
                 self.engine.release_folder_lock()
@@ -880,8 +901,23 @@ class AlfrescoProcessor(_ProcessorBase):
         # never fetch it. Without a snapshot the old baseline stands, so that
         # poll sees a difference and downloads again.
         if remote_info:
-            with suppress(Exception):
-                self._refresh_remote(doc_pair, remote_info)
+            try:
+                if not self._refresh_remote(
+                    doc_pair,
+                    remote_info,
+                    expected_version=doc_pair.version,
+                    expected_pair_state=doc_pair.pair_state,
+                ):
+                    log.debug(
+                        f"Leaving {doc_pair.local_name!r} to the next cycle: it "
+                        "was re-decided while the file was being replaced"
+                    )
+                    return False
+            except Exception:
+                log.warning(
+                    f"Could not record the baseline for {doc_pair.local_name!r}",
+                    exc_info=True,
+                )
         return True
 
     def _synchronize_remotely_deleted(self, doc_pair: DocPair, /) -> None:
