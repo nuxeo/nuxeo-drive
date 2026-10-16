@@ -206,7 +206,8 @@ def test_create_package_signing_retries_ordered_failures(package):
                 case "${arg}" in *"binary with"*)
                     [ "${plugin_signed:-0}" -eq 1 ] || return 42
                     ;;
-            esac
+                esac
+            done
             return 0
         }
         create_package alfresco
