@@ -20,6 +20,54 @@ CODESIGN="codesign                              \
     --entitlements tools/osx/entitlements.plist \
     --sign"
 
+codesign_with_retry() {
+    # Retry transient Apple Timestamp Authority failures, with 120s (2 x 60s) per attempt.
+    # https://github.com/nuxeo/nuxeo-drive/actions/runs/38820307551
+    local timeout_command attempt status delay
+    if command -v timeout >/dev/null 2>&1; then
+        timeout_command="timeout"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        timeout_command="gtimeout"
+    else
+        echo ">>> [sign] timeout is required; install coreutils with Homebrew." >&2
+        return 127
+    fi
+
+    for attempt in 1 2 3; do
+        echo ">>> [sign] Attempt ${attempt}/3: $*"
+        if "${timeout_command}" "${CODESIGN_TIMEOUT:-120}" ${CODESIGN} "$@"; then
+            return 0
+        else
+            status=$?
+        fi
+        if [ "${attempt}" -lt 3 ]; then
+            delay=$((attempt * 5))
+            echo ">>> [sign] Attempt ${attempt}/3 failed (exit ${status}), retrying in ${delay}s..." >&2
+            sleep "${delay}"
+        fi
+    done
+    echo ">>> [sign] Attempt 3/3 failed (exit ${status}); giving up." >&2
+    return "${status}"
+}
+
+sign_files() {
+    local signing_path
+    while IFS= read -r -d '' signing_path; do
+        if ! codesign_with_retry "${SIGNING_ID}" --force "${signing_path}"; then
+            failed_signing_paths+=("${signing_path}")
+        fi
+    done < <(find "$@" -print0)
+}
+
+sign_pending_files() {
+    local signing_path
+    for signing_path in "$@"; do
+        if ! codesign_with_retry "${SIGNING_ID}" --force "${signing_path}"; then
+            failed_signing_paths+=("${signing_path}")
+        fi
+    done
+}
+
 prepare_signing() {
     # Get the identity for code signing the app
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-OSX-Code-Signing
@@ -247,22 +295,40 @@ create_package() {
         # arbitrary order. When the `codesign` runs, it will look at some
         # dependencies of the current binary and see that they are not signed
         # yet. But the find command will eventually reach it and sign it later.
-        find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        local -a pending_signing_paths
+        local -a failed_signing_paths
+        local signing_pass
+
+        failed_signing_paths=()
+        sign_files "${pkg_path}/Contents/MacOS" -type f
 
         # QML libraries need to be signed too for the notarization
-        find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        sign_files "${pkg_path}/Contents/Resources" -type f -name "*.dylib"
 
-        find "${pkg_path}" -type f -exec ${CODESIGN} "${SIGNING_ID}" --force {} \;
+        sign_files "${pkg_path}" -type f
+        pending_signing_paths=("${failed_signing_paths[@]}")
+
+        for signing_pass in 1 2 3; do
+            [ "${#pending_signing_paths[@]}" -eq 0 ] && break
+            echo ">>> [sign] Retrying ${#pending_signing_paths[@]} deferred path(s), pass ${signing_pass}/3"
+            failed_signing_paths=()
+            sign_pending_files "${pending_signing_paths[@]}"
+            pending_signing_paths=("${failed_signing_paths[@]}")
+        done
+        if [ "${#pending_signing_paths[@]}" -ne 0 ]; then
+            echo ">>> [sign] Unable to sign ${#pending_signing_paths[@]} path(s)." >&2
+            return 1
+        fi
 
         # Then we sign the extension
-        ${CODESIGN} "${SIGNING_ID}"                  \
+        codesign_with_retry "${SIGNING_ID}"          \
                     --force                          \
                     --deep                           \
                     --entitlements "${entitlements}" \
                     "${pkg_path}/Contents/PlugIns/${entitlement_name}.appex"
 
         # And we shallow sign the .app
-        ${CODESIGN} "${SIGNING_ID}" "${pkg_path}" --force
+        codesign_with_retry "${SIGNING_ID}" "${pkg_path}" --force
 
         codesign --display --verbose "${pkg_path}"
         codesign --verbose=4 --deep --strict "${pkg_path}"
@@ -325,7 +391,7 @@ create_package() {
     rm -rf "${src_folder_tmp}" "${dmg_tmp}" "${pkg_path}"
 
     if [ "${SIGNING_ID:-unset}" != "unset" ]; then
-        ${CODESIGN} "${SIGNING_ID}" --verbose "dist/${1}-drive-${app_version}.dmg"
+        codesign_with_retry "${SIGNING_ID}" --verbose "dist/${1}-drive-${app_version}.dmg"
         ${PYTHON_VENV} tools/osx/notarize.py "dist/${1}-drive-${app_version}.dmg"
     fi
 }

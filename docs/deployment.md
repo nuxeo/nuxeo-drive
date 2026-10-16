@@ -29,6 +29,10 @@ Executing the script without argument will setup/update the isolated environment
 
 See [pyenv](https://github.com/yyuu/pyenv/wiki/Common-build-problems#requirements) requirements.
 
+On macOS, install [Homebrew](https://brew.sh/) before running `--install` or
+`--install-release`; the setup script installs the `coreutils` package required
+for code signing.
+
 ## Windows
 
 **PowerShell 5.1 or above** is required to run this script. You can find installation instructions [here](https://docs.microsoft.com/fr-fr/powershell/scripting/windows-powershell/wmf/setup/install-configure?view=powershell-7.1).
