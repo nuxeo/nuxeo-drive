@@ -50,6 +50,24 @@ codesign_with_retry() {
     return "${status}"
 }
 
+sign_files() {
+    local signing_path
+    while IFS= read -r -d '' signing_path; do
+        if ! codesign_with_retry "${SIGNING_ID}" --force "${signing_path}"; then
+            failed_signing_paths+=("${signing_path}")
+        fi
+    done < <(find "$@" -print0)
+}
+
+sign_pending_files() {
+    local signing_path
+    for signing_path in "$@"; do
+        if ! codesign_with_retry "${SIGNING_ID}" --force "${signing_path}"; then
+            failed_signing_paths+=("${signing_path}")
+        fi
+    done
+}
+
 prepare_signing() {
     # Get the identity for code signing the app
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-OSX-Code-Signing
@@ -277,21 +295,30 @@ create_package() {
         # arbitrary order. When the `codesign` runs, it will look at some
         # dependencies of the current binary and see that they are not signed
         # yet. But the find command will eventually reach it and sign it later.
-        find "${pkg_path}/Contents/MacOS" -type f -print0 |
-            while IFS= read -r -d '' signing_path; do
-                codesign_with_retry "${SIGNING_ID}" --force "${signing_path}"
-            done
+        local -a pending_signing_paths
+        local -a failed_signing_paths
+        local signing_pass
+
+        failed_signing_paths=()
+        sign_files "${pkg_path}/Contents/MacOS" -type f
 
         # QML libraries need to be signed too for the notarization
-        find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -print0 |
-            while IFS= read -r -d '' signing_path; do
-                codesign_with_retry "${SIGNING_ID}" --force "${signing_path}"
-            done
+        sign_files "${pkg_path}/Contents/Resources" -type f -name "*.dylib"
 
-        find "${pkg_path}" -type f -print0 |
-            while IFS= read -r -d '' signing_path; do
-                codesign_with_retry "${SIGNING_ID}" --force "${signing_path}"
-            done
+        sign_files "${pkg_path}" -type f
+        pending_signing_paths=("${failed_signing_paths[@]}")
+
+        for signing_pass in 1 2 3; do
+            [ "${#pending_signing_paths[@]}" -eq 0 ] && break
+            echo ">>> [sign] Retrying ${#pending_signing_paths[@]} deferred path(s), pass ${signing_pass}/3"
+            failed_signing_paths=()
+            sign_pending_files "${pending_signing_paths[@]}"
+            pending_signing_paths=("${failed_signing_paths[@]}")
+        done
+        if [ "${#pending_signing_paths[@]}" -ne 0 ]; then
+            echo ">>> [sign] Unable to sign ${#pending_signing_paths[@]} path(s)." >&2
+            return 1
+        fi
 
         # Then we sign the extension
         codesign_with_retry "${SIGNING_ID}"          \

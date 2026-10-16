@@ -169,14 +169,59 @@ def test_create_package_signing(package, failure, posix):
     assert ("COMPLETED" in result.stdout) == (not failure)
     assert ("NOTARIZED" in result.stdout) == (not failure)
     if failure:
-        assert result.stdout.count("SLEEP:5") == 1
-        assert result.stdout.count("SLEEP:10") == 1
-        assert "Attempt 3/3 failed" in result.stderr
+        assert result.stdout.count("SLEEP:5") >= 1
+        assert result.stdout.count("SLEEP:10") >= 1
+        assert result.stderr.count("Attempt 3/3 failed") >= 1
     else:
         assert result.stdout.count("TIMEOUT:120") == 8
         assert (
             f"SIGNED:<{package}/Contents/MacOS/binary with\nnewline>" in result.stdout
         )
+
+
+def test_create_package_signing_retries_ordered_failures(package):
+    result = run_bash(
+        """
+        build_extension() { :; }
+        prepare_signing() { :; }
+        prepare_signing_from_scratch() { :; }
+        mkdir() { :; }
+        mv() { :; }
+        rm() { :; }
+        cp() { :; }
+        ln() { :; }
+        hdiutil() { :; }
+        du() { printf '1\\tapp\\n'; }
+        grep() { echo '__alfresco_version__ = "1.0"'; }
+        spctl() { :; }
+        notarize() { echo NOTARIZED; }
+        sleep() { :; }
+        timeout() { shift; "$@"; }
+        codesign() {
+            case "$1" in --display|--verbose=4) return 0 ;; esac
+            for arg; do
+                case "${arg}" in *"plugin.dylib") plugin_signed=1 ;; esac
+            done
+            for arg; do
+                case "${arg}" in *"binary with"*)
+                    [ "${plugin_signed:-0}" -eq 1 ] || return 42
+                    ;;
+            esac
+            return 0
+        }
+        create_package alfresco
+        echo COMPLETED
+        """,
+        WORKSPACE_DRIVE=str(package.parents[1]),
+        WORKSPACE=str(package.parents[1]),
+        GITHUB_WORKSPACE=str(package.parents[1]),
+        SIGNING_ID="Developer ID with spaces",
+        PYTHON_VENV="notarize",
+    )
+    assert result.returncode == 0
+    assert "COMPLETED" in result.stdout
+    assert "NOTARIZED" in result.stdout
+    assert "Retrying" in result.stdout
 
 
 def test_create_package_unsigned(package):
