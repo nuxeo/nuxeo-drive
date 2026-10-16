@@ -270,6 +270,11 @@ create_venv() {
 }
 
 install_deps() {
+    if [ "${OSI}" = "osx" ] && ! command -v gtimeout >/dev/null 2>&1; then
+        echo ">>> Installing macOS coreutils"
+        brew install coreutils
+    fi
+
     echo ">>> Installing requirements"
     ${PIP} -r tools/deps/requirements-pip.txt
     ${PIP} -r tools/deps/requirements-dev.txt
