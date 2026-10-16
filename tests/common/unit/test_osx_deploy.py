@@ -165,7 +165,14 @@ def test_create_package_signing(package, failure, posix):
         PYTHON_VENV="notarize",
         FAILURE=failure,
     )
-    assert result.returncode == (42 if failure else 0)
+    expected_status = (
+        0
+        if not failure
+        else 1
+        if failure in {"binary with\nnewline", "plugin.dylib", "ui.qml"}
+        else 42
+    )
+    assert result.returncode == expected_status
     assert ("COMPLETED" in result.stdout) == (not failure)
     assert ("NOTARIZED" in result.stdout) == (not failure)
     if failure:
