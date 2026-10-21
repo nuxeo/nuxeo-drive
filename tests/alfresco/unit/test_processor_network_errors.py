@@ -99,6 +99,17 @@ class TestTheSdkWrapsTransportErrors:
     def test_an_expired_token_is_not_a_requests_error_either(self):
         assert not issubclass(AlfrescoAuthError, CONNECTION_ERROR)
 
+    def test_an_oauth_failure_is_an_authentication_failure(self):
+        """Guards the inheritance the invalid-credentials branch relies on.
+
+        ``_execute`` catches ``AuthenticationError`` only. That covers
+        ``OAuth2Error`` solely because the SDK makes it a subclass. Should a
+        future release reparent it, OAuth refreshes would quietly fall through
+        to the catch-all and start consuming the pair's error budget again
+        instead of prompting for a re-login -- fail here instead.
+        """
+        assert issubclass(OAuth2Error, AlfrescoAuthError)
+
 
 class TestANetworkTimeoutIsRetriedForever:
     """A blip must never consume the pair's error budget."""
