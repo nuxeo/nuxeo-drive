@@ -29,6 +29,23 @@ from nxdrive.alfresco.engine.engine import AlfrescoEngine
 from nxdrive.alfresco.engine.watcher.remote_watcher import AlfrescoRemoteWatcher
 
 
+class _FakeSignal:
+    """Just enough of a Qt signal to record and fire its slots."""
+
+    def __init__(self) -> None:
+        self.slots: list = []
+
+    def connect(self, slot) -> None:
+        self.slots.append(slot)
+
+    def disconnect(self, slot) -> None:
+        self.slots.remove(slot)
+
+    def emit(self) -> None:
+        for slot in list(self.slots):
+            slot()
+
+
 @pytest.fixture
 def engine():
     """A real AlfrescoEngine with ``__init__`` bypassed.
@@ -52,7 +69,14 @@ def engine():
     engine.queue_manager = Mock()
     engine.dao = Mock()
     engine._remote_watcher = Mock()
+    engine._local_watcher = Mock()
+    engine._local_watcher.localScanFinished = _FakeSignal()
     return engine
+
+
+def _finish_local_scan(engine):
+    """The local watcher thread reaches the end of its scan."""
+    engine._local_watcher.localScanFinished.emit()
 
 
 def _start(engine, *, sync_enabled=True):
@@ -71,6 +95,7 @@ class TestARestartReconnectsTheProcessors:
         engine._remote_watcher.first_pass_done = True
 
         _start(engine)
+        _finish_local_scan(engine)
 
         engine.queue_manager.init_processors.assert_called_once()
 
@@ -86,7 +111,9 @@ class TestARestartReconnectsTheProcessors:
         engine._remote_watcher.first_pass_done = True
 
         _start(engine)
+        _finish_local_scan(engine)
         _start(engine)
+        _finish_local_scan(engine)
 
         assert engine.queue_manager.init_processors.call_count == 2
 
@@ -134,3 +161,98 @@ class TestTheWiringThatMakesThisNecessary:
 
         watcher.initiate.emit.assert_called_once()
         assert watcher.first_pass_done is True
+
+
+class TestAStaleStopNotificationIsIgnored:
+    """An immediate stop/start must not be undone by the queued notification.
+
+    ``remoteWatcherStopped`` is emitted from the watcher thread, so it is
+    delivered to the main thread asynchronously. ``Engine.stop()`` blocks the
+    main thread while waiting for that thread, so the notification is still
+    pending when it returns, and a caller that restarts right away (the
+    re-login handler does ``stop()`` then ``start()``) receives it only
+    *after* the processors have been reconnected.
+    """
+
+    def _restart(self, engine):
+        """stop() happened: the notification is queued, then start() runs."""
+        engine._remote_watcher.first_pass_done = True
+        engine._stopped = True
+
+        def _base_start():
+            engine._stopped = False  # what the real Engine.start() does
+
+        with patch("nxdrive.alfresco.engine.engine.Feature") as feature, patch(
+            "nxdrive.drive.engine.engine.Engine.start", side_effect=_base_start
+        ):
+            feature.synchronization = True
+            engine.start()
+        _finish_local_scan(engine)
+
+    def test_the_late_notification_does_not_disconnect_the_processors(self, engine):
+        self._restart(engine)
+        engine.queue_manager.init_processors.assert_called_once()
+
+        # The event loop finally delivers the notification from the old run.
+        engine._on_remote_watcher_stopped()
+
+        engine.queue_manager.shutdown_processors.assert_not_called()
+
+    def test_a_genuine_stop_still_disconnects_the_processors(self, engine):
+        """The guard must not break the normal stop path."""
+        engine._stopped = True
+
+        engine._on_remote_watcher_stopped()
+
+        engine.queue_manager.shutdown_processors.assert_called_once()
+
+
+class TestQueuedWorkWaitsForTheLocalScan:
+    """Items left over from before the stop must not run too early.
+
+    ``init_processors()`` emits ``queueProcessing`` immediately, and
+    ``Engine.start()`` only *starts* the watcher threads, so reconnecting
+    there would let processors act on the pre-stop queues before
+    ``LocalWatcher._scan()`` has recorded what the user changed on disk while
+    sync was off. A queued remote deletion would delete an edited file, and a
+    queued remote update would overwrite a same-size edit.
+    """
+
+    def test_nothing_runs_while_the_local_scan_is_still_going(self, engine):
+        engine._remote_watcher.first_pass_done = True
+
+        _start(engine)
+
+        engine.queue_manager.init_processors.assert_not_called()
+
+    def test_the_processors_come_back_once_the_scan_is_done(self, engine):
+        engine._remote_watcher.first_pass_done = True
+
+        _start(engine)
+        _finish_local_scan(engine)
+
+        engine.queue_manager.init_processors.assert_called_once()
+
+    def test_restarting_twice_before_the_scan_connects_only_once(self, engine):
+        """Repeated starts must not stack handlers on the same signal."""
+        engine._remote_watcher.first_pass_done = True
+
+        _start(engine)
+        _start(engine)
+
+        assert len(engine._local_watcher.localScanFinished.slots) == 1
+
+        _finish_local_scan(engine)
+
+        engine.queue_manager.init_processors.assert_called_once()
+
+    def test_the_handler_is_released_after_it_runs(self, engine):
+        """Later scans must not keep re-triggering an old restart."""
+        engine._remote_watcher.first_pass_done = True
+
+        _start(engine)
+        _finish_local_scan(engine)
+        _finish_local_scan(engine)
+
+        assert engine._local_watcher.localScanFinished.slots == []
+        engine.queue_manager.init_processors.assert_called_once()

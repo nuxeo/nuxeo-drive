@@ -14,6 +14,7 @@ Phase 1 scope: account addition + synchronization only.
 Excluded features: Direct Edit, Direct Transfer, Direct Download.
 """
 
+from contextlib import suppress
 from logging import getLogger
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Dict, Optional, Type
@@ -107,6 +108,10 @@ class AlfrescoEngine(Engine):
     #: Un-filtered path and the node ids it covered, delivered to the watcher
     #: thread rather than written across it.
     _unfiltered = Signal(str, object)
+
+    #: Set while a restart waits for the local scan before reconnecting the
+    #: processors. Class level so it reads False before the first restart.
+    _processors_rearm_pending = False
 
     def __init__(
         self,
@@ -255,11 +260,63 @@ class AlfrescoEngine(Engine):
 
         Guarded on ``first_pass_done`` so a genuinely first start keeps waiting
         for ``initiate`` and nothing about that path changes.
+
+        The reconnection waits for ``localScanFinished``. ``init_processors()``
+        emits ``queueProcessing`` straight away, so reconnecting here would let
+        processors run work left in the queues from before the stop, while the
+        local scan has not yet recorded what the user changed on disk in the
+        meantime. A queued remote deletion would then delete an edited file,
+        and a queued remote update would overwrite an edit of the same size,
+        which the pre-download check cannot see because it compares the
+        recorded size only. The base engine already gates the remote watcher on
+        that same signal, so this keeps the restart in step with it.
         """
         watcher = getattr(self, "_remote_watcher", None)
-        if watcher is not None and watcher.first_pass_done:
-            log.debug("Restart detected, reconnecting the queue processors")
+        if watcher is None or not watcher.first_pass_done:
+            return
+
+        local_watcher = getattr(self, "_local_watcher", None)
+        if local_watcher is None:
             self.queue_manager.init_processors()
+            return
+
+        if self._processors_rearm_pending:
+            # Already waiting for the scan, do not stack a second connection.
+            return
+
+        log.debug("Restart detected, reconnecting the processors after the local scan")
+        self._processors_rearm_pending = True
+        local_watcher.localScanFinished.connect(self._rearm_processors_after_scan)
+
+    @Slot()
+    def _rearm_processors_after_scan(self) -> None:
+        """Reconnect the processors now the local scan has caught up."""
+        if not self._processors_rearm_pending:
+            return
+        self._processors_rearm_pending = False
+        with suppress(Exception):
+            self._local_watcher.localScanFinished.disconnect(
+                self._rearm_processors_after_scan
+            )
+        self.queue_manager.init_processors()
+
+    @Slot()
+    def _on_remote_watcher_stopped(self) -> None:
+        """Disconnect the processors, unless the engine already restarted.
+
+        The watcher emits this from its own thread, so the notification is
+        queued for the main thread. ``Engine.stop()`` blocks that thread while
+        waiting for the watcher, so the notification is still pending when it
+        returns. A caller restarting straight away (``_alfresco_relogin_handler``
+        does ``stop()`` then ``start()`` without going back to the event loop)
+        would reconnect the processors first and only then receive this stale
+        notification, which would disconnect them again and leave queued items
+        without any worker.
+        """
+        if not self._stopped:
+            log.debug("Ignoring a stop notification from a previous run")
+            return
+        self.queue_manager.shutdown_processors()
 
     @Slot(str, bool)
     def _on_feature_update(self, name: str, value: bool, /) -> None:
@@ -602,7 +659,7 @@ class AlfrescoEngine(Engine):
 
         self._remote_watcher.initiate.connect(self.queue_manager.init_processors)
         self._remote_watcher.remoteWatcherStopped.connect(
-            self.queue_manager.shutdown_processors
+            self._on_remote_watcher_stopped
         )
         self._remote_watcher.updated.connect(self._check_last_sync)
         self._scanPair.connect(self._remote_watcher.scan_pair)
