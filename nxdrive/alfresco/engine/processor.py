@@ -20,6 +20,8 @@ from tempfile import mkdtemp
 from time import monotonic_ns, sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 
+from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
+from alfresco.exceptions import NetworkError as AlfrescoNetworkError
 from alfresco.exceptions import NotFoundError as AlfrescoNotFoundError
 
 from nxdrive.alfresco.content_compare import content_matches, local_head_tail_digest
@@ -643,7 +645,39 @@ class AlfrescoProcessor(_ProcessorBase):
                 self.engine.dao.set_transfer_doc(
                     nature, exc.transfer_id, self.engine.uid, doc_pair.id
                 )
-            except CONNECTION_ERROR:
+            except AlfrescoAuthError as exc:
+                # The token expired or an SSO re-authentication is in flight.
+                # Retrying cannot help until the user logs back in, and the
+                # generic handler below would spend the pair's error budget on
+                # it and give up for good. Surface the re-login prompt and keep
+                # the pair retryable instead.
+                log.warning(
+                    f"Credentials are invalid while syncing "
+                    f"{doc_pair.local_name!r}, re-login required",
+                    exc_info=True,
+                )
+                self.engine.set_invalid_credentials(
+                    reason="sync failed — re-login required"
+                )
+                self.remove_void_transfers(doc_pair)
+                self._postpone_pair(doc_pair, "INVALID_CREDENTIALS", exception=exc)
+                # ``set_invalid_credentials()`` asks the engine to stop, but
+                # that happens asynchronously and neither this loop nor the
+                # queue getters check for it. Without stopping here the worker
+                # keeps pulling items and firing requests with credentials we
+                # already know are rejected (queued deletions, for instance)
+                # until ``Engine.stop()`` hits its 5s wait and kills the
+                # thread. Leave the rest of the queue untouched instead; the
+                # ``finally`` below still releases this pair's database lock.
+                raise ThreadInterrupt()
+            except (*CONNECTION_ERROR, AlfrescoNetworkError):
+                # ``AlfrescoNetworkError`` is listed explicitly: the Alfresco
+                # SDK converts every ``requests`` transport failure into its
+                # own exception, which does not inherit from the ``requests``
+                # classes in ``CONNECTION_ERROR``. Without it a timeout falls
+                # through to the generic handler, which burns the pair's error
+                # budget and abandons the file after ``Options.max_errors``
+                # tries -- sync then looks frozen until a restart.
                 log.debug("Connection issue", exc_info=True)
                 self._postpone_pair(doc_pair, "CONNECTION_ERROR")
             except OSError as exc:

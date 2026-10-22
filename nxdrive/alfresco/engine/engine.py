@@ -14,6 +14,7 @@ Phase 1 scope: account addition + synchronization only.
 Excluded features: Direct Edit, Direct Transfer, Direct Download.
 """
 
+from contextlib import suppress
 from logging import getLogger
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Dict, Optional, Type
@@ -107,6 +108,11 @@ class AlfrescoEngine(Engine):
     #: Un-filtered path and the node ids it covered, delivered to the watcher
     #: thread rather than written across it.
     _unfiltered = Signal(str, object)
+
+    #: Handler waiting for the local scan of the current start, and the number
+    #: that tells its notification apart from an earlier start's one.
+    _processors_rearm_handler: Optional[Any] = None
+    _processors_rearm_generation = 0
 
     def __init__(
         self,
@@ -234,7 +240,142 @@ class AlfrescoEngine(Engine):
             self._cleanup_after_sync_disabled()
         elif Feature.synchronization:
             self._check_open_file_permission()
+        self._arm_processors_rearm()
         super().start()
+        self._rearm_processors()
+
+    def _rearm_processors(self) -> None:
+        """Reconnect the queue manager's processors after a restart.
+
+        ``init_processors()`` is wired to the remote watcher's ``initiate``
+        signal, which only fires on the *first* polling pass. Stopping the
+        engine runs ``shutdown_processors()`` (via ``remoteWatcherStopped``),
+        but the watcher object survives with ``first_pass_done`` still set, so
+        on the next start it polls without emitting ``initiate`` and the
+        processors are never reconnected.
+
+        The watcher then keeps queueing work that nothing consumes: the logs
+        show changes being found while no file reaches the disk, until the user
+        suspends and resumes sync by hand (``QueueManager.resume()`` emits
+        ``queueProcessing``, which does reach ``launch_processors``). A token
+        refresh / SSO re-login goes through exactly this stop-start cycle.
+
+        Guarded on ``first_pass_done`` so a genuinely first start keeps waiting
+        for ``initiate`` and nothing about that path changes.
+
+        The reconnection waits for ``localScanFinished`` (armed by
+        ``_arm_processors_rearm()`` before the watcher threads start).
+        ``init_processors()`` emits ``queueProcessing`` straight away, so
+        reconnecting at once would let processors run work left in the queues
+        from before the stop, while the local scan has not yet recorded what
+        the user changed on disk in the meantime. A queued remote deletion
+        would then delete an edited file, and a queued remote update would
+        overwrite an edit of the same size, which the pre-download check cannot
+        see because it compares the recorded size only. The base engine already
+        gates the remote watcher on that same signal, so this keeps the restart
+        in step with it.
+
+        Only engines without a local watcher are reconnected here, since no
+        scan will ever be reported for them.
+        """
+        watcher = getattr(self, "_remote_watcher", None)
+        if watcher is None or not watcher.first_pass_done:
+            return
+
+        if getattr(self, "_local_watcher", None) is None:
+            # Nothing will ever report a scan, so there is nothing to wait for.
+            self.queue_manager.init_processors()
+
+    def _restart_needs_rearming(self) -> bool:
+        watcher = getattr(self, "_remote_watcher", None)
+        return watcher is not None and bool(watcher.first_pass_done)
+
+    def _arm_processors_rearm(self) -> None:
+        """Start listening for the end of the local scan.
+
+        Runs *before* ``Engine.start()``: that starts the watcher threads and
+        then resolves conflicts before returning, so a short scan can finish
+        while the main thread is still in there. A signal only reaches the
+        slots connected at the moment it is emitted, so arming afterwards can
+        miss the scan entirely and leave the processors disconnected for good.
+
+        Each start gets its own handler and number, so a notification left over
+        from an earlier start cannot release this one before its own scan ends.
+        """
+        if not self._restart_needs_rearming():
+            return
+
+        local_watcher = getattr(self, "_local_watcher", None)
+        if local_watcher is None:
+            return
+
+        # Drops the previous handler, so repeated starts never stack them.
+        self._cancel_processors_rearm()
+
+        generation = self._processors_rearm_generation + 1
+        self._processors_rearm_generation = generation
+
+        def handler() -> None:
+            self._rearm_processors_after_scan(generation)
+
+        log.debug("Restart detected, reconnecting the processors after the local scan")
+        self._processors_rearm_handler = handler
+        local_watcher.localScanFinished.connect(handler)
+
+    def _rearm_processors_after_scan(self, generation: int, /) -> None:
+        """Reconnect the processors now the local scan has caught up."""
+        if generation != self._processors_rearm_generation:
+            log.debug("Ignoring a local scan notification from an earlier start")
+            return
+        if self._stopped:
+            # The engine stopped while this was waiting to be delivered.
+            # ``launch_processors()`` does not check for that itself, so
+            # reconnecting here would start workers on a stopped engine.
+            log.debug("Ignoring a local scan notification, the engine is stopped")
+            return
+        self._cancel_processors_rearm()
+        self.queue_manager.init_processors()
+
+    def _cancel_processors_rearm(self) -> None:
+        """Forget any scan we are waiting for."""
+        handler = self._processors_rearm_handler
+        if handler is None:
+            return
+        self._processors_rearm_handler = None
+        local_watcher = getattr(self, "_local_watcher", None)
+        if local_watcher is not None:
+            with suppress(Exception):
+                local_watcher.localScanFinished.disconnect(handler)
+
+    def stop(self) -> None:
+        """Drop any scan we are waiting for before stopping.
+
+        A scan notification can still be queued for the main thread when
+        ``Engine.stop()`` returns. Bumping the number makes that one a no-op
+        even if Qt still delivers it, so it can neither start workers on a
+        stopped engine nor cut short the next restart's own scan.
+        """
+        self._cancel_processors_rearm()
+        self._processors_rearm_generation += 1
+        super().stop()
+
+    @Slot()
+    def _on_remote_watcher_stopped(self) -> None:
+        """Disconnect the processors, unless the engine already restarted.
+
+        The watcher emits this from its own thread, so the notification is
+        queued for the main thread. ``Engine.stop()`` blocks that thread while
+        waiting for the watcher, so the notification is still pending when it
+        returns. A caller restarting straight away (``_alfresco_relogin_handler``
+        does ``stop()`` then ``start()`` without going back to the event loop)
+        would reconnect the processors first and only then receive this stale
+        notification, which would disconnect them again and leave queued items
+        without any worker.
+        """
+        if not self._stopped:
+            log.debug("Ignoring a stop notification from a previous run")
+            return
+        self.queue_manager.shutdown_processors()
 
     @Slot(str, bool)
     def _on_feature_update(self, name: str, value: bool, /) -> None:
@@ -577,7 +718,7 @@ class AlfrescoEngine(Engine):
 
         self._remote_watcher.initiate.connect(self.queue_manager.init_processors)
         self._remote_watcher.remoteWatcherStopped.connect(
-            self.queue_manager.shutdown_processors
+            self._on_remote_watcher_stopped
         )
         self._remote_watcher.updated.connect(self._check_last_sync)
         self._scanPair.connect(self._remote_watcher.scan_pair)
