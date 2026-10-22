@@ -68,6 +68,7 @@ def engine():
     engine = _Engine()
     engine.queue_manager = Mock()
     engine.dao = Mock()
+    engine._stopped = False
     engine._remote_watcher = Mock()
     engine._local_watcher = Mock()
     engine._local_watcher.localScanFinished = _FakeSignal()
@@ -80,8 +81,11 @@ def _finish_local_scan(engine):
 
 
 def _start(engine, *, sync_enabled=True):
+    def _base_start():
+        engine._stopped = False  # what the real Engine.start() does
+
     with patch("nxdrive.alfresco.engine.engine.Feature") as feature, patch(
-        "nxdrive.drive.engine.engine.Engine.start"
+        "nxdrive.drive.engine.engine.Engine.start", side_effect=_base_start
     ) as base_start:
         feature.synchronization = sync_enabled
         engine.start()
@@ -179,14 +183,7 @@ class TestAStaleStopNotificationIsIgnored:
         engine._remote_watcher.first_pass_done = True
         engine._stopped = True
 
-        def _base_start():
-            engine._stopped = False  # what the real Engine.start() does
-
-        with patch("nxdrive.alfresco.engine.engine.Feature") as feature, patch(
-            "nxdrive.drive.engine.engine.Engine.start", side_effect=_base_start
-        ):
-            feature.synchronization = True
-            engine.start()
+        _start(engine)
         _finish_local_scan(engine)
 
     def test_the_late_notification_does_not_disconnect_the_processors(self, engine):
@@ -255,4 +252,93 @@ class TestQueuedWorkWaitsForTheLocalScan:
         _finish_local_scan(engine)
 
         assert engine._local_watcher.localScanFinished.slots == []
+        engine.queue_manager.init_processors.assert_called_once()
+
+
+def _stop(engine):
+    """stop() with only the base engine's own teardown patched out."""
+
+    def _base_stop():
+        engine._stopped = True
+
+    with patch("nxdrive.drive.engine.engine.Engine.stop", side_effect=_base_stop):
+        engine.stop()
+
+
+class TestTheScanNotificationCannotBeMissed:
+    """The handler must be listening before the watcher thread can report."""
+
+    def test_a_scan_finishing_during_startup_is_not_missed(self, engine):
+        """``Engine.start()`` resolves conflicts after starting the threads.
+
+        A short scan can therefore finish while the main thread is still in
+        there. A signal only reaches the slots connected when it is emitted,
+        so arming afterwards would lose it and strand the processors.
+        """
+        engine._remote_watcher.first_pass_done = True
+
+        def _base_start():
+            engine._stopped = False
+            _finish_local_scan(engine)
+
+        with patch("nxdrive.alfresco.engine.engine.Feature") as feature, patch(
+            "nxdrive.drive.engine.engine.Engine.start", side_effect=_base_start
+        ):
+            feature.synchronization = True
+            engine.start()
+
+        engine.queue_manager.init_processors.assert_called_once()
+
+
+class TestAPendingScanNotificationIsCancelledOnStop:
+    """A scan notification can still be in flight when stop() returns."""
+
+    def test_a_notification_delivered_after_a_stop_is_ignored(self, engine):
+        """``launch_processors()`` never checks the engine's stopped flag.
+
+        Reconnecting from a late notification would start workers on an
+        engine that is meant to be stopped.
+        """
+        engine._remote_watcher.first_pass_done = True
+        _start(engine)
+        pending = engine._local_watcher.localScanFinished.slots[0]
+
+        _stop(engine)
+
+        # The engine is no longer waiting for that scan.
+        assert engine._local_watcher.localScanFinished.slots == []
+
+        pending()  # Qt delivers the queued notification anyway
+
+        engine.queue_manager.init_processors.assert_not_called()
+
+    def test_the_handler_refuses_to_run_while_the_engine_is_stopped(self, engine):
+        """Last line of defence, with the notification's own number intact.
+
+        ``QueueManager.launch_processors()`` has no stopped check of its own,
+        so the handler has to make one.
+        """
+        engine._remote_watcher.first_pass_done = True
+        _start(engine)
+        engine._stopped = True
+
+        engine._rearm_processors_after_scan(engine._processors_rearm_generation)
+
+        engine.queue_manager.init_processors.assert_not_called()
+
+    def test_an_old_notification_does_not_release_the_next_restart(self, engine):
+        """stop() then start() before the old notification is delivered."""
+        engine._remote_watcher.first_pass_done = True
+        _start(engine)
+        pending = engine._local_watcher.localScanFinished.slots[0]
+
+        _stop(engine)
+        _start(engine)
+        pending()  # the previous start's notification finally lands
+
+        # The new start's own scan is still running.
+        engine.queue_manager.init_processors.assert_not_called()
+
+        _finish_local_scan(engine)
+
         engine.queue_manager.init_processors.assert_called_once()
