@@ -176,6 +176,51 @@ class TestAnExpiredSsoTokenAsksForALogin:
 
         processor.remove_void_transfers.assert_called_once_with(pair)
 
+    def test_no_further_item_is_taken_from_the_queue(self, engine, pair):
+        """The worker must stop instead of hammering the server with
+        credentials the engine has already flagged as invalid.
+
+        ``set_invalid_credentials()`` only *asks* the engine to stop, and that
+        happens asynchronously, so the loop has to bail out by itself.
+        """
+        second_pair = Mock()
+        second_pair.id = 8
+        second_pair.local_name = "deleted.docx"
+        second_pair.pair_state = "locally_deleted"
+        taken = []
+
+        def _next(*args, **kwargs):
+            # A queue that keeps offering work. The bound only exists so a
+            # regression fails the assertion below instead of looping forever.
+            if len(taken) >= 5:
+                raise ThreadInterrupt() from None
+            doc_pair = pair if not taken else second_pair
+            taken.append(doc_pair)
+            return doc_pair
+
+        processor = AlfrescoProcessor(engine, _next)
+        processor._get_next_doc_pair = lambda item: item
+        processor.check_pair_state = Mock(return_value=True)
+        processor.remove_void_transfers = Mock()
+        processor.increase_error = Mock()
+        processor.giveup_error = Mock()
+        processor._postpone_pair = Mock()
+        processor._interact = Mock()
+        processor._handle_doc_pair_sync = Mock(
+            side_effect=AlfrescoAuthError("[HTTP 401] Authentication failed")
+        )
+
+        with pytest.raises(ThreadInterrupt):
+            processor._execute()
+
+        assert taken == [pair], "the processor kept pulling items after a 401"
+        # Only the first pair was ever handled.
+        assert processor._handle_doc_pair_sync.call_count == 1
+        # The current pair is still released so it can be retried later.
+        engine.dao.release_state.assert_called_with(processor.thread_id)
+        # It is not pushed back a second time: _postpone_pair already re-queued it.
+        engine.queue_manager.push.assert_not_called()
+
 
 class TestGenuineFailuresAreStillErrors:
     """The widened handlers must not swallow real bugs."""

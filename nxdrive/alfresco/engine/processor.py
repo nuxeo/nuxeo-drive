@@ -661,6 +661,15 @@ class AlfrescoProcessor(_ProcessorBase):
                 )
                 self.remove_void_transfers(doc_pair)
                 self._postpone_pair(doc_pair, "INVALID_CREDENTIALS", exception=exc)
+                # ``set_invalid_credentials()`` asks the engine to stop, but
+                # that happens asynchronously and neither this loop nor the
+                # queue getters check for it. Without stopping here the worker
+                # keeps pulling items and firing requests with credentials we
+                # already know are rejected (queued deletions, for instance)
+                # until ``Engine.stop()`` hits its 5s wait and kills the
+                # thread. Leave the rest of the queue untouched instead; the
+                # ``finally`` below still releases this pair's database lock.
+                raise ThreadInterrupt()
             except (*CONNECTION_ERROR, AlfrescoNetworkError):
                 # ``AlfrescoNetworkError`` is listed explicitly: the Alfresco
                 # SDK converts every ``requests`` transport failure into its
