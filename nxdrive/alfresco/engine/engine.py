@@ -235,6 +235,31 @@ class AlfrescoEngine(Engine):
         elif Feature.synchronization:
             self._check_open_file_permission()
         super().start()
+        self._rearm_processors()
+
+    def _rearm_processors(self) -> None:
+        """Reconnect the queue manager's processors after a restart.
+
+        ``init_processors()`` is wired to the remote watcher's ``initiate``
+        signal, which only fires on the *first* polling pass. Stopping the
+        engine runs ``shutdown_processors()`` (via ``remoteWatcherStopped``),
+        but the watcher object survives with ``first_pass_done`` still set, so
+        on the next start it polls without emitting ``initiate`` and the
+        processors are never reconnected.
+
+        The watcher then keeps queueing work that nothing consumes: the logs
+        show changes being found while no file reaches the disk, until the user
+        suspends and resumes sync by hand (``QueueManager.resume()`` emits
+        ``queueProcessing``, which does reach ``launch_processors``). A token
+        refresh / SSO re-login goes through exactly this stop-start cycle.
+
+        Guarded on ``first_pass_done`` so a genuinely first start keeps waiting
+        for ``initiate`` and nothing about that path changes.
+        """
+        watcher = getattr(self, "_remote_watcher", None)
+        if watcher is not None and watcher.first_pass_done:
+            log.debug("Restart detected, reconnecting the queue processors")
+            self.queue_manager.init_processors()
 
     @Slot(str, bool)
     def _on_feature_update(self, name: str, value: bool, /) -> None:
