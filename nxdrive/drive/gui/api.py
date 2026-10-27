@@ -1203,6 +1203,10 @@ class QMLDriveApi(QObject):
         except Exception:
             log.warning("Re-login failed", exc_info=True)
             self.setMessage.emit("AUTH_EXPIRED", "error")
+        else:
+            self.application.set_icon_state("idle")
+            self.application.show_settings("Accounts")
+            self.setMessage.emit("CONNECTION_SUCCESS", "success")
 
     @Slot(str, str, str, str)
     def oauth2_password_auth(

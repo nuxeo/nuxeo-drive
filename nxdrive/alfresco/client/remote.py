@@ -232,6 +232,10 @@ class AlfrescoRemote:
         else:
             return
 
+        # Updating the URLs for new auth
+        new_auth.bind(self.client.base_url)
+        new_auth.bind_sync_service_url(self.client.sync_service_url)
+
         self.auth = new_auth
         # The underlying ``alfresco.Alfresco`` client dispatches HTTP
         # requests via ``self.client.session``; ``requests.Session.auth``
@@ -243,6 +247,23 @@ class AlfrescoRemote:
         session = getattr(self.client, "session", None)
         if session is not None:
             session.auth = new_auth
+
+    def update_alfresco_ticket(
+        self, user_id: str, alfresco_ticket: str, password: str
+    ) -> None:
+        """Update the existing remote client object with new TicketAuth ticket"""
+
+        auth = TicketAuth.from_ticket(
+            username=user_id, ticket=alfresco_ticket, password=password
+        )
+        # Updating the URLs for new auth
+        auth.bind(self.client.base_url)
+        auth.bind_sync_service_url(self.client.sync_service_url)
+        # Updating the client with new auth
+        session = getattr(self.client, "session", None)
+        if session is not None:
+            session.auth = auth
+        self.auth = auth
 
     # -- Node operations (used by processor) ---------------------------------
 

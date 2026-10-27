@@ -621,7 +621,7 @@ class AlfrescoProcessor(_ProcessorBase):
                 self.remove_void_transfers(doc_pair)
                 self.giveup_error(doc_pair, "REMOTE_NOT_FOUND", exception=exc)
             except (PairInterrupt, ParentNotSynced) as exc:
-                log.info(f"{type(exc).__name__}, wait 1s and requeue")
+                log.debug(f"{type(exc).__name__}, wait 1s and requeue")
                 sleep(1)
                 self.engine.queue_manager.push(doc_pair)
             except RemoteConflict as exc:

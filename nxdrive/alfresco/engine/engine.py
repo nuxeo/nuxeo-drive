@@ -367,6 +367,17 @@ class AlfrescoEngine(Engine):
                 exc_info=True,
             )
 
+    # -- Engine Stop ---------------------------------------------------------
+
+    @Slot()
+    def stop(self) -> None:
+        try:
+            super().stop()
+        finally:
+            # Setting first_pass_done to False, to reinitiate later
+            if getattr(self, "_remote_watcher", None):
+                self._remote_watcher.first_pass_done = False
+
     # -- Sync state tracking -------------------------------------------------
 
     @Slot(object)
