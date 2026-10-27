@@ -714,6 +714,29 @@ class CliHandler:
                 options.cert_key_file = None
                 options.ssl_no_verify = True
 
+        # Force EULA acceptance before processing commands
+        # 'version', 'uninstall', 'help' -- will be skipped for EULA acceptance
+        # 'launch' has its own EULA check for both console and GUI modes
+        if command not in ("version", "v", "uninstall", "help", "launch"):
+
+            from .gui.show_eula import get_eula_console_message
+
+            # This file locks the EULA choice (Accept) and prevents launch of EULA dialog again
+            eula_lock_file_path = Options.nxdrive_home / "eula_accepted"
+
+            if not Path.exists(eula_lock_file_path):
+                accepted = get_eula_console_message(Options.server_type)
+                if not accepted:
+                    log.warning("EULA Not Accepted. Quitting.")
+                    return 1
+                else:
+                    log.info("EULA Accepted! :)")
+                    with open(eula_lock_file_path, mode="w") as f:
+                        # This is just binary form of "ACCEPTED"
+                        f.write(
+                            "01000001 01000011 01000011 01000101 01010000 01010100 01000101 01000100"
+                        )
+
         if command != "uninstall":
             self._install_faulthandler()
 
