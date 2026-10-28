@@ -905,7 +905,11 @@ def test_password_relogin_and_oauth_password_dispatch(api_env):
     with patch.object(api_module.st, "get_by_engine_type", return_value=handler_config):
         api.relogin("engine-1", "secret")
     handler.assert_called_once_with(engine, "secret")
-    api.setMessage.emit.assert_not_called()
+    api.setMessage.emit.assert_called_once_with("CONNECTION_SUCCESS", "success")
+    api_env.application.set_icon_state.assert_called_with("idle")
+    api_env.application.show_settings.assert_called_with("Accounts")
+
+    api.setMessage.emit.reset_mock()
 
     handler.side_effect = RuntimeError("rejected")
     with patch.object(api_module.st, "get_by_engine_type", return_value=handler_config):

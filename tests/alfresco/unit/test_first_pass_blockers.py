@@ -11,7 +11,7 @@ telling the user why new local files are held back.
 
 import json
 from pathlib import Path
-from threading import Lock
+from threading import Lock, RLock
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -25,16 +25,25 @@ from nxdrive.alfresco.client.device_sync import (
     CONF_BOOTSTRAPPED_FOR,
     DeviceSyncProvisioner,
 )
+from nxdrive.alfresco.engine.pending_unfiltered import (
+    CONF_PENDING_UNFILTERED,
+    add_pending_unfiltered,
+    clear_pending_unfiltered,
+    load_pending_unfiltered,
+    remove_pending_unfiltered,
+)
 from nxdrive.alfresco.engine.processor import AlfrescoProcessor
 from nxdrive.alfresco.engine.skipped_folders import (
     CONF_SKIPPED_FOLDERS,
     HELD_UNDER_SKIPPED_FOLDER,
     LISTING_FAILED_ERROR,
+    find_blocking_skipped_folder,
     find_skipped_ancestor,
     is_under,
     load_skipped_folders,
     save_skipped_folders,
     skipped_folder_pairs,
+    skipped_folder_rows,
 )
 from nxdrive.alfresco.engine.watcher.remote_watcher import (
     FIRST_PASS_NETWORK,
@@ -92,6 +101,9 @@ def _pair(*, root=False, last_error=None):
     pair.remote_parent_path = ""
     pair.remote_ref = "folder-1"
     pair.last_error = last_error
+    pair.folderish = True
+    pair.pair_state = "synchronized"
+    pair.remote_state = "synchronized"
     return pair
 
 
@@ -239,7 +251,7 @@ class TestRetrySkippedFolders:
     def _ready(self, watcher):
         watcher._skipped_folders = {"folder-1"}
         pair = _pair(last_error=LISTING_FAILED_ERROR)
-        watcher.dao.get_normal_state_from_remote.return_value = pair
+        watcher.dao.get_states_from_remote.return_value = [pair]
         watcher.engine.remote._node_to_remote_file_info.return_value = _folder()
         return pair
 
@@ -292,7 +304,7 @@ class TestRetrySkippedFolders:
     def test_no_longer_synced_is_forgotten(self):
         watcher = _watcher()
         watcher._skipped_folders = {"folder-1"}
-        watcher.dao.get_normal_state_from_remote.return_value = None
+        watcher.dao.get_states_from_remote.return_value = []
 
         watcher._retry_skipped_folders()
 
@@ -623,12 +635,22 @@ class TestNotificationServiceFirstPass:
 # -- Holding local changes under skipped folders ----------------------------------
 
 
-def _row(local_path, *, pair_state="locally_created", last_error=None, error_count=0):
+def _row(
+    local_path,
+    *,
+    pair_state="locally_created",
+    last_error=None,
+    error_count=0,
+    folderish=False,
+    remote_state="synchronized",
+):
     pair = MagicMock()
     pair.local_path = Path(local_path)
     pair.pair_state = pair_state
     pair.last_error = last_error
     pair.error_count = error_count
+    pair.folderish = folderish
+    pair.remote_state = remote_state
     return pair
 
 
@@ -638,8 +660,10 @@ def _dao_with_skipped(skipped_paths):
     dao.get_config.side_effect = lambda key, **_: (
         json.dumps(sorted(skipped_paths)) if key == CONF_SKIPPED_FOLDERS else None
     )
-    dao.get_normal_state_from_remote.side_effect = lambda uid: (
-        _row(uid, pair_state="synchronized") if uid in skipped_paths else None
+    dao.get_states_from_remote.side_effect = lambda uid: (
+        [_row(uid, pair_state="synchronized", folderish=True)]
+        if uid in skipped_paths
+        else []
     )
     return dao
 
@@ -878,3 +902,295 @@ class TestRestoredFolderOnTheWatcherThread:
 
         watcher.dao.update_config.assert_any_call(CONF_BOOTSTRAPPED_FOR, None)
         watcher._scan_remote_recursive.assert_not_called()
+
+
+# -- PR review: deleting a folder that contains a skipped folder (#5) ------------
+
+
+class TestFolderDeletionOverSkippedFolder:
+    def test_deleting_a_parent_of_a_skipped_folder_is_held(self):
+        proc = _processor({"A/B"})
+        pair = _row("A", pair_state="locally_deleted", folderish=True)
+
+        assert proc._hold_under_skipped_folder(pair) is True
+        assert proc.dao.increase_error.call_args.kwargs["details"] == "A/B"
+
+    def test_deleting_the_sync_parent_of_a_deep_skipped_folder_is_held(self):
+        proc = _processor({"A/B/C"})
+        pair = _row("A", pair_state="locally_deleted", folderish=True)
+
+        assert proc._hold_under_skipped_folder(pair) is True
+
+    def test_moving_a_parent_of_a_skipped_folder_is_not_held(self):
+        """A move keeps the unread content intact on the server."""
+        proc = _processor({"A/B"})
+        pair = _row("A2", pair_state="locally_moved", folderish=True)
+
+        assert proc._hold_under_skipped_folder(pair) is False
+
+    def test_deleting_an_unrelated_folder_is_not_held(self):
+        proc = _processor({"A/B"})
+        pair = _row("A2", pair_state="locally_deleted", folderish=True)
+
+        assert proc._hold_under_skipped_folder(pair) is False
+
+    def test_deleting_a_file_next_to_a_skipped_folder_is_not_held(self):
+        proc = _processor({"A/B"})
+        pair = _row("A/file.txt", pair_state="locally_deleted")
+
+        assert proc._hold_under_skipped_folder(pair) is False
+
+    def test_release_keeps_the_parent_deletion_held(self):
+        held = _row(
+            "A",
+            pair_state="locally_deleted",
+            folderish=True,
+            last_error=HELD_UNDER_SKIPPED_FOLDER,
+        )
+        watcher = _watcher()
+        watcher._skipped_folders = {"A/B"}
+        watcher.dao = _dao_with_skipped({"A/B"})
+        watcher.dao.get_states_with_error.return_value = [held]
+
+        watcher._release_held_pairs()
+
+        watcher.dao.reset_error.assert_not_called()
+
+    def test_release_frees_the_parent_deletion_once_readable(self):
+        held = _row(
+            "A",
+            pair_state="locally_deleted",
+            folderish=True,
+            last_error=HELD_UNDER_SKIPPED_FOLDER,
+        )
+        watcher = _watcher()
+        watcher._skipped_folders = set()
+        watcher.dao = _dao_with_skipped(set())
+        watcher.dao.get_states_with_error.return_value = [held]
+
+        watcher._release_held_pairs()
+
+        watcher.dao.reset_error.assert_called_once_with(held)
+
+    def test_find_blocking_skipped_folder_prefers_the_ancestor(self):
+        dao = _dao_with_skipped({"A", "A/B/C"})
+        pair = _row("A/B", pair_state="locally_deleted", folderish=True)
+
+        assert find_blocking_skipped_folder(dao, pair).local_path == Path("A")
+
+
+# -- PR review: resolving a skipped id to the right row (#2) ---------------------
+
+
+class TestSkippedFolderRows:
+    def test_only_synced_folder_rows_are_kept(self):
+        dao = MagicMock()
+        folder = _row("X", pair_state="synchronized", folderish=True)
+        dao.get_states_from_remote.return_value = [
+            _row("X.txt", pair_state="synchronized"),
+            _row("Old", pair_state="remotely_deleted", folderish=True),
+            _row(
+                "Gone",
+                pair_state="synchronized",
+                folderish=True,
+                remote_state="deleted",
+            ),
+            folder,
+        ]
+
+        assert skipped_folder_rows(dao, "uid") == [folder]
+
+    def test_every_candidate_holds_local_changes(self):
+        dao = MagicMock()
+        dao.get_config.return_value = json.dumps(["uid"])
+        first = _row("X", pair_state="synchronized", folderish=True)
+        second = _row("Y", pair_state="synchronized", folderish=True)
+        dao.get_states_from_remote.return_value = [first, second]
+
+        assert skipped_folder_pairs(dao) == [first, second]
+        assert find_skipped_ancestor(dao, Path("Y/new.txt")) is second
+
+    def test_ambiguous_folder_is_not_retried(self):
+        watcher = _watcher()
+        watcher._skipped_folders = {"uid"}
+        watcher.dao.get_states_from_remote.return_value = [
+            _row("X", pair_state="synchronized", folderish=True),
+            _row("Y", pair_state="synchronized", folderish=True),
+        ]
+
+        watcher._retry_skipped_folders()
+
+        watcher.engine.remote.get_node.assert_not_called()
+        assert watcher._skipped_folders == {"uid"}
+
+
+# -- PR review: keep the error on a skipped folder created locally (#7) ----------
+
+
+class TestKeepSkippedFolderError:
+    def _processor(self, skipped):
+        proc = _processor(set())
+        proc.dao.get_config.side_effect = lambda key, **_: (
+            json.dumps(sorted(skipped)) if key == CONF_SKIPPED_FOLDERS else None
+        )
+        return proc
+
+    def _after(self, **kwargs):
+        after = _row("X", pair_state="synchronized", folderish=True, **kwargs)
+        after.remote_ref = "uid"
+        return after
+
+    def test_error_cleared_by_the_handler_is_put_back(self):
+        proc = self._processor({"uid"})
+        before = _row("X", pair_state="remotely_created", folderish=True)
+        before.last_error = LISTING_FAILED_ERROR
+        before.last_error_details = "Not allowed to read this folder"
+        after = self._after()
+
+        proc._keep_skipped_folder_error(before, after)
+
+        proc.dao.increase_error.assert_called_once_with(
+            after,
+            LISTING_FAILED_ERROR,
+            details="Not allowed to read this folder",
+            incr=4,
+        )
+
+    def test_a_generic_reason_when_none_was_recorded(self):
+        proc = self._processor({"uid"})
+
+        proc._keep_skipped_folder_error(
+            _row("X", pair_state="remotely_created", folderish=True), self._after()
+        )
+
+        assert proc.dao.increase_error.call_args.kwargs["details"]
+
+    def test_nothing_to_do_when_the_error_is_still_there(self):
+        proc = self._processor({"uid"})
+
+        proc._keep_skipped_folder_error(
+            MagicMock(), self._after(last_error=LISTING_FAILED_ERROR)
+        )
+
+        proc.dao.increase_error.assert_not_called()
+
+    def test_nothing_to_do_for_a_folder_that_is_not_skipped(self):
+        proc = self._processor(set())
+
+        proc._keep_skipped_folder_error(MagicMock(), self._after())
+
+        proc.dao.increase_error.assert_not_called()
+
+    def test_files_are_ignored(self):
+        proc = self._processor({"uid"})
+        after = self._after()
+        after.folderish = False
+
+        proc._keep_skipped_folder_error(MagicMock(), after)
+
+        proc.dao.increase_error.assert_not_called()
+
+
+# -- PR review: pending fetches survive a restart (#4) ---------------------------
+
+
+def _config_dao():
+    """A MagicMock DAO whose configuration really persists."""
+    dao = MagicMock()
+    store = {}
+    dao.lock = RLock()
+    dao.get_config.side_effect = lambda key, default=None: store.get(key) or default
+    dao.update_config.side_effect = lambda key, value: store.__setitem__(key, value)
+    dao.store = store
+    return dao
+
+
+class TestPendingUnfiltered:
+    def test_round_trip(self):
+        dao = _config_dao()
+
+        add_pending_unfiltered(dao, ["b", "a"])
+        add_pending_unfiltered(dao, ["c"])
+        remove_pending_unfiltered(dao, ["a"])
+
+        assert load_pending_unfiltered(dao) == ({"b", "c"}, False)
+
+    def test_full_scan_flag_sticks_until_cleared(self):
+        dao = _config_dao()
+
+        add_pending_unfiltered(dao, [], full_scan=True)
+        add_pending_unfiltered(dao, ["a"])
+        remove_pending_unfiltered(dao, ["a"])
+        assert load_pending_unfiltered(dao) == (set(), True)
+
+        clear_pending_unfiltered(dao)
+        assert load_pending_unfiltered(dao) == (set(), False)
+
+    def test_nothing_pending_clears_the_key(self):
+        dao = _config_dao()
+
+        add_pending_unfiltered(dao, ["a"])
+        remove_pending_unfiltered(dao, ["a"])
+
+        assert dao.store[CONF_PENDING_UNFILTERED] is None
+
+    @pytest.mark.parametrize("raw", ["not json", "[]", '{"nodes": 1}', "42"])
+    def test_unreadable_value_means_nothing_pending(self, raw):
+        dao = _config_dao()
+        dao.store[CONF_PENDING_UNFILTERED] = raw
+
+        assert load_pending_unfiltered(dao) == (set(), False)
+
+
+class TestPendingUnfilteredInTheWatcher:
+    def _watcher(self):
+        watcher, _, restored = TestRestoredFolderOnTheWatcherThread()._watcher()
+        config = _config_dao()
+        watcher.dao.lock = config.lock
+        watcher.dao.get_config.side_effect = config.get_config.side_effect
+        watcher.dao.update_config.side_effect = config.update_config.side_effect
+        watcher.store = config.store
+        return watcher
+
+    def test_queued_ids_are_saved(self):
+        watcher = self._watcher()
+
+        watcher.queue_unfiltered("X", ["node-1"])
+
+        assert load_pending_unfiltered(watcher.dao) == ({"node-1"}, False)
+
+    def test_fetched_ids_are_removed(self):
+        watcher = self._watcher()
+        watcher.queue_unfiltered("X", ["node-1"])
+
+        watcher._apply_unfiltered()
+
+        assert load_pending_unfiltered(watcher.dao) == (set(), False)
+
+    def test_failed_fetches_stay_saved(self):
+        watcher = self._watcher()
+        watcher.engine.remote.get_node.side_effect = RuntimeError("boom")
+        watcher.queue_unfiltered("X", ["node-1"])
+
+        watcher._apply_unfiltered()
+
+        assert load_pending_unfiltered(watcher.dao) == ({"node-1"}, False)
+
+    def test_login_errors_keep_them_saved(self):
+        watcher = self._watcher()
+        watcher.engine.remote.get_node.side_effect = AlfrescoAuthError("expired")
+        watcher.queue_unfiltered("X", ["node-1"])
+
+        with pytest.raises(AlfrescoAuthError):
+            watcher._apply_unfiltered()
+
+        assert load_pending_unfiltered(watcher.dao) == ({"node-1"}, False)
+
+    def test_a_full_reseed_clears_everything(self):
+        watcher = self._watcher()
+        watcher.queue_unfiltered("X", ["node-1"])
+        watcher.queue_unfiltered("Y", [])
+
+        watcher._apply_unfiltered()
+
+        assert load_pending_unfiltered(watcher.dao) == (set(), False)

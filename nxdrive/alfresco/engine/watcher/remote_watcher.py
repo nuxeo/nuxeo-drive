@@ -38,14 +38,21 @@ from nxdrive.alfresco.client.device_sync import (
 )
 from nxdrive.alfresco.client.remote import NODE_FIELDS
 from nxdrive.alfresco.content_compare import content_matches
+from nxdrive.alfresco.engine.pending_unfiltered import (
+    add_pending_unfiltered,
+    clear_pending_unfiltered,
+    load_pending_unfiltered,
+    remove_pending_unfiltered,
+)
 from nxdrive.alfresco.engine.processor import LOCKED_ON_SERVER
 from nxdrive.alfresco.engine.skipped_folders import (
     HELD_UNDER_SKIPPED_FOLDER,
     LISTING_FAILED_ERROR,
-    find_skipped_ancestor,
+    find_blocking_skipped_folder,
     load_skipped_folders,
     save_skipped_folders,
     skipped_folder_pairs,
+    skipped_folder_rows,
 )
 from nxdrive.alfresco.sync_filters import is_top_folder_excluded
 from nxdrive.drive.constants import MAC, ROOT, WINDOWS
@@ -164,11 +171,14 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         self._provisioner: Optional[DeviceSyncProvisioner] = None
         self._root_node_id: str = ""
 
-        #: Nodes whose filter was just lifted, pending resolution.
-        self._unfiltered_nodes: Set[str] = set()
-        #: Set when a lifted filter carried no node id, so only a walk can
-        #: discover what we are now missing.
-        self._unfiltered_needs_scan = False
+        #: Nodes whose filter was just lifted (or whose local deletion was
+        #: rolled back), pending resolution, and whether one came without a
+        #: node id, so only a walk can discover what we are now missing.
+        #: Restored from the DB, see ``nxdrive.alfresco.engine.pending_unfiltered``.
+        (
+            self._unfiltered_nodes,
+            self._unfiltered_needs_scan,
+        ) = load_pending_unfiltered(self.dao)
 
         #: Consecutive apply failures per node id, so a transient error is
         #: retried but a permanently broken change is eventually abandoned.
@@ -519,9 +529,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         self._release_held_pairs()
 
     def _release_held_pairs(self) -> None:
-        """Send back to the queue the held local changes no longer under a skipped folder.
+        """Re-queue the held local changes no skipped folder blocks anymore.
 
-        Those still under one stay held: the processor would only hold them
+        Those still blocked stay held: the processor would only hold them
         again. Runs whenever a folder is forgotten and on every retry
         interval, which also catches an item held just as its folder was
         released, or left over from before a restart.
@@ -531,7 +541,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             return
         folders = skipped_folder_pairs(self.dao, uids=self._skipped_folders)
         for pair in held:
-            if find_skipped_ancestor(self.dao, pair.local_path, folders=folders):
+            if find_blocking_skipped_folder(self.dao, pair, folders=folders):
                 continue
             log.info(
                 f"Releasing {pair.local_path!r}, its server folder can be read again"
@@ -565,11 +575,21 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         for uid in sorted(self._skipped_folders):
             self._interact()
 
-            pair = self.dao.get_normal_state_from_remote(uid)
-            if not pair:
+            rows = skipped_folder_rows(self.dao, uid)
+            if not rows:
                 log.debug(f"Skipped folder {uid!r} is not synced anymore")
                 self._forget_skipped(uid, None)
                 continue
+            if len(rows) > 1:
+                # Walking from the wrong row would file its content under the
+                # wrong local path. Changes under every candidate stay held.
+                log.warning(
+                    f"Skipped folder {uid!r} matches {len(rows)} local folders "
+                    f"({', '.join(repr(str(r.local_path)) for r in rows)}), "
+                    "not retrying it until that is sorted out"
+                )
+                continue
+            pair = rows[0]
 
             try:
                 node = remote.get_node(uid, include=NODE_FIELDS)
@@ -1217,6 +1237,13 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         node id that is one request per node; without one, only a full walk can
         find it.
         """
+        # Normally saved already by the engine; an add made while a fetch was
+        # removing the same id would be lost otherwise.
+        try:
+            add_pending_unfiltered(self.dao, node_ids, full_scan=not node_ids)
+        except Exception:
+            log.warning("Could not save the folders to fetch", exc_info=True)
+
         if node_ids:
             self._unfiltered_nodes.update(node_ids)
             log.debug(f"Unfiltered {remote_path!r}: queued {len(node_ids)} node(s)")
@@ -1236,6 +1263,8 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             self._unfiltered_needs_scan = False
             self._unfiltered_nodes.clear()
             self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
+            # The re-seed now covers everything that was pending.
+            clear_pending_unfiltered(self.dao)
             return
 
         if not self._unfiltered_nodes:
@@ -1256,7 +1285,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 self._unfiltered_nodes.update(node_ids[index:])
                 self._next_check = monotonic() + FILTER_RESCAN_DELAY
                 raise
-            if not resolved:
+            if resolved:
+                remove_pending_unfiltered(self.dao, [node_id])
+            else:
                 self._unfiltered_nodes.add(node_id)
 
         if self._unfiltered_nodes:

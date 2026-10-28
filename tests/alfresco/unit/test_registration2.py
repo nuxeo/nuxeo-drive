@@ -81,11 +81,35 @@ class TestAlfrescoReloginHandler:
             _alfresco_relogin_handler(engine, "password123")
 
         engine._save_ticket.assert_called_once_with("TICKET-123")
+        # The ticket is swapped on the live client: no new remote, no stop (the
+        # engine already stopped when the credentials expired) and no re-seed.
+        engine.remote.update_alfresco_ticket.assert_called_once_with(
+            user_id="admin", password="password123", alfresco_ticket="TICKET-123"
+        )
+        engine.init_remote.assert_not_called()
+        engine.stop.assert_not_called()
+        engine.dao.update_config.assert_not_called()
         engine.set_invalid_credentials.assert_called_once_with(value=False)
-        engine.stop.assert_called_once()
         engine.start.assert_called_once()
         engine.queue_manager.resume.assert_called_once()
-        engine.dao.update_config.assert_called_once_with("remote_need_full_scan", "1")
+
+    def test_failed_restart_flags_credentials_again(self) -> None:
+        from nxdrive.alfresco.registration import _alfresco_relogin_handler
+
+        engine = Mock()
+        engine.remote_user = "admin"
+        engine.server_url = "https://acs.example.com"
+        engine.start.side_effect = RuntimeError("boom")
+
+        with patch("alfresco.auth.TicketAuth") as mock_ta:
+            mock_ta.return_value.authenticate.return_value = "TICKET-123"
+            with pytest.raises(RuntimeError, match="boom"):
+                _alfresco_relogin_handler(engine, "password123")
+
+        assert engine.set_invalid_credentials.call_args_list == [
+            call(value=False),
+            call(value=True),
+        ]
 
     def test_no_ticket_raises(self) -> None:
         from nxdrive.alfresco.registration import _alfresco_relogin_handler
@@ -114,8 +138,8 @@ class TestAlfrescoPasswordAuthHandler:
 
 class TestAlfrescoDebugAuthHandler:
     def test_accept_binds_using_callback_params(self) -> None:
-        from nxdrive.drive.qt import constants as qt
         from nxdrive.alfresco.registration import _alfresco_debug_auth_handler
+        from nxdrive.drive.qt import constants as qt
 
         with patch.dict(
             "os.environ",

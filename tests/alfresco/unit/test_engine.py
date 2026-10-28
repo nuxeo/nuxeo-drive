@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from nxdrive.alfresco.engine.engine import AlfrescoEngine
+from nxdrive.alfresco.engine.pending_unfiltered import CONF_PENDING_UNFILTERED
 from nxdrive.alfresco.engine.skipped_folders import CONF_SKIPPED_FOLDERS
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.objects import Binder
@@ -139,6 +140,7 @@ class TestStartCleanup:
         engine.dao.delete_config.assert_any_call("filters_configured")
         # The skipped folders pointed at rows that are gone now.
         engine.dao.delete_config.assert_any_call(CONF_SKIPPED_FOLDERS)
+        engine.dao.delete_config.assert_any_call(CONF_PENDING_UNFILTERED)
         engine.syncStateCleared.emit.assert_called_once()
 
     def test_cleanup_handles_reinit_failure(self):
@@ -972,3 +974,71 @@ class TestRollbackDelete:
 
         engine.dao.force_remote_creation.assert_not_called()
         engine._unfiltered.emit.assert_not_called()
+
+
+class TestPendingFetchIsSavedFirst:
+    """The ids are saved before the rows describing that content are dropped."""
+
+    def _saved(self, engine):
+        return [
+            c
+            for c in engine.dao.update_config.call_args_list
+            if c.args[0] == CONF_PENDING_UNFILTERED
+        ]
+
+    def test_remove_filter(self):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine.dao.get_config.return_value = None
+        engine.dao.get_filter_node_ids.return_value = ["node-1"]
+        calls = []
+        engine.dao.update_config.side_effect = lambda *a: calls.append("save")
+
+        with patch.object(
+            AlfrescoEngine.__bases__[0],
+            "remove_filter",
+            side_effect=lambda p: calls.append("delete"),
+        ):
+            engine.remove_filter("/Company Home/demo")
+
+        assert calls == ["save", "delete"]
+        assert '"node-1"' in self._saved(engine)[0].args[1]
+
+    def test_rollback_delete_of_a_folder(self):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine.dao.get_config.return_value = None
+        engine.dao.get_state_from_local.return_value = MagicMock(
+            folderish=True, remote_ref="node-1"
+        )
+        calls = []
+        engine.dao.update_config.side_effect = lambda *a: calls.append("save")
+        engine.dao.remove_state_children.side_effect = lambda *a: calls.append("rm")
+
+        engine.rollback_delete(Path("X"))
+
+        assert calls == ["save", "rm"]
+
+    def test_rollback_delete_of_a_file_saves_nothing(self):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine.dao.get_state_from_local.return_value = MagicMock(
+            folderish=False, remote_ref="node-1"
+        )
+
+        engine.rollback_delete(Path("X/doc.txt"))
+
+        assert not self._saved(engine)
+
+    def test_a_save_failure_does_not_block_the_action(self):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine.dao.get_config.return_value = None
+        engine.dao.update_config.side_effect = RuntimeError("db locked")
+        engine.dao.get_filter_node_ids.return_value = ["node-1"]
+
+        with patch.object(AlfrescoEngine.__bases__[0], "remove_filter") as base:
+            engine.remove_filter("/Company Home/demo")
+
+        base.assert_called_once()
+        engine._unfiltered.emit.assert_called_once()

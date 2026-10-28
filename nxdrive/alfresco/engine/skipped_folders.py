@@ -29,11 +29,13 @@ __all__ = (
     "CONF_SKIPPED_FOLDERS",
     "HELD_UNDER_SKIPPED_FOLDER",
     "LISTING_FAILED_ERROR",
+    "find_blocking_skipped_folder",
     "find_skipped_ancestor",
     "is_under",
     "load_skipped_folders",
     "save_skipped_folders",
     "skipped_folder_pairs",
+    "skipped_folder_rows",
 )
 
 log = getLogger(__name__)
@@ -48,6 +50,9 @@ LISTING_FAILED_ERROR = "DEVICE_SYNC_LISTING_FAILED"
 #: ``last_error`` written on a local change held back because it sits under a
 #: skipped folder. Rendered as ``ERROR_REASON_<code>`` too.
 HELD_UNDER_SKIPPED_FOLDER = "DEVICE_SYNC_FOLDER_UNREADABLE"
+
+#: Rows on their way out, which no longer describe a synced folder.
+_GONE_STATES = ("deleted", "remotely_deleted", "parent_remotely_deleted")
 
 
 def load_skipped_folders(dao: "EngineDAO", /) -> Set[str]:
@@ -66,14 +71,34 @@ def save_skipped_folders(dao: "EngineDAO", uids: Iterable[str], /) -> None:
     dao.update_config(CONF_SKIPPED_FOLDERS, json.dumps(uids) if uids else None)
 
 
+def skipped_folder_rows(dao: "EngineDAO", uid: str, /) -> List["DocPair"]:
+    """Synced folder rows for the skipped node *uid*.
+
+    A node id can have several ``States`` rows (``UNIQUE`` is on the id
+    *and* the local path), and the first one is not necessarily the folder.
+    Only folder rows that are not being deleted are kept; the caller decides
+    what to do when more than one is left.
+    """
+    return [
+        row
+        for row in dao.get_states_from_remote(uid)
+        if row.folderish
+        and row.remote_state != "deleted"
+        and row.pair_state not in _GONE_STATES
+    ]
+
+
 def skipped_folder_pairs(
     dao: "EngineDAO", /, *, uids: Optional[Iterable[str]] = None
 ) -> List["DocPair"]:
-    """Rows of the skipped folders that are still synced."""
+    """Rows of the skipped folders that are still synced.
+
+    Every candidate row is returned, so a node id matching several rows holds
+    local changes under each of them rather than under a guessed one.
+    """
     if uids is None:
         uids = load_skipped_folders(dao)
-    pairs = (dao.get_normal_state_from_remote(uid) for uid in uids)
-    return [pair for pair in pairs if pair]
+    return [row for uid in uids for row in skipped_folder_rows(dao, uid)]
 
 
 def is_under(path: Path, folder: Path, /) -> bool:
@@ -88,5 +113,25 @@ def find_skipped_ancestor(
         folders = skipped_folder_pairs(dao)
     for folder in folders:
         if is_under(path, folder.local_path):
+            return folder
+    return None
+
+
+def find_blocking_skipped_folder(
+    dao: "EngineDAO", pair: "DocPair", /, *, folders: Optional[List["DocPair"]] = None
+) -> Optional["DocPair"]:
+    """Return the skipped folder that forbids sending *pair*'s local change.
+
+    That is the skipped folder *pair* is in (or is). A folder deletion is also
+    held when a skipped folder sits *under* it: deleting the parent on the
+    server would delete the content Drive could not read along with it.
+    """
+    if folders is None:
+        folders = skipped_folder_pairs(dao)
+    found = find_skipped_ancestor(dao, pair.local_path, folders=folders)
+    if found or not (pair.folderish and pair.pair_state == "locally_deleted"):
+        return found
+    for folder in folders:
+        if is_under(folder.local_path, pair.local_path):
             return folder
     return None

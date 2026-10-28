@@ -25,7 +25,9 @@ from alfresco.exceptions import NotFoundError as AlfrescoNotFoundError
 from nxdrive.alfresco.content_compare import content_matches, local_head_tail_digest
 from nxdrive.alfresco.engine.skipped_folders import (
     HELD_UNDER_SKIPPED_FOLDER,
-    find_skipped_ancestor,
+    LISTING_FAILED_ERROR,
+    find_blocking_skipped_folder,
+    load_skipped_folders,
 )
 from nxdrive.drive.client.local import FileInfo
 from nxdrive.drive.constants import (
@@ -162,11 +164,12 @@ class AlfrescoProcessor(_ProcessorBase):
         the row is held as an error, out of the queue, and the remote watcher
         releases it once the folder can be read again
         (``AlfrescoRemoteWatcher._release_held_pairs``). Retrying it by hand
-        before that only holds it again.
+        before that only holds it again. Deleting a folder that *contains* a
+        skipped folder is held too, as it would delete that content as well.
         """
         if not doc_pair.pair_state.startswith("locally_"):
             return False
-        folder = find_skipped_ancestor(self.dao, doc_pair.local_path)
+        folder = find_blocking_skipped_folder(self.dao, doc_pair)
         if not folder:
             return False
 
@@ -187,6 +190,31 @@ class AlfrescoProcessor(_ProcessorBase):
             incr=threshold + 1,
         )
         return True
+
+    def _keep_skipped_folder_error(self, before: DocPair, after: DocPair, /) -> None:
+        """Put back the error of a skipped folder that a handler just cleared.
+
+        Creating the folder locally, for instance, ends with
+        ``synchronize_state()``, which wipes the error. The folder is still
+        unreadable on the server, so it must stay in the Errors list until the
+        remote watcher can read it again.
+        """
+        if not after.folderish or after.last_error == LISTING_FAILED_ERROR:
+            return
+        if after.remote_ref not in load_skipped_folders(self.dao):
+            return
+        details = (
+            before.last_error_details
+            if before.last_error == LISTING_FAILED_ERROR
+            else None
+        ) or "Could not read this folder from the server"
+        log.debug(f"Keeping the unreadable-folder error on {after.local_path!r}")
+        self.dao.increase_error(
+            after,
+            LISTING_FAILED_ERROR,
+            details=details,
+            incr=self.engine.queue_manager.get_error_threshold() + 1,
+        )
 
     def _refresh_local_state(
         self,
@@ -789,6 +817,8 @@ class AlfrescoProcessor(_ProcessorBase):
             self._unlock_soft_path(soft_lock)
 
         pair = self.dao.get_state_from_id(doc_pair.id)
+        if pair:
+            self._keep_skipped_folder_error(doc_pair, pair)
         if pair and "deleted" not in pair.pair_state:
             self.engine.manager.osi.send_sync_status(
                 pair, self.local.abspath(pair.local_path)

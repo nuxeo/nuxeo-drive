@@ -17,7 +17,7 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 from logging import getLogger
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlsplit
 
 from alfresco.exceptions import AuthenticationError
@@ -28,6 +28,10 @@ from nxdrive.alfresco.client.device_sync import (
 )
 from nxdrive.alfresco.client.remote import AlfrescoRemote
 from nxdrive.alfresco.content_compare import content_matches
+from nxdrive.alfresco.engine.pending_unfiltered import (
+    CONF_PENDING_UNFILTERED,
+    add_pending_unfiltered,
+)
 from nxdrive.alfresco.engine.processor import (
     DIFFERENT_CONTENT,
     FILE_OPEN_LOCALLY,
@@ -182,6 +186,7 @@ class AlfrescoEngine(Engine):
         except Exception:
             log.warning(f"Could not read node ids for filter {path!r}", exc_info=True)
 
+        self._save_pending_fetch(node_ids)
         super().remove_filter(path)
 
         # Queued so the watcher's own thread mutates its state: a direct call
@@ -323,8 +328,9 @@ class AlfrescoEngine(Engine):
         # The rows they pointed to are gone with the States table.
         try:
             self.dao.delete_config(CONF_SKIPPED_FOLDERS)
+            self.dao.delete_config(CONF_PENDING_UNFILTERED)
         except Exception:
-            log.warning("Failed to clear the skipped folders", exc_info=True)
+            log.warning("Failed to clear the remote watcher's backlog", exc_info=True)
 
         # Tell the GUI to drop any cached views (Recently Synchronised
         # list, conflicts/errors/ignoreds panels, syncing counter) that
@@ -353,13 +359,26 @@ class AlfrescoEngine(Engine):
         if not doc_pair:
             log.info(f"Unable to rollback delete on non-existent doc {path}")
             return
+        # Without a node id, only a full re-seed can find the content.
+        node_ids = [doc_pair.remote_ref] if doc_pair.remote_ref else []
         if doc_pair.folderish:
+            self._save_pending_fetch(node_ids)
             self.dao.remove_state_children(doc_pair)
         self.dao.force_remote_creation(doc_pair)
         if doc_pair.folderish:
-            # Without a node id, only a full re-seed can find the content.
-            node_ids = [doc_pair.remote_ref] if doc_pair.remote_ref else []
             self._unfiltered.emit(str(path), node_ids)
+
+    def _save_pending_fetch(self, node_ids: List[str], /) -> None:
+        """Record the content to fetch before the rows describing it are dropped.
+
+        The watcher only hears about it through a queued signal, so a restart
+        in between would otherwise lose it, and the change feed never replays
+        content that already existed: the folder would stay empty.
+        """
+        try:
+            add_pending_unfiltered(self.dao, node_ids, full_scan=not node_ids)
+        except Exception:
+            log.warning("Could not save the folders to fetch", exc_info=True)
 
     def unbind(self) -> None:
         """Release the Device Sync registration before the account is dropped.
