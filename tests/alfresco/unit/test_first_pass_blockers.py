@@ -12,7 +12,7 @@ telling the user why new local files are held back.
 import json
 from pathlib import Path
 from threading import Lock, RLock
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 from alfresco.exceptions import AlfrescoError
@@ -28,9 +28,9 @@ from nxdrive.alfresco.client.device_sync import (
 from nxdrive.alfresco.engine.pending_unfiltered import (
     CONF_PENDING_UNFILTERED,
     add_pending_unfiltered,
-    clear_pending_unfiltered,
     load_pending_unfiltered,
     remove_pending_unfiltered,
+    snapshot_pending_unfiltered,
 )
 from nxdrive.alfresco.engine.processor import AlfrescoProcessor
 from nxdrive.alfresco.engine.skipped_folders import (
@@ -865,14 +865,26 @@ class TestRestoredFolderOnTheWatcherThread:
         )
         assert not watcher._unfiltered_nodes
 
-    def test_a_partial_walk_falls_back_to_a_full_reseed(self):
-        watcher, _, _ = self._watcher()
-        watcher._scan_remote_recursive.return_value = False
+    def test_a_partial_walk_is_retried_without_a_full_reseed(self):
+        """A re-seed would skip what an unfinished seed already checkpointed."""
+        watcher, info, restored = self._watcher()
+        watcher._scan_remote_recursive.side_effect = [False, True]
 
         watcher.queue_unfiltered("X", ["node-1"])
         watcher._apply_unfiltered()
 
-        watcher.dao.update_config.assert_any_call(CONF_BOOTSTRAPPED_FOR, None)
+        assert watcher._unfiltered_nodes == {"node-1"}
+        assert (CONF_BOOTSTRAPPED_FOR, None) not in [
+            c.args for c in watcher.dao.update_config.call_args_list
+        ]
+
+        watcher._apply_unfiltered()
+
+        assert watcher._scan_remote_recursive.call_args_list == [
+            call(restored, info, force=True),
+            call(restored, info, force=True),
+        ]
+        assert not watcher._unfiltered_nodes
 
     def test_a_login_error_is_raised_and_the_folder_kept_for_later(self):
         """Raised into _do_handle_changes(), which asks the user to log in."""
@@ -913,7 +925,7 @@ class TestFolderDeletionOverSkippedFolder:
         pair = _row("A", pair_state="locally_deleted", folderish=True)
 
         assert proc._hold_under_skipped_folder(pair) is True
-        assert proc.dao.increase_error.call_args.kwargs["details"] == "A/B"
+        assert proc.dao.increase_error.call_args.kwargs["details"] == str(Path("A/B"))
 
     def test_deleting_the_sync_parent_of_a_deep_skipped_folder_is_held(self):
         proc = _processor({"A/B/C"})
@@ -1109,32 +1121,71 @@ class TestPendingUnfiltered:
     def test_round_trip(self):
         dao = _config_dao()
 
-        add_pending_unfiltered(dao, ["b", "a"])
+        first = add_pending_unfiltered(dao, ["b", "a"])
         add_pending_unfiltered(dao, ["c"])
-        remove_pending_unfiltered(dao, ["a"])
+        remove_pending_unfiltered(dao, {"a": first})
 
         assert load_pending_unfiltered(dao) == ({"b", "c"}, False)
 
-    def test_full_scan_flag_sticks_until_cleared(self):
+    def test_each_request_gets_a_new_generation(self):
         dao = _config_dao()
 
-        add_pending_unfiltered(dao, [], full_scan=True)
-        add_pending_unfiltered(dao, ["a"])
-        remove_pending_unfiltered(dao, ["a"])
+        first = add_pending_unfiltered(dao, ["a"])
+        second = add_pending_unfiltered(dao, ["a"])
+
+        assert second > first
+        assert snapshot_pending_unfiltered(dao).nodes == {"a": second}
+
+    def test_a_newer_request_survives_the_older_removal(self):
+        dao = _config_dao()
+        older = add_pending_unfiltered(dao, ["a"])
+        add_pending_unfiltered(dao, ["a"])  # Saved while the older one was fetched.
+
+        remove_pending_unfiltered(dao, {"a": older})
+
+        assert load_pending_unfiltered(dao) == ({"a"}, False)
+
+    def test_full_scan_flag_sticks_until_its_request_is_handled(self):
+        dao = _config_dao()
+
+        owed = add_pending_unfiltered(dao, [], full_scan=True)
+        newer = add_pending_unfiltered(dao, ["a"])
+        remove_pending_unfiltered(dao, {"a": newer})
         assert load_pending_unfiltered(dao) == (set(), True)
 
-        clear_pending_unfiltered(dao)
+        remove_pending_unfiltered(dao, {}, full_scan=owed)
         assert load_pending_unfiltered(dao) == (set(), False)
+
+    def test_a_newer_full_scan_request_survives(self):
+        dao = _config_dao()
+        older = add_pending_unfiltered(dao, [], full_scan=True)
+        add_pending_unfiltered(dao, [], full_scan=True)
+
+        remove_pending_unfiltered(dao, {}, full_scan=older)
+
+        assert load_pending_unfiltered(dao) == (set(), True)
 
     def test_nothing_pending_clears_the_key(self):
         dao = _config_dao()
 
-        add_pending_unfiltered(dao, ["a"])
-        remove_pending_unfiltered(dao, ["a"])
+        gen = add_pending_unfiltered(dao, ["a"])
+        remove_pending_unfiltered(dao, {"a": gen})
 
         assert dao.store[CONF_PENDING_UNFILTERED] is None
 
-    @pytest.mark.parametrize("raw", ["not json", "[]", '{"nodes": 1}', "42"])
+    def test_value_written_before_generations_is_still_read(self):
+        dao = _config_dao()
+        dao.store[CONF_PENDING_UNFILTERED] = json.dumps(
+            {"nodes": ["a"], "full_scan": False}
+        )
+
+        assert load_pending_unfiltered(dao) == ({"a"}, False)
+        add_pending_unfiltered(dao, ["b"])
+        assert load_pending_unfiltered(dao) == ({"a", "b"}, False)
+
+    @pytest.mark.parametrize(
+        "raw", ["not json", "[]", '{"nodes": 1}', "42", '{"nodes": {}}']
+    )
     def test_unreadable_value_means_nothing_pending(self, raw):
         dao = _config_dao()
         dao.store[CONF_PENDING_UNFILTERED] = raw
@@ -1194,3 +1245,64 @@ class TestPendingUnfilteredInTheWatcher:
         watcher._apply_unfiltered()
 
         assert load_pending_unfiltered(watcher.dao) == (set(), False)
+
+    def test_a_request_saved_during_the_fetch_is_kept(self):
+        """E.g. the same folder restored again while its first fetch runs."""
+        watcher = self._watcher()
+        watcher.queue_unfiltered("X", ["node-1"])
+
+        def newer_request_meanwhile(*_, **__):
+            add_pending_unfiltered(watcher.dao, ["node-1"])
+            return True
+
+        watcher._scan_remote_recursive.side_effect = newer_request_meanwhile
+
+        watcher._apply_unfiltered()
+
+        assert load_pending_unfiltered(watcher.dao) == ({"node-1"}, False)
+
+    def test_a_request_queued_during_the_fetch_is_fetched_next(self):
+        """Its signal reaches queue_unfiltered() via _interact() mid-walk."""
+        watcher = self._watcher()
+        watcher.queue_unfiltered("X", ["node-1"])
+
+        def queued_meanwhile(*_, **__):
+            watcher.queue_unfiltered("X", ["node-1"])
+            return True
+
+        watcher._scan_remote_recursive.side_effect = queued_meanwhile
+        watcher._apply_unfiltered()
+
+        assert watcher._unfiltered_nodes == {"node-1"}
+        assert load_pending_unfiltered(watcher.dao) == ({"node-1"}, False)
+
+        watcher._scan_remote_recursive.side_effect = None
+        watcher._scan_remote_recursive.return_value = True
+        watcher._apply_unfiltered()
+
+        assert load_pending_unfiltered(watcher.dao) == (set(), False)
+
+    def test_a_request_saved_during_a_reseed_decision_is_kept(self):
+        watcher = self._watcher()
+        watcher.queue_unfiltered("Y", [])
+        real_update = watcher.dao.update_config.side_effect
+
+        def save_meanwhile(key, value):
+            real_update(key, value)
+            if key == CONF_BOOTSTRAPPED_FOR:
+                add_pending_unfiltered(watcher.dao, ["node-9"])
+
+        watcher.dao.update_config.side_effect = save_meanwhile
+
+        watcher._apply_unfiltered()
+
+        assert load_pending_unfiltered(watcher.dao) == ({"node-9"}, False)
+
+    def test_a_partial_walk_keeps_the_request_saved(self):
+        watcher = self._watcher()
+        watcher._scan_remote_recursive.return_value = False
+        watcher.queue_unfiltered("X", ["node-1"])
+
+        watcher._apply_unfiltered()
+
+        assert load_pending_unfiltered(watcher.dao) == ({"node-1"}, False)

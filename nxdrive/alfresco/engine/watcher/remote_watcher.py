@@ -40,9 +40,9 @@ from nxdrive.alfresco.client.remote import NODE_FIELDS
 from nxdrive.alfresco.content_compare import content_matches
 from nxdrive.alfresco.engine.pending_unfiltered import (
     add_pending_unfiltered,
-    clear_pending_unfiltered,
     load_pending_unfiltered,
     remove_pending_unfiltered,
+    snapshot_pending_unfiltered,
 )
 from nxdrive.alfresco.engine.processor import LOCKED_ON_SERVER
 from nxdrive.alfresco.engine.skipped_folders import (
@@ -1260,11 +1260,14 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         """Pull in whatever the widened selection now covers."""
         if self._unfiltered_needs_scan:
             log.debug("Unfiltered content needs a full re-seed")
+            covered = snapshot_pending_unfiltered(self.dao)
             self._unfiltered_needs_scan = False
             self._unfiltered_nodes.clear()
             self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
-            # The re-seed now covers everything that was pending.
-            clear_pending_unfiltered(self.dao)
+            # The re-seed covers what was pending; anything saved since is kept.
+            remove_pending_unfiltered(
+                self.dao, covered.nodes, full_scan=covered.full_scan
+            )
             return
 
         if not self._unfiltered_nodes:
@@ -1275,6 +1278,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         log.debug(f"Resolving {len(node_ids)} unfiltered node(s)")
         for index, node_id in enumerate(node_ids):
             self._interact()
+            # A newer request for the same node, saved during the fetch, gets
+            # a new generation and so survives the removal below.
+            generation = snapshot_pending_unfiltered(self.dao).nodes.get(node_id)
             try:
                 resolved = self._resolve_unfiltered_node(node_id)
             except Exception:
@@ -1285,10 +1291,10 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 self._unfiltered_nodes.update(node_ids[index:])
                 self._next_check = monotonic() + FILTER_RESCAN_DELAY
                 raise
-            if resolved:
-                remove_pending_unfiltered(self.dao, [node_id])
-            else:
+            if not resolved:
                 self._unfiltered_nodes.add(node_id)
+            elif generation is not None:
+                remove_pending_unfiltered(self.dao, {node_id: generation})
 
         if self._unfiltered_nodes:
             log.error(
@@ -1347,6 +1353,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
         # Filtering marked every descendant deleted, so the subtree has to be
         # rebuilt even where an unfinished seed already checkpointed it.
+        # A partial walk is retried as such: a re-seed would skip the folders
+        # an unfinished seed has already checkpointed, and leave the rest of
+        # this subtree missing for good.
         if (
             info.folderish
             and pair
@@ -1354,9 +1363,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         ):
             log.error(
                 f"Subtree of restored {info.path!r} was only partially scanned; "
-                "forcing a re-seed"
+                "it will be walked again"
             )
-            self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
+            return False
 
         return True
 
