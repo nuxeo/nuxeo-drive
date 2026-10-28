@@ -106,6 +106,10 @@ class Engine(QObject):
     authChanged = Signal(str)
     noSpaceLeftOnDevice = Signal()
     invalidAuthentication = Signal()
+    # The first remote pass (which new local files wait for) is blocked, with
+    # the reason; and it has completed after being reported as blocked.
+    firstPassBlocked = Signal(str)
+    firstPassCompleted = Signal()
     newConflict = Signal(object)
     newReadonly = Signal(object, object)
     deleteReadonly = Signal(object)

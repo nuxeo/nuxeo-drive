@@ -23,6 +23,10 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 from alfresco.exceptions import NotFoundError as AlfrescoNotFoundError
 
 from nxdrive.alfresco.content_compare import content_matches, local_head_tail_digest
+from nxdrive.alfresco.engine.skipped_folders import (
+    HELD_UNDER_SKIPPED_FOLDER,
+    find_skipped_ancestor,
+)
 from nxdrive.drive.client.local import FileInfo
 from nxdrive.drive.constants import (
     CONNECTION_ERROR,
@@ -148,6 +152,41 @@ class AlfrescoProcessor(_ProcessorBase):
             incr=self.engine.queue_manager.get_error_threshold() + 1,
         )
         self.engine.queue_manager.push_error(doc_pair, exception=exception)
+
+    def _hold_under_skipped_folder(self, doc_pair: DocPair, /) -> bool:
+        """Keep a local change away from a server folder Drive cannot read.
+
+        Without a listing of that folder, nothing can be checked before an
+        upload, and ``stream_file`` silently replaces a same-named document.
+        So no local change (creation, edit, move, deletion) is sent there:
+        the row is held as an error, out of the queue, and the remote watcher
+        releases it once the folder can be read again
+        (``AlfrescoRemoteWatcher._release_held_pairs``). Retrying it by hand
+        before that only holds it again.
+        """
+        if not doc_pair.pair_state.startswith("locally_"):
+            return False
+        folder = find_skipped_ancestor(self.dao, doc_pair.local_path)
+        if not folder:
+            return False
+
+        threshold = self.engine.queue_manager.get_error_threshold()
+        if (
+            doc_pair.last_error == HELD_UNDER_SKIPPED_FOLDER
+            and doc_pair.error_count > threshold
+        ):
+            return True
+        log.info(
+            f"Holding {doc_pair.pair_state} {doc_pair.local_path!r}: the server "
+            f"folder {folder.local_path!r} cannot be read"
+        )
+        self.dao.increase_error(
+            doc_pair,
+            HELD_UNDER_SKIPPED_FOLDER,
+            details=str(folder.local_path),
+            incr=threshold + 1,
+        )
+        return True
 
     def _refresh_local_state(
         self,
@@ -668,6 +707,9 @@ class AlfrescoProcessor(_ProcessorBase):
     def _handle_doc_pair_sync(
         self, doc_pair: DocPair, sync_handler: Callable, /
     ) -> None:
+        if self._hold_under_skipped_folder(doc_pair):
+            return
+
         self.engine.manager.osi.send_sync_status(
             doc_pair, self.local.abspath(doc_pair.local_path)
         )

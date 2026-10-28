@@ -24,6 +24,7 @@ from time import monotonic, sleep, time
 from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Set
 
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
+from alfresco.exceptions import ForbiddenError
 from alfresco.exceptions import NetworkError as AlfrescoNetworkError
 from alfresco.exceptions import NotFoundError
 from alfresco.models.subscription import Change, ChangeType, SyncState
@@ -38,6 +39,14 @@ from nxdrive.alfresco.client.device_sync import (
 from nxdrive.alfresco.client.remote import NODE_FIELDS
 from nxdrive.alfresco.content_compare import content_matches
 from nxdrive.alfresco.engine.processor import LOCKED_ON_SERVER
+from nxdrive.alfresco.engine.skipped_folders import (
+    HELD_UNDER_SKIPPED_FOLDER,
+    LISTING_FAILED_ERROR,
+    find_skipped_ancestor,
+    load_skipped_folders,
+    save_skipped_folders,
+    skipped_folder_pairs,
+)
 from nxdrive.alfresco.sync_filters import is_top_folder_excluded
 from nxdrive.drive.constants import MAC, ROOT, WINDOWS
 from nxdrive.drive.engine.activity import tooltip
@@ -113,6 +122,25 @@ CHANGE_FAILED_ERROR = "DEVICE_SYNC_CHANGE_FAILED"
 LISTING_RETRIES = 2
 LISTING_RETRY_DELAY = 5.0
 
+#: Poll cycles a folder may fail to list (for a reason other than the
+#: network) before the seed skips it. Without this, one folder that can never
+#: be read keeps the first pass incomplete and holds every new local file back.
+MAX_LISTING_FAILURES = 3
+
+#: Minimum delay between two attempts at reading the skipped folders again.
+SKIPPED_FOLDER_RETRY_INTERVAL = 600.0
+
+#: Failed first passes in a row before the user is told why new local files
+#: are held back. Lets a one-off glitch go by without a notification.
+FIRST_PASS_NOTIFY_AFTER = 2
+
+#: Why a first pass did not complete, as reported to the GUI. Each value maps
+#: to the ``FIRST_PASS_PENDING_<VALUE>`` translation.
+FIRST_PASS_UNAVAILABLE = "unavailable"
+FIRST_PASS_SERVER = "server"
+FIRST_PASS_NETWORK = "network"
+FIRST_PASS_SCAN = "scan"
+
 #: Entries examined per local scan cycle. The sweep resumes where it left
 #: off, so a large workspace no longer keeps the watcher busy for minutes.
 LOCAL_SCAN_CHUNK = 100
@@ -146,6 +174,20 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         #: retried but a permanently broken change is eventually abandoned.
         self._change_failures: Dict[str, int] = {}
 
+        #: Consecutive listing failures per folder node id, and the folders
+        #: skipped once those ran out (retried later, see
+        #: :meth:`_retry_skipped_folders`).
+        self._listing_failures: Dict[str, int] = {}
+        self._skipped_folders: Set[str] = self._load_skipped_folders()
+        self._next_skipped_retry = 0.0
+
+        #: Why the current cycle failed (a ``FIRST_PASS_*`` value, or empty),
+        #: how many first passes failed in a row, and the reason currently
+        #: shown to the user (empty when nothing is shown).
+        self._failure_reason = ""
+        self._first_pass_failures = 0
+        self._first_pass_notice = ""
+
         #: Resumable local sweep. Walking a large workspace in one cycle kept
         #: the watcher busy for minutes, so it advances a chunk at a time.
         self._local_scan_dirs: List[Path] = []
@@ -167,6 +209,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         now = monotonic
         handle_changes = self._handle_changes
         interact = self._interact
+
+        # Every (re)start begins a new first pass, so count its failures anew.
+        self._first_pass_failures = 0
 
         try:
             while "working":
@@ -191,11 +236,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
     def scan_remote(self, *, from_state: Optional[DocPair] = None) -> None:
         """Recursively scan the remote tree below *from_state* (root by default).
 
-        Not part of the polling cycle — Device Sync supplies the delta. This
-        runs once to seed a new subscription (the change feed only reports
-        events *after* the subscription was created) and from
-        ``Engine.rollback_delete()`` when a restored folder needs its subtree
-        repopulated.
+        Not part of the polling cycle — Device Sync supplies the delta. The
+        seed of a new subscription walks the tree through
+        :meth:`_scan_remote_tree` (the change feed only reports events *after*
+        the subscription was created). A folder restored by
+        ``AlfrescoEngine.rollback_delete()`` is fetched through
+        :meth:`queue_unfiltered` instead, on this thread.
         """
         self._scan_remote_tree(from_state=from_state)
 
@@ -239,6 +285,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             log.warning(
                 "Remote scan failed due to network error, will retry", exc_info=True
             )
+            self._failure_reason = FIRST_PASS_NETWORK
             return False
         except Exception:
             log.warning("Remote scan failed unexpectedly", exc_info=True)
@@ -305,10 +352,18 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             child.remote_ref: child for child in db_children
         }
 
-        nodes = self._list_children(remote, remote_info)
+        nodes = None
+        try:
+            nodes = self._list_children(remote, remote_info)
+        except (ThreadInterrupt, AlfrescoAuthError):
+            raise
+        except Exception as exc:
+            if self._give_up_on_folder(doc_pair, remote_info, exc):
+                return True
         if nodes is None:
             self.dao.add_path_to_scan(remote_info.uid)
             return False
+        self._listing_failures.pop(remote_info.uid, None)
 
         to_scan: List[tuple] = []
 
@@ -344,10 +399,17 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         if complete:
             self.dao.add_path_scanned(remote_info.uid)
             self.dao.delete_path_to_scan(remote_info.uid)
+            self._forget_skipped(remote_info.uid, doc_pair)
         return complete
 
     def _list_children(self, remote: Any, remote_info: RemoteFileInfo, /) -> Any:
-        """List a folder's children, or ``None`` once the retries are spent."""
+        """List a folder's children.
+
+        Returns ``None`` once the network retries are spent, so the folder is
+        retried on the next cycle. A folder that no longer exists yields no
+        children. Any other error is raised for the caller to count, see
+        :meth:`_give_up_on_folder`.
+        """
         for attempt in range(LISTING_RETRIES + 1):
             try:
                 return list(
@@ -363,20 +425,177 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                     exc_info=True,
                 )
                 sleep(LISTING_RETRY_DELAY)
-            except AlfrescoAuthError:
-                # Returning None here would only mark the seed incomplete, so
-                # the watcher would retry forever without ever telling the user
-                # their credentials expired.
-                raise
-            except Exception:
-                log.exception(f"Error listing children of {remote_info.name!r}")
-                return None
+            except NotFoundError:
+                # Deleted since its parent was listed; the change feed reports
+                # the deletion itself.
+                log.warning(
+                    f"{remote_info.name!r} no longer exists on the server, skipping it"
+                )
+                return []
 
         log.error(
             f"Giving up listing children of {remote_info.name!r}; "
             "it will be retried on the next cycle"
         )
+        self._failure_reason = FIRST_PASS_NETWORK
         return None
+
+    # -- Unreadable folders --------------------------------------------------
+
+    def _give_up_on_folder(
+        self, doc_pair: DocPair, remote_info: RemoteFileInfo, exc: Exception, /
+    ) -> bool:
+        """Count a failed listing; return whether the folder was skipped.
+
+        A folder we are not allowed to open is skipped straight away, as
+        retrying cannot help. Other errors are retried for
+        :data:`MAX_LISTING_FAILURES` cycles first. The sync root is never
+        skipped: that would complete the first pass with no remote view.
+
+        Skipping marks the folder as walked, so the seed can complete. Its
+        existing rows are left untouched (an empty listing would delete them),
+        the folder is listed as an error for the user, and it is read again
+        later by :meth:`_retry_skipped_folders`.
+        """
+        uid = remote_info.uid
+        name = remote_info.name
+        failures = self._listing_failures.get(uid, 0) + 1
+        self._listing_failures[uid] = failures
+        forbidden = isinstance(exc, ForbiddenError)
+
+        if doc_pair.local_path == ROOT:
+            log.error(f"Could not list the sync root {name!r}", exc_info=exc)
+            return False
+
+        if not forbidden and failures < MAX_LISTING_FAILURES:
+            log.warning(
+                f"Could not list children of {name!r} (attempt {failures}/"
+                f"{MAX_LISTING_FAILURES}), retrying on the next cycle",
+                exc_info=exc,
+            )
+            return False
+
+        reason = (
+            "Not allowed to read this folder"
+            if forbidden
+            else f"Could not read this folder after {failures} attempts: {exc}"
+        )
+        log.error(
+            f"Skipping {name!r} so the rest of the content can be synced: {reason}",
+            exc_info=exc,
+        )
+        self._listing_failures.pop(uid, None)
+        if uid not in self._skipped_folders:
+            self._skipped_folders.add(uid)
+            self._save_skipped_folders()
+        self.dao.add_path_scanned(uid)
+        self.dao.delete_path_to_scan(uid)
+        self._report_listing_failure(doc_pair, reason)
+        return True
+
+    def _report_listing_failure(self, pair: DocPair, reason: str, /) -> None:
+        """List a skipped folder in the systray errors, once."""
+        if pair.last_error == LISTING_FAILED_ERROR:
+            return
+        threshold = self.engine.queue_manager.get_error_threshold()
+        self.dao.increase_error(
+            pair, LISTING_FAILED_ERROR, details=reason, incr=threshold + 1
+        )
+        self.engine.queue_manager.push_error(pair)
+
+    def _forget_skipped(self, uid: str, pair: Optional[DocPair], /) -> None:
+        """Drop *uid* from the skipped folders, clear its error and release
+        the local changes held under it."""
+        if uid not in self._skipped_folders:
+            return
+        self._skipped_folders.discard(uid)
+        self._save_skipped_folders()
+        if pair is not None:
+            log.info(
+                f"Skipped folder {pair.local_path!r} does not need a retry anymore"
+            )
+            if pair.last_error == LISTING_FAILED_ERROR:
+                self.dao.reset_error(pair)
+        self._release_held_pairs()
+
+    def _release_held_pairs(self) -> None:
+        """Send back to the queue the held local changes no longer under a skipped folder.
+
+        Those still under one stay held: the processor would only hold them
+        again. Runs whenever a folder is forgotten and on every retry
+        interval, which also catches an item held just as its folder was
+        released, or left over from before a restart.
+        """
+        held = self.dao.get_states_with_error(HELD_UNDER_SKIPPED_FOLDER)
+        if not held:
+            return
+        folders = skipped_folder_pairs(self.dao, uids=self._skipped_folders)
+        for pair in held:
+            if find_skipped_ancestor(self.dao, pair.local_path, folders=folders):
+                continue
+            log.info(
+                f"Releasing {pair.local_path!r}, its server folder can be read again"
+            )
+            self.dao.reset_error(pair)
+
+    def _load_skipped_folders(self) -> Set[str]:
+        return load_skipped_folders(self.dao)
+
+    def _save_skipped_folders(self) -> None:
+        save_skipped_folders(self.dao, self._skipped_folders)
+
+    def _retry_skipped_folders(self) -> None:
+        """Try again to read the folders a seed had to skip.
+
+        Runs at most every :data:`SKIPPED_FOLDER_RETRY_INTERVAL` seconds and
+        never decides whether the first pass is complete: skipping exists
+        precisely so one unreadable folder stops holding back new local files.
+        The change feed never replays content that already existed, so this
+        walk is the only way to fetch what those folders hold.
+
+        Local changes held under a folder that is readable again are then
+        released; those under a folder that still fails stay held until the
+        next attempt.
+        """
+        if monotonic() < self._next_skipped_retry:
+            return
+        self._next_skipped_retry = monotonic() + SKIPPED_FOLDER_RETRY_INTERVAL
+
+        remote = self.engine.remote
+        for uid in sorted(self._skipped_folders):
+            self._interact()
+
+            pair = self.dao.get_normal_state_from_remote(uid)
+            if not pair:
+                log.debug(f"Skipped folder {uid!r} is not synced anymore")
+                self._forget_skipped(uid, None)
+                continue
+
+            try:
+                node = remote.get_node(uid, include=NODE_FIELDS)
+                info = remote._node_to_remote_file_info(node)
+                if self._is_filtered_path(info.path):
+                    self._forget_skipped(uid, pair)
+                    continue
+                # One more failure skips it again straight away.
+                self._listing_failures[uid] = MAX_LISTING_FAILURES - 1
+                if not self._scan_remote_recursive(pair, info, force=True):
+                    log.info(
+                        f"Skipped folder {pair.local_path!r} was only partly read, "
+                        "it will be retried"
+                    )
+            except NotFoundError:
+                # Deleted on the server; the change feed removes it locally.
+                self._forget_skipped(uid, pair)
+            except (ThreadInterrupt, AlfrescoAuthError):
+                raise
+            except Exception:
+                log.warning(
+                    f"Skipped folder {pair.local_path!r} still cannot be read",
+                    exc_info=True,
+                )
+
+        self._release_held_pairs()
 
     # -- Shared reconcile logic ----------------------------------------------
 
@@ -836,6 +1055,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             if first_pass:
                 if succeeded:
                     self.first_pass_done = True
+                self._update_first_pass_notice(succeeded)
                 self.initiate.emit()
             else:
                 self.updated.emit()
@@ -843,7 +1063,35 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 # return values, breaking the signal-based path.
                 self.engine._check_last_sync()
 
+    def _update_first_pass_notice(self, succeeded: bool, /) -> None:
+        """Tell the user why new local files are held back, or that they no longer are.
+
+        New local files wait for the first pass (see
+        ``Processor._ensure_remote_first_pass``), and every failure that keeps
+        it from completing was otherwise only logged. Login problems are left
+        out: they have their own notification.
+        """
+        if succeeded:
+            self._first_pass_failures = 0
+            if self._first_pass_notice:
+                self._first_pass_notice = ""
+                self.engine.firstPassCompleted.emit()
+            return
+
+        self._first_pass_failures += 1
+        reason = self._failure_reason
+        if (
+            not reason
+            or self._first_pass_failures < FIRST_PASS_NOTIFY_AFTER
+            or reason == self._first_pass_notice
+        ):
+            return
+        log.warning(f"New local files are held back, first pass blocked by: {reason}")
+        self._first_pass_notice = reason
+        self.engine.firstPassBlocked.emit(reason)
+
     def _do_handle_changes(self, first_pass: bool, /) -> bool:
+        self._failure_reason = ""
         remote = self.engine.remote
         if not remote:
             log.warning("No remote client available, skipping poll")
@@ -876,22 +1124,36 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             # Widening the selection exposes content the feed never mentions.
             self._apply_unfiltered()
 
+            # Folders a seed had to skip; never holds the first pass back.
+            self._retry_skipped_folders()
+
             drained = self._poll_device_sync()
             completed = seeded and drained
+            if not completed and not self._failure_reason:
+                self._failure_reason = (
+                    FIRST_PASS_SCAN if not seeded else FIRST_PASS_SERVER
+                )
         except ThreadInterrupt:  # Cooperative shutdown from _interact(), not a failure.
             raise
         except AlfrescoAuthError:
             log.warning("Change poll failed, credentials are invalid", exc_info=True)
+            # Has its own notification, see InvalidCredentialNotification.
+            self._failure_reason = ""
             self.engine.set_invalid_credentials(
                 reason="Device Sync poll failed — re-login required"
             )
             self.updated.emit()
             return False
-        except Exception:
+        except Exception as exc:
             # Not an auth error, so do NOT push the user through a
             # re-authentication cycle: the banner is misleading and blocks
             # recovery on the next poll.
             log.exception("Change poll failed unexpectedly")
+            self._failure_reason = (
+                FIRST_PASS_NETWORK
+                if isinstance(exc, (AlfrescoNetworkError, OSError))
+                else FIRST_PASS_SERVER
+            )
             self.updated.emit()
             return False
 
@@ -947,7 +1209,8 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
     @Slot(str, object)
     def queue_unfiltered(self, remote_path: str, node_ids: List[str], /) -> None:
-        """Record nodes whose filter was just lifted.
+        """Record nodes whose filter was just lifted, or whose local deletion
+        was rolled back (``AlfrescoEngine.rollback_delete``).
 
         Un-filtering exposes content that already exists on the server, so the
         change feed has nothing to report — we have to go and fetch it. With a
@@ -1106,6 +1369,12 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 "Device Sync provisioning failed — no changes will be "
                 "detected this cycle"
             )
+            if self._provisioner.amp_missing is True:
+                self._failure_reason = FIRST_PASS_UNAVAILABLE
+            elif self._provisioner.network_error is True:
+                self._failure_reason = FIRST_PASS_NETWORK
+            else:
+                self._failure_reason = FIRST_PASS_SERVER
             return False
 
         return True

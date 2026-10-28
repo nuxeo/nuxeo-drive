@@ -41,6 +41,12 @@ def _watcher():
     watcher.dao = dao
     watcher._interact = MagicMock()
     watcher._change_failures = {}
+    watcher._listing_failures = {}
+    watcher._skipped_folders = set()
+    watcher._next_skipped_retry = 0.0
+    watcher._failure_reason = ""
+    watcher._first_pass_failures = 0
+    watcher._first_pass_notice = ""
     # Left as a MagicMock this reads as a float, so the keepalive would always
     # look due and the idle-batch branch would never be exercised.
     dao.get_config.return_value = None

@@ -37,6 +37,12 @@ def _watcher():
     watcher._local_scan_dirs = []
     watcher._local_scan_seen = set()
     watcher._local_scan_deletions = []
+    watcher._listing_failures = {}
+    watcher._skipped_folders = set()
+    watcher._next_skipped_retry = 0.0
+    watcher._failure_reason = ""
+    watcher._first_pass_failures = 0
+    watcher._first_pass_notice = ""
     watcher.first_pass_done = False
     return watcher
 

@@ -1275,6 +1275,12 @@ class EngineDAO(BaseDAO):
             "SELECT * FROM States WHERE error_count > ?", (limit,)
         ).fetchall()
 
+    def get_states_with_error(self, error: str, /) -> DocPairs:
+        c = self._get_read_connection().cursor()
+        return c.execute(
+            "SELECT * FROM States WHERE last_error = ?", (error,)
+        ).fetchall()
+
     def get_local_children(self, path: Path, /) -> DocPairs:
         c = self._get_read_connection().cursor()
         return c.execute(

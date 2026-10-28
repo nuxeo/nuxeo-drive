@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from nxdrive.alfresco.engine.engine import AlfrescoEngine
+from nxdrive.alfresco.engine.skipped_folders import CONF_SKIPPED_FOLDERS
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.objects import Binder
 
@@ -135,7 +136,9 @@ class TestStartCleanup:
         engine._cleanup_after_sync_disabled()
         engine.dao.reinit_states.assert_called_once()
         assert engine.dao.remove_filter.call_count == 2
-        engine.dao.delete_config.assert_called_with("filters_configured")
+        engine.dao.delete_config.assert_any_call("filters_configured")
+        # The skipped folders pointed at rows that are gone now.
+        engine.dao.delete_config.assert_any_call(CONF_SKIPPED_FOLDERS)
         engine.syncStateCleared.emit.assert_called_once()
 
     def test_cleanup_handles_reinit_failure(self):
@@ -144,7 +147,7 @@ class TestStartCleanup:
         engine.dao.get_filters.return_value = []
         # Should not raise
         engine._cleanup_after_sync_disabled()
-        engine.dao.delete_config.assert_called_with("filters_configured")
+        engine.dao.delete_config.assert_any_call("filters_configured")
 
 
 # ------------------------------------------------------------------ open-file permission
@@ -913,3 +916,59 @@ class TestUnfilteredHandoff:
             engine.remove_filter("/Company Home/demo")
 
         engine._unfiltered.emit.assert_called_once_with("/Company Home/demo", [])
+
+
+# ------------------------------------------------------------------ rollback of a local deletion
+
+
+class TestRollbackDelete:
+    """Runs on the GUI thread, so a folder's content is left to the watcher."""
+
+    def _engine(self, pair):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine._remote_watcher = MagicMock()
+        engine.dao.get_state_from_local.return_value = pair
+        return engine
+
+    def test_folder_content_is_fetched_by_the_remote_watcher(self):
+        pair = MagicMock(folderish=True, remote_ref="node-1")
+        engine = self._engine(pair)
+        calls = []
+        engine.dao.remove_state_children.side_effect = lambda *_: calls.append("rm")
+        engine.dao.force_remote_creation.side_effect = lambda *_: calls.append("dl")
+        engine._unfiltered.emit.side_effect = lambda *_: calls.append("fetch")
+
+        engine.rollback_delete(Path("X"))
+
+        engine.dao.remove_state_children.assert_called_once_with(pair)
+        engine.dao.force_remote_creation.assert_called_once_with(pair)
+        engine._unfiltered.emit.assert_called_once_with("X", ["node-1"])
+        assert calls == ["rm", "dl", "fetch"]
+        # Never walked here, on the GUI thread.
+        engine._remote_watcher.scan_remote.assert_not_called()
+
+    def test_folder_without_node_id_asks_for_a_full_reseed(self):
+        engine = self._engine(MagicMock(folderish=True, remote_ref=""))
+
+        engine.rollback_delete(Path("X"))
+
+        engine._unfiltered.emit.assert_called_once_with("X", [])
+
+    def test_file_is_only_downloaded_again(self):
+        pair = MagicMock(folderish=False, remote_ref="node-1")
+        engine = self._engine(pair)
+
+        engine.rollback_delete(Path("X/doc.txt"))
+
+        engine.dao.remove_state_children.assert_not_called()
+        engine.dao.force_remote_creation.assert_called_once_with(pair)
+        engine._unfiltered.emit.assert_not_called()
+
+    def test_unknown_document_is_ignored(self):
+        engine = self._engine(None)
+
+        engine.rollback_delete(Path("X"))
+
+        engine.dao.force_remote_creation.assert_not_called()
+        engine._unfiltered.emit.assert_not_called()

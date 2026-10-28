@@ -15,6 +15,7 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 """
 
 from logging import getLogger
+from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Dict, Optional, Type
 from urllib.parse import urlsplit
@@ -34,6 +35,7 @@ from nxdrive.alfresco.engine.processor import (
     REMOTE_DRIFTED,
     AlfrescoProcessor,
 )
+from nxdrive.alfresco.engine.skipped_folders import CONF_SKIPPED_FOLDERS
 from nxdrive.alfresco.engine.watcher.remote_watcher import (
     DEVICE_OS,
     AlfrescoRemoteWatcher,
@@ -318,6 +320,12 @@ class AlfrescoEngine(Engine):
         except Exception:
             log.warning("Failed to clear filters_configured flag", exc_info=True)
 
+        # The rows they pointed to are gone with the States table.
+        try:
+            self.dao.delete_config(CONF_SKIPPED_FOLDERS)
+        except Exception:
+            log.warning("Failed to clear the skipped folders", exc_info=True)
+
         # Tell the GUI to drop any cached views (Recently Synchronised
         # list, conflicts/errors/ignoreds panels, syncing counter) that
         # still reference the rows we just deleted.  Emitted last so
@@ -328,6 +336,30 @@ class AlfrescoEngine(Engine):
             log.warning("Failed to emit syncStateCleared signal", exc_info=True)
 
     # -- Account removal -----------------------------------------------------
+
+    def rollback_delete(self, path: Path, /) -> None:
+        """Restore a document whose local deletion the user cancelled.
+
+        Same as the base class, except that a folder's content is fetched by
+        the remote watcher on its own thread, like a folder brought back into
+        the sync selection (see :meth:`remove_filter`). This is called from
+        the GUI thread (``Application._doc_deleted``), and walking the folder
+        here froze the window, kept a login error from reaching the re-login
+        prompt, left a partial walk unfinished and touched the watcher's state
+        from two threads. The watcher retries a failed fetch and falls back to
+        a full re-seed when the walk is only partial.
+        """
+        doc_pair = self.dao.get_state_from_local(path)
+        if not doc_pair:
+            log.info(f"Unable to rollback delete on non-existent doc {path}")
+            return
+        if doc_pair.folderish:
+            self.dao.remove_state_children(doc_pair)
+        self.dao.force_remote_creation(doc_pair)
+        if doc_pair.folderish:
+            # Without a node id, only a full re-seed can find the content.
+            node_ids = [doc_pair.remote_ref] if doc_pair.remote_ref else []
+            self._unfiltered.emit(str(path), node_ids)
 
     def unbind(self) -> None:
         """Release the Device Sync registration before the account is dropped.
