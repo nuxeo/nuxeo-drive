@@ -23,6 +23,7 @@ from alfresco.exceptions import NotFoundError, ServerError
 
 from nxdrive.alfresco.client.device_sync import (
     CONF_BOOTSTRAPPED_FOR,
+    CONF_SEEDING_FOR,
     DeviceSyncProvisioner,
 )
 from nxdrive.alfresco.engine.pending_unfiltered import (
@@ -55,6 +56,7 @@ from nxdrive.alfresco.engine.watcher.remote_watcher import (
     AlfrescoRemoteWatcher,
 )
 from nxdrive.drive.constants import ROOT
+from nxdrive.drive.exceptions import ThreadInterrupt
 from nxdrive.drive.notification import (
     DefaultNotificationService,
     FirstPassPendingNotification,
@@ -1306,3 +1308,82 @@ class TestPendingUnfilteredInTheWatcher:
         watcher._apply_unfiltered()
 
         assert load_pending_unfiltered(watcher.dao) == ({"node-1"}, False)
+
+
+# -- PR review: full re-seed and DB failures in _apply_unfiltered ----------------
+
+
+class TestApplyUnfilteredRobustness:
+    def _watcher(self):
+        return TestPendingUnfilteredInTheWatcher()._watcher()
+
+    def test_a_full_reseed_drops_the_unfinished_seed_checkpoints(self):
+        """Else the re-seed skips restored folders an unfinished seed walked."""
+        watcher = self._watcher()
+        watcher.store[CONF_SEEDING_FOR] = "subscription-1"
+        watcher.store[CONF_BOOTSTRAPPED_FOR] = "subscription-1"
+        watcher.queue_unfiltered("X", ["node-1"])
+        watcher.queue_unfiltered("Y", [])
+
+        watcher._apply_unfiltered()
+
+        assert watcher.store[CONF_SEEDING_FOR] is None
+        assert watcher.store[CONF_BOOTSTRAPPED_FOR] is None
+        assert load_pending_unfiltered(watcher.dao) == (set(), False)
+
+    def test_a_failed_reseed_write_keeps_it_pending(self):
+        watcher = self._watcher()
+        watcher.queue_unfiltered("X", ["node-1"])
+        watcher.queue_unfiltered("Y", [])
+        watcher.dao.update_config.side_effect = RuntimeError("db locked")
+
+        with pytest.raises(RuntimeError):
+            watcher._apply_unfiltered()
+
+        assert watcher._unfiltered_needs_scan is True
+        assert watcher._unfiltered_nodes == {"node-1"}
+
+    @pytest.mark.parametrize("failing", ["read", "remove"])
+    def test_a_db_error_puts_the_unfinished_nodes_back(self, failing):
+        watcher = self._watcher()
+        watcher.queue_unfiltered("X", ["node-1", "node-2"])
+        real_get = watcher.dao.get_config.side_effect
+        real_update = watcher.dao.update_config.side_effect
+
+        if failing == "read":
+
+            def get_config(key, default=None):
+                raise RuntimeError("db locked")
+
+            watcher.dao.get_config.side_effect = get_config
+        else:
+
+            def update_config(key, value):
+                raise RuntimeError("db locked")
+
+            watcher.dao.update_config.side_effect = update_config
+
+        with pytest.raises(RuntimeError):
+            watcher._apply_unfiltered()
+
+        assert watcher._unfiltered_nodes == {"node-1", "node-2"}
+        assert watcher._next_check > 0
+
+        # Once the DB is back, the next cycle finishes the job.
+        watcher.dao.get_config.side_effect = real_get
+        watcher.dao.update_config.side_effect = real_update
+        watcher._apply_unfiltered()
+
+        assert not watcher._unfiltered_nodes
+        assert load_pending_unfiltered(watcher.dao) == (set(), False)
+
+    def test_a_stop_request_puts_the_unfinished_nodes_back(self):
+        watcher = self._watcher()
+        watcher.queue_unfiltered("X", ["node-1", "node-2"])
+        watcher._interact.side_effect = [None, ThreadInterrupt()]
+
+        with pytest.raises(ThreadInterrupt):
+            watcher._apply_unfiltered()
+
+        assert watcher._unfiltered_nodes == {"node-2"}
+        assert load_pending_unfiltered(watcher.dao) == ({"node-2"}, False)

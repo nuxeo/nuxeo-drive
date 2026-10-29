@@ -1261,13 +1261,19 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         if self._unfiltered_needs_scan:
             log.debug("Unfiltered content needs a full re-seed")
             covered = snapshot_pending_unfiltered(self.dao)
-            self._unfiltered_needs_scan = False
-            self._unfiltered_nodes.clear()
             self.dao.update_config(CONF_BOOTSTRAPPED_FOR, None)
+            # An unfinished seed's checkpoints would let the re-seed skip the
+            # folders whose rows were just dropped (restored or unfiltered
+            # ones), and their content would stay missing for good. Without
+            # this, the re-seed starts over and walks everything.
+            self.dao.update_config(CONF_SEEDING_FOR, None)
             # The re-seed covers what was pending; anything saved since is kept.
             remove_pending_unfiltered(
                 self.dao, covered.nodes, full_scan=covered.full_scan
             )
+            # Only once the DB agrees: a failed write leaves this to retry.
+            self._unfiltered_needs_scan = False
+            self._unfiltered_nodes.clear()
             return
 
         if not self._unfiltered_nodes:
@@ -1277,24 +1283,25 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         self._unfiltered_nodes.clear()
         log.debug(f"Resolving {len(node_ids)} unfiltered node(s)")
         for index, node_id in enumerate(node_ids):
-            self._interact()
-            # A newer request for the same node, saved during the fetch, gets
-            # a new generation and so survives the removal below.
-            generation = snapshot_pending_unfiltered(self.dao).nodes.get(node_id)
             try:
+                self._interact()
+                # A newer request for the same node, saved during the fetch,
+                # gets a new generation and so survives the removal below.
+                generation = snapshot_pending_unfiltered(self.dao).nodes.get(node_id)
                 resolved = self._resolve_unfiltered_node(node_id)
+                if not resolved:
+                    self._unfiltered_nodes.add(node_id)
+                elif generation is not None:
+                    remove_pending_unfiltered(self.dao, {node_id: generation})
             except Exception:
-                # An auth failure (or a shutdown) aborts the loop, so put back
-                # this id and every one still untouched: the change feed never
-                # replays already-existing content, and a dropped id is the
-                # only handle we have on it.
+                # An auth failure, a shutdown or a DB error aborts the loop, so
+                # put back this id and every one still untouched: the change
+                # feed never replays already-existing content, and a dropped
+                # id is the only handle we have on it. Fetching one again is
+                # harmless.
                 self._unfiltered_nodes.update(node_ids[index:])
                 self._next_check = monotonic() + FILTER_RESCAN_DELAY
                 raise
-            if not resolved:
-                self._unfiltered_nodes.add(node_id)
-            elif generation is not None:
-                remove_pending_unfiltered(self.dao, {node_id: generation})
 
         if self._unfiltered_nodes:
             log.error(
