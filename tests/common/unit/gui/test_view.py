@@ -247,7 +247,8 @@ class TestEngineModel:
         mock_engine.syncStarted.connect.assert_called_once()
         mock_engine.syncSuspended.connect.assert_called_once()
         mock_engine.uiChanged.connect.assert_called_once()
-        mock_engine.authChanged.connect.assert_called_once()
+        # Relayed to QML, and to the systray banner (e.g. a refused re-login).
+        assert mock_engine.authChanged.connect.call_count == 2
 
     def test_relay_engine_events(self, mock_application, mock_engine):
         """Test _relay_engine_events emits statusChanged signal."""

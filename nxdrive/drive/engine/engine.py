@@ -132,6 +132,9 @@ class Engine(QObject):
 
     type = "NXDRIVE"
     _folder_lock: Optional[Path] = None
+    #: The last re-login attempt was refused (wrong password). Shown instead of
+    #: the plain "Authentication expired" until a re-login succeeds.
+    _relogin_failed = False
 
     # ------------------------------------------------------------------ __init__
     def __init__(
@@ -781,6 +784,8 @@ class Engine(QObject):
     def set_invalid_credentials(
         self, *, value: bool = True, reason: str = None
     ) -> None:
+        if not value:
+            self._relogin_failed = False
         changed = self._invalid_credentials is not value
         self._invalid_credentials = value
         if not changed:
@@ -795,6 +800,16 @@ class Engine(QObject):
 
     def has_invalid_credentials(self) -> bool:
         return self._invalid_credentials
+
+    def set_relogin_failed(self, value: bool = True, /) -> None:
+        """Record whether the last re-login attempt was refused."""
+        if self._relogin_failed is value:
+            return
+        self._relogin_failed = value
+        self.authChanged.emit(self.uid)
+
+    def has_relogin_failed(self) -> bool:
+        return self._relogin_failed
 
     def is_auth_error(self, exc: BaseException, /) -> bool:
         """Return whether *exc* means the server no longer accepts our login.

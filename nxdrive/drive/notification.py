@@ -524,6 +524,30 @@ class InvalidCredentialNotification(Notification):
         )
 
 
+class ReloginFailedNotification(Notification):
+    """The password given to log back in was refused."""
+
+    def __init__(self, engine_uid: str, username: str, /) -> None:
+        super().__init__(
+            uid="RELOGIN_FAILED",
+            title=Translator.get("RELOGIN_FAILED"),
+            description=Translator.get(
+                "RELOGIN_FAILED_DESCRIPTION", values=[username or ""]
+            ),
+            engine_uid=engine_uid,
+            level=Notification.LEVEL_ERROR,
+            flags=(
+                Notification.FLAG_UNIQUE
+                | Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_ACTIONABLE
+                | Notification.FLAG_SYSTRAY
+            ),
+            action="web_update_token",
+            action_args=(engine_uid,),
+        )
+
+
 class FirstPassPendingNotification(Notification):
     """New local files wait for the first remote pass; say why it is blocked."""
 

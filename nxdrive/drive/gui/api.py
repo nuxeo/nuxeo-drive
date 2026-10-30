@@ -17,8 +17,10 @@ from urllib.parse import urlencode, urlparse, urlsplit, urlunsplit
 import requests
 from urllib3.exceptions import LocationParseError
 
+from nxdrive.drive import server_type as _st
 from nxdrive.drive import server_type as st
 from nxdrive.drive.auth import Token, get_auth
+from nxdrive.drive.auth.oauth2 import OAuthenticationBase
 from nxdrive.drive.client.proxy import get_proxy
 from nxdrive.drive.constants import (
     APP_NAME,
@@ -27,6 +29,7 @@ from nxdrive.drive.constants import (
     TransferStatus,
 )
 from nxdrive.drive.dao.engine import EngineDAO
+from nxdrive.drive.engine.engine import Engine
 from nxdrive.drive.exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,
@@ -44,7 +47,7 @@ from nxdrive.drive.exceptions import (
     StartupPageConnectionError,
 )
 from nxdrive.drive.feature import Feature
-from nxdrive.drive.notification import Notification
+from nxdrive.drive.notification import Notification, ReloginFailedNotification
 from nxdrive.drive.objects import Binder, DocPair
 from nxdrive.drive.options import Options
 from nxdrive.drive.qt import constants as qt
@@ -62,9 +65,6 @@ from nxdrive.drive.utils import (
     sizeof_fmt,
     test_url,
 )
-from nxdrive.drive import server_type as _st
-from nxdrive.drive.auth.oauth2 import OAuthenticationBase
-from nxdrive.drive.engine.engine import Engine
 
 if TYPE_CHECKING:
     from nxdrive.drive.gui.application import Application  # noqa
@@ -1200,13 +1200,48 @@ class QMLDriveApi(QObject):
 
         try:
             engine_config.relogin_handler(engine, password)
-        except Exception:
-            log.warning("Re-login failed", exc_info=True)
-            self.setMessage.emit("AUTH_EXPIRED", "error")
+        except Exception as exc:
+            if self._is_login_error(engine, exc):
+                # Expected (a typo), and reported to the user below: no traceback.
+                log.warning(f"Re-login refused for {engine.remote_user!r}: {exc}")
+                self._report_relogin_refused(engine)
+            else:
+                log.warning("Re-login failed", exc_info=True)
+                self.setMessage.emit("AUTH_EXPIRED", "error")
         else:
+            self._manager.notification_service.discard_notification(
+                f"RELOGIN_FAILED_{engine.uid}"
+            )
             self.application.set_icon_state("idle")
             self.application.show_settings("Accounts")
             self.setMessage.emit("CONNECTION_SUCCESS", "success")
+
+    @staticmethod
+    def _is_login_error(engine: Any, exc: Exception, /) -> bool:
+        """Whether *exc* means the server refused the credentials."""
+        is_auth_error = getattr(engine, "is_auth_error", None)
+        try:
+            return callable(is_auth_error) and is_auth_error(exc) is True
+        except Exception:
+            return False
+
+    def _report_relogin_refused(self, engine: Any, /) -> None:
+        """Tell the user the password was refused, the way an expiry is told.
+
+        A red banner in the systray and in the Accounts settings (both read
+        ``has_relogin_failed()``), a red notification that reopens the
+        password prompt, and the settings alert.
+        """
+        engine.set_relogin_failed(True)
+        self._manager.notification_service.send_notification(
+            ReloginFailedNotification(engine.uid, engine.remote_user)
+        )
+        self.setMessage.emit("RELOGIN_WRONG_PASSWORD", "error")
+
+    @Slot(str, result=bool)
+    def has_relogin_failed(self, uid: str, /) -> bool:
+        engine = self._get_engine(uid)
+        return bool(engine and engine.has_relogin_failed())
 
     @Slot(str, str, str, str)
     def oauth2_password_auth(

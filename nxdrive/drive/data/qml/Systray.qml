@@ -344,7 +344,7 @@ Rectangle {
         SystrayStatus {
             id: errorState
             state: ""  // no errors/conflicts
-            visible: state != "" && (state == "auth_expired" || (ConflictsModel.count + ErrorsModel.count) > 0)
+            visible: state != "" && (state == "auth_expired" || state == "relogin_failed" || (ConflictsModel.count + ErrorsModel.count) > 0)
             textColor: lightTheme
             icon: MdiFont.Icon.alert
 
@@ -365,6 +365,19 @@ Rectangle {
                         color: errorContent
                         text: qsTr("AUTH_EXPIRED") + tl.tr
                         subText: qsTr("AUTH_UPDATE_ACTION") + tl.tr
+                        onClicked: {
+                            var engineUid = api.get_invalid_credentials_engine_uid()
+                            api.web_update_token(engineUid != "" ? engineUid : accountSelect.getRole("uid"))
+                        }
+                    }
+                },
+                State {
+                    name: "relogin_failed"
+                    PropertyChanges {
+                        target: errorState
+                        color: errorContent
+                        text: qsTr("RELOGIN_FAILED") + tl.tr
+                        subText: qsTr("RELOGIN_RETRY_ACTION") + tl.tr
                         onClicked: {
                             var engineUid = api.get_invalid_credentials_engine_uid()
                             api.web_update_token(engineUid != "" ? engineUid : accountSelect.getRole("uid"))
