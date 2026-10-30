@@ -2693,6 +2693,7 @@ class TestQMLDriveApiJsonDefault:
 
             # Set callback_params to test token update path
             self.api.callback_params = {"engine": "test_engine"}
+            self.mock_manager.engines = {"test_engine": Mock(remote_user="testuser")}
 
             query = {"state": "test_state", "code": "auth_code"}
             self.api.continue_oauth2_flow(query)
@@ -2950,7 +2951,7 @@ class TestQMLDriveApiJsonDefault:
 
             # Verify logging for account creation start
             mock_log.info.assert_any_call(
-                "Creating new account [local_folder='/test/local/folder', "
+                "Creating new account [local_folder='*********/folder', "
                 "server_url='https://test.server.com#NXDRIVE', username='testuser@example.com']"
             )
 
@@ -2990,7 +2991,7 @@ class TestQMLDriveApiJsonDefault:
 
             # Verify logging for account creation start with custom engine type
             mock_log.info.assert_any_call(
-                "Creating new account [local_folder='/test/local/folder', "
+                "Creating new account [local_folder='*********/folder', "
                 "server_url='https://test.server.com#CUSTOM_TYPE', username='user@domain.com']"
             )
 
@@ -3029,14 +3030,15 @@ class TestQMLDriveApiJsonDefault:
 
             # Verify info logging for account creation start
             mock_log.info.assert_called_once_with(
-                "Creating new account [local_folder='/error/folder', "
+                "Creating new account [local_folder='*********/folder', "
                 "server_url='https://error.server.com#ERROR_TYPE', username='erroruser']"
             )
 
             # Verify exception logging with proper message and variables
             mock_log.exception.assert_called_once_with(
                 "Unexpected error while trying to create a new account "
-                "[local_folder='/error/folder', server_url='https://error.server.com#ERROR_TYPE', username='erroruser']"
+                "[local_folder='*********/folder', "
+                "server_url='https://error.server.com#ERROR_TYPE', username='erroruser']"
             )
 
         # Test with missing callback parameters (exposes UnboundLocalError bug in original code)
@@ -3112,7 +3114,7 @@ class TestQMLDriveApiJsonDefault:
 
             # Verify proper logging with dict token reference
             mock_log.info.assert_any_call(
-                "Creating new account [local_folder='/dict/token/folder', "
+                "Creating new account [local_folder='*********/folder', "
                 "server_url='https://dict.token.server.com#DICT_ENGINE', username='dicttokenuser']"
             )
 
@@ -3146,7 +3148,7 @@ class TestQMLDriveApiJsonDefault:
 
             # Verify logging handles special characters correctly
             expected_log_message = (
-                "Creating new account [local_folder='/test folder/with spaces', "
+                "Creating new account [local_folder='*********/with spaces', "
                 "server_url='https://test-server.example.com:8443#CUSTOM_ENGINE_2.0', "
                 "username='user@sub-domain.example.com']"
             )

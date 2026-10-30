@@ -1065,6 +1065,77 @@ def test_continue_oauth2_flow_remote_error_and_precheck_state(api_env):
     manager.dao.delete_config.assert_not_called()
 
 
+def _relogin_oauth_flow(api_env, *, stored_user, new_user):
+    """Run a successful OAuth re-login where the browser user is *new_user*."""
+    api, manager = api_env.api, api_env.manager
+    engine = Mock(uid="engine-1", remote_user=stored_user)
+    manager.engines = {"engine-1": engine}
+    api.callback_params = {"engine": "engine-1"}
+    _set_oauth_config(manager)
+    auth = Mock()
+    auth.get_token.return_value = {"access_token": "new-token"}
+    auth.get_username.return_value = new_user
+    with patch.object(
+        api_module, "Options", SimpleNamespace(oauth2_openid_configuration_url="")
+    ), patch.object(
+        api, "_resolve_server_config", return_value=server_config()
+    ), patch.object(
+        api_module._st, "load_class", return_value=Mock(return_value=auth)
+    ), patch.object(
+        api, "update_token", return_value=""
+    ) as update_token, patch.object(
+        api_module, "log"
+    ) as log, patch(
+        "nxdrive.drive.notification.Translator"
+    ):
+        api.continue_oauth2_flow({"state": "expected-state", "code": "code"})
+    return engine, update_token, log
+
+
+def test_continue_oauth2_flow_relogin_with_other_user_is_refused(api_env):
+    api, manager = api_env.api, api_env.manager
+
+    engine, update_token, log = _relogin_oauth_flow(
+        api_env, stored_user="jdoe", new_user="tester2"
+    )
+
+    # The other user's token is dropped: the account keeps its user and token.
+    update_token.assert_not_called()
+    log.error.assert_called_once_with("Username does not match ['jdoe' -> 'tester2']")
+    # The account card says "Incorrect username"; the Settings bar says it too.
+    engine.set_relogin_failed.assert_called_once_with(False)
+    engine.set_invalid_credentials.assert_called_once_with(
+        value=True, reason="re-login with a different username"
+    )
+    engine.set_relogin_wrong_user.assert_called_once_with(True)
+    notif = manager.notification_service.send_notification.call_args.args[0]
+    assert notif.uid == "INVALID_CREDENTIALS_engine-1"
+    api_env.application.show_settings.assert_called_once_with("Accounts")
+    api.setMessage.emit.assert_called_once_with("RELOGIN_WRONG_USER", "error")
+    assert manager.dao.delete_config.call_count == 3
+
+
+def test_continue_oauth2_flow_relogin_with_same_user_updates_token(api_env):
+    engine, update_token, log = _relogin_oauth_flow(
+        api_env, stored_user="jdoe", new_user="jdoe"
+    )
+
+    update_token.assert_called_once_with({"access_token": "new-token"}, "jdoe")
+    log.error.assert_not_called()
+    engine.set_invalid_credentials.assert_not_called()
+    engine.set_relogin_wrong_user.assert_not_called()
+    api_env.api.setMessage.emit.assert_not_called()
+
+
+def test_has_relogin_wrong_user(api_env):
+    engine = Mock(uid="engine-1")
+    engine.has_relogin_wrong_user.return_value = True
+    api_env.manager.engines = {"engine-1": engine}
+
+    assert api_env.api.has_relogin_wrong_user("engine-1") is True
+    assert api_env.api.has_relogin_wrong_user("missing") is False
+
+
 def test_handle_token_routes_persisted_callbacks_and_always_clears(api_env):
     api = api_env.api
     with patch.object(
@@ -1138,6 +1209,34 @@ def test_update_token_success_and_error_mapping(api_env):
 
     engine.update_token.side_effect = RuntimeError("unexpected")
     assert api.update_token("token", "new-user") == "CONNECTION_UNKNOWN"
+
+
+def test_update_token_logs_hide_local_folder(api_env):
+    api, manager = api_env.api, api_env.manager
+    engine = SimpleNamespace(
+        local_folder=Path("/Users/jdoe/Alfresco"),
+        server_url="https://server.test",
+        remote_user="jdoe",
+        update_token=Mock(),
+    )
+    manager.engines = {"engine-1": engine}
+    api.callback_params = {"engine": "engine-1"}
+
+    with patch("nxdrive.drive.gui.api.log") as mock_log:
+        api.update_token("token", "jdoe")
+        engine.update_token.side_effect = RuntimeError("unexpected")
+        api.update_token("token", "jdoe")
+
+    logged = str(mock_log.info.call_args_list) + str(mock_log.exception.call_args_list)
+    assert "jdoe/Alfresco" not in logged
+    mock_log.info.assert_any_call(
+        "Updating token for account "
+        "[*********/Alfresco, https://server.test, 'jdoe' -> 'jdoe']"
+    )
+    mock_log.exception.assert_called_once_with(
+        "Unexpected error while trying to update token for account "
+        "[*********/Alfresco, https://server.test, jdoe]"
+    )
 
 
 def test_sync_conflict_and_remote_open_helpers(api_env):
