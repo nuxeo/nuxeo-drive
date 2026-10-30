@@ -537,6 +537,12 @@ def normalized_path(path: Union[bytes, str, Path], /) -> Path:
     return Path(os.path.realpath(path.expanduser()))
 
 
+def obfuscate_path(path: Union[str, Path], /) -> str:
+    """Hide everything but the last folder name, for logging purposes."""
+    name = Path(path).name
+    return f"*********/{name}" if name else "*********"
+
+
 def normalize_and_expand_path(path: str, /) -> Path:
     """Return absolute, normalized file path with expanded environment variables.
 

@@ -85,3 +85,28 @@ def test_sensitive_data_masking(tmp_path):
     with open(f"{tmp_path}/log3.log", "r") as file:
         data = file.read()
         assert "token/*********" in data
+
+
+def test_oauth2_code_masking(tmp_path):
+    """The one-time OAuth2 authorization code must never reach the logs."""
+    log_file = tmp_path / "log4.log"
+    configure(log_filename=log_file, file_level="DEBUG", force_configure=True)
+    logging.debug(
+        'Loopback 127.0.0.1 - "GET /callback?state=st4te&session_state=s1d'
+        '&code=s3cr3t-c0de.abc HTTP/1.1" 200 -'
+    )
+    logging.info("Handling nxdrive://authorize/code=0th3r-c0de&state=xyz")
+    logging.info(
+        "Opening URL https://idp/auth?response_type=code&client_id=alfresco"
+        "&state=st4te&code_challenge=ch4ll3nge&code_challenge_method=S256"
+    )
+
+    data = log_file.read_text()
+    assert "s3cr3t-c0de" not in data
+    assert "0th3r-c0de" not in data
+    assert "&code=********* HTTP/1.1" in data
+    assert "authorize/code=*********&state=xyz" in data
+    # Unrelated parameters stay readable for support
+    assert "response_type=code&client_id=alfresco" in data
+    assert "code_challenge=ch4ll3nge" in data
+    assert "state=st4te" in data

@@ -10,7 +10,8 @@ Below patterns are used to hide:
 nxdrive authentication token (embedded in URL nxdrive://token/*********/user/username),
 token in key value pair 'token': 'AUTHENTICATION_TOKEN'),
 extra info containing S3 bucket credentials,
-AWS (X-Amz-Security-Token, X-Amz-Credential, X-Amz-Signature) and Set-Cookie (Hide AWSALB and AWSALBCORS)
+AWS (X-Amz-Security-Token, X-Amz-Credential, X-Amz-Signature) and Set-Cookie (Hide AWSALB and AWSALBCORS),
+OAuth2 one-time authorization code in redirect URLs (?code=*********)
 
 """
 
@@ -30,4 +31,5 @@ patterns = [
         r"X-Amz-Credential=*********&X-Amz-Signature=*********",
     ),
     (r"Set-Cookie': '(.*?)'", r"Set-Cookie': '*********"),
+    (r"([?&/]code=)[^&\s\"'#]+", r"\1*********"),
 ]
