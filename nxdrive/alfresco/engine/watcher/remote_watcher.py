@@ -17,6 +17,7 @@ the delta path shares its reconcile logic.
 """
 
 from contextlib import suppress
+from dataclasses import replace
 from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
@@ -45,6 +46,12 @@ from nxdrive.alfresco.engine.pending_unfiltered import (
     snapshot_pending_unfiltered,
 )
 from nxdrive.alfresco.engine.processor import LOCKED_ON_SERVER
+from nxdrive.alfresco.engine.skipped_files import (
+    NO_PERMISSION_ERROR,
+    SKIPPED_FILE_RETRY_INTERVAL,
+    load_skipped_files,
+    remove_skipped_files,
+)
 from nxdrive.alfresco.engine.skipped_folders import (
     HELD_UNDER_SKIPPED_FOLDER,
     LISTING_FAILED_ERROR,
@@ -190,6 +197,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         self._listing_failures: Dict[str, int] = {}
         self._skipped_folders: Set[str] = self._load_skipped_folders()
         self._next_skipped_retry = 0.0
+        self._next_skipped_files_retry = 0.0
 
         #: Why the current cycle failed (a ``FIRST_PASS_*`` value, or empty),
         #: how many first passes failed in a row, and the reason currently
@@ -283,7 +291,7 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # completion.
         try:
             root_info = remote._node_to_remote_file_info(
-                remote.get_node(root_pair.remote_ref, include=["path"])
+                remote.get_node(root_pair.remote_ref, include=NODE_FIELDS)
             )
         except AlfrescoAuthError:
             log.warning("Remote scan failed, credentials are invalid", exc_info=True)
@@ -423,7 +431,9 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         for attempt in range(LISTING_RETRIES + 1):
             try:
                 return list(
-                    remote.client.nodes.iter_children(remote_info.uid, include=["path"])
+                    remote.client.nodes.iter_children(
+                        remote_info.uid, include=NODE_FIELDS
+                    )
                 )
             except (AlfrescoNetworkError, OSError):
                 if attempt == LISTING_RETRIES:
@@ -616,6 +626,32 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
                 )
 
         self._release_held_pairs()
+
+    def _retry_skipped_files(self) -> None:
+        """Try again the documents the server refused for lack of permission.
+
+        Runs at most every :data:`SKIPPED_FILE_RETRY_INTERVAL` seconds. Each
+        one is queued again with its error kept, so it stays in the Errors
+        until it goes through; the processor reads the permissions again and
+        puts it back on the list if they still do not allow the change.
+        """
+        if monotonic() < self._next_skipped_files_retry:
+            return
+        self._next_skipped_files_retry = monotonic() + SKIPPED_FILE_RETRY_INTERVAL
+
+        listed = load_skipped_files(self.dao)
+        # Self-healing: a listed error the list lost is still retried.
+        held = {pair.id for pair in self.dao.get_states_with_error(NO_PERMISSION_ERROR)}
+        if not (listed or held):
+            return
+        # Before queuing: a refusal re-adds the id, which must survive this.
+        remove_skipped_files(self.dao, listed)
+        for row_id in sorted(listed | held):
+            pair = self.dao.get_state_from_id(row_id)
+            if not pair or pair.last_error != NO_PERMISSION_ERROR:
+                continue  # Synced, ignored or removed since.
+            log.info(f"Retrying {pair.local_path!r}, refused for lack of permission")
+            self.engine.queue_manager.push(pair)
 
     # -- Shared reconcile logic ----------------------------------------------
 
@@ -1125,6 +1161,8 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # reaches Worker.run(), which quits the thread and silently ends
         # remote synchronisation for the rest of the session.
         try:
+            self._check_login(remote)
+
             if not self._ensure_provisioned():
                 self.updated.emit()
                 return False
@@ -1146,6 +1184,8 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
 
             # Folders a seed had to skip; never holds the first pass back.
             self._retry_skipped_folders()
+            # Documents the server refused for lack of permission.
+            self._retry_skipped_files()
 
             drained = self._poll_device_sync()
             completed = seeded and drained
@@ -1425,6 +1465,25 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             return False
 
         return True
+
+    def _check_login(self, remote: Any, /) -> None:
+        """Check the login against the repository, on every poll cycle.
+
+        An idle cycle only talks to the Sync Service, which keeps accepting a
+        ticket the repository has already expired, and before the folders to
+        sync are chosen nothing talks to the server at all. Either way an
+        expired login would surface only once there is something to sync.
+
+        A login error is raised to ``_do_handle_changes()``, which flags the
+        credentials. Any other failure is logged and the cycle carries on:
+        the poll reports its own problems.
+        """
+        try:
+            remote.check_credentials()
+        except (ThreadInterrupt, AlfrescoAuthError):
+            raise
+        except Exception as exc:
+            log.warning(f"Could not check the login: {exc}")
 
     def _resubscribe(self) -> bool:
         """Recreate the subscription so the server replays the full content."""
@@ -1827,6 +1886,8 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
         # new node is negligible next to downloading its content.
         if existing is None:
             info = self._fetch_node_info(change) or info
+        else:
+            info = self._keep_stored_permissions(info, existing)
 
         parent_pair = self._resolve_parent(info)
         if parent_pair is None:
@@ -1871,6 +1932,31 @@ class AlfrescoRemoteWatcher(RemoteWatcherBase):
             log.debug(f"Marking {pair.local_path!r} as remotely deleted")
             self.dao.delete_remote_state(pair)
         return True
+
+    @staticmethod
+    def _keep_stored_permissions(
+        info: RemoteFileInfo, pair: DocPair, /
+    ) -> RemoteFileInfo:
+        """Carry the permissions read from the server over a change-feed info.
+
+        The feed reports no permissions, so its info allows everything; written
+        as is, it would wipe what the last scan or fetch read from the server.
+        """
+        stored = (
+            pair.remote_can_rename,
+            pair.remote_can_delete,
+            pair.remote_can_update,
+            pair.remote_can_create_child,
+        )
+        if any(value is None for value in stored):
+            return info
+        return replace(
+            info,
+            can_rename=bool(stored[0]),
+            can_delete=bool(stored[1]),
+            can_update=bool(stored[2]),
+            can_create_child=bool(stored[3]),
+        )
 
     def _fetch_node_info(self, change: Change, /) -> Optional[RemoteFileInfo]:
         """Fetch full node metadata for a newly-created node."""

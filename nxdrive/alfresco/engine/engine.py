@@ -39,6 +39,7 @@ from nxdrive.alfresco.engine.processor import (
     REMOTE_DRIFTED,
     AlfrescoProcessor,
 )
+from nxdrive.alfresco.engine.skipped_files import CONF_SKIPPED_FILES
 from nxdrive.alfresco.engine.skipped_folders import CONF_SKIPPED_FOLDERS
 from nxdrive.alfresco.engine.watcher.remote_watcher import (
     DEVICE_OS,
@@ -329,6 +330,7 @@ class AlfrescoEngine(Engine):
         try:
             self.dao.delete_config(CONF_SKIPPED_FOLDERS)
             self.dao.delete_config(CONF_PENDING_UNFILTERED)
+            self.dao.delete_config(CONF_SKIPPED_FILES)
         except Exception:
             log.warning("Failed to clear the remote watcher's backlog", exc_info=True)
 
@@ -428,6 +430,12 @@ class AlfrescoEngine(Engine):
             # Setting first_pass_done to False, to reinitiate later
             if getattr(self, "_remote_watcher", None):
                 self._remote_watcher.first_pass_done = False
+
+    # -- Credentials ---------------------------------------------------------
+
+    def is_auth_error(self, exc: BaseException, /) -> bool:
+        """The Alfresco client raises this for a ticket or token it cannot renew."""
+        return isinstance(exc, AuthenticationError)
 
     # -- Sync state tracking -------------------------------------------------
 

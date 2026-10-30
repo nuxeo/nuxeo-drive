@@ -64,6 +64,7 @@ def _make_watcher():
     w._listing_failures = {}
     w._skipped_folders = set()
     w._next_skipped_retry = 0.0
+    w._next_skipped_files_retry = 0.0
     w._failure_reason = ""
     w._first_pass_failures = 0
     w._first_pass_notice = ""

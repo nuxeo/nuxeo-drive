@@ -796,6 +796,15 @@ class Engine(QObject):
     def has_invalid_credentials(self) -> bool:
         return self._invalid_credentials
 
+    def is_auth_error(self, exc: BaseException, /) -> bool:
+        """Return whether *exc* means the server no longer accepts our login.
+
+        Lets server-agnostic code, such as the folder picker, report an
+        expired login through :meth:`set_invalid_credentials`. Server types
+        override it with their client's error type.
+        """
+        return False
+
     @staticmethod
     def local_rollback(*, force: bool = False) -> bool:
         if isinstance(force, bool):

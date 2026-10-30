@@ -13,6 +13,7 @@ import pytest
 
 from nxdrive.alfresco.engine.engine import AlfrescoEngine
 from nxdrive.alfresco.engine.pending_unfiltered import CONF_PENDING_UNFILTERED
+from nxdrive.alfresco.engine.skipped_files import CONF_SKIPPED_FILES
 from nxdrive.alfresco.engine.skipped_folders import CONF_SKIPPED_FOLDERS
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.objects import Binder
@@ -141,6 +142,7 @@ class TestStartCleanup:
         # The skipped folders pointed at rows that are gone now.
         engine.dao.delete_config.assert_any_call(CONF_SKIPPED_FOLDERS)
         engine.dao.delete_config.assert_any_call(CONF_PENDING_UNFILTERED)
+        engine.dao.delete_config.assert_any_call(CONF_SKIPPED_FILES)
         engine.syncStateCleared.emit.assert_called_once()
 
     def test_cleanup_handles_reinit_failure(self):
@@ -1042,3 +1044,29 @@ class TestPendingFetchIsSavedFirst:
 
         base.assert_called_once()
         engine._unfiltered.emit.assert_called_once()
+
+
+class TestIsAuthError:
+    """Lets server-agnostic code (the folder picker) spot an expired login."""
+
+    def test_alfresco_login_errors(self):
+        from alfresco.exceptions import AuthenticationError, OAuth2Error
+
+        engine = _make_engine()
+
+        assert engine.is_auth_error(AuthenticationError("expired")) is True
+        assert engine.is_auth_error(OAuth2Error("refresh rejected")) is True
+
+    def test_other_errors(self):
+        from alfresco.exceptions import ForbiddenError, NetworkError
+
+        engine = _make_engine()
+
+        assert engine.is_auth_error(ForbiddenError("no")) is False
+        assert engine.is_auth_error(NetworkError("down")) is False
+        assert engine.is_auth_error(RuntimeError("boom")) is False
+
+    def test_the_base_engine_knows_none(self):
+        base = AlfrescoEngine.__bases__[0]
+
+        assert base.is_auth_error(_make_engine(), RuntimeError("boom")) is False

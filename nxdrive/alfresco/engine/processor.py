@@ -21,9 +21,15 @@ from time import monotonic_ns, sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 
 from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
+from alfresco.exceptions import ForbiddenError
 from alfresco.exceptions import NotFoundError as AlfrescoNotFoundError
 
 from nxdrive.alfresco.content_compare import content_matches, local_head_tail_digest
+from nxdrive.alfresco.engine.skipped_files import (
+    NO_PERMISSION_ERROR,
+    SKIPPED_FILE_RETRY_INTERVAL,
+    add_skipped_file,
+)
 from nxdrive.alfresco.engine.skipped_folders import (
     HELD_UNDER_SKIPPED_FOLDER,
     LISTING_FAILED_ERROR,
@@ -155,6 +161,65 @@ class AlfrescoProcessor(_ProcessorBase):
             incr=self.engine.queue_manager.get_error_threshold() + 1,
         )
         self.engine.queue_manager.push_error(doc_pair, exception=exception)
+
+    def _skip_without_permission(self, doc_pair: DocPair, details: str, /) -> None:
+        """List a change the server refuses for lack of permission, and skip it.
+
+        The document goes to the Errors with :data:`NO_PERMISSION_ERROR` and to
+        the skipped files, which the remote watcher retries every
+        :data:`SKIPPED_FILE_RETRY_INTERVAL` seconds in case the rights were
+        granted meanwhile. Those retries keep the error, so a refusal again
+        only keeps the document listed: no new notification.
+        """
+        self.remove_void_transfers(doc_pair)
+        add_skipped_file(self.dao, doc_pair.id)
+        minutes = int(SKIPPED_FILE_RETRY_INTERVAL // 60)
+        threshold = self.engine.queue_manager.get_error_threshold()
+        if (
+            doc_pair.last_error == NO_PERMISSION_ERROR
+            and doc_pair.error_count > threshold
+        ):
+            log.info(
+                f"Still no permission on the server to sync {doc_pair.pair_state} "
+                f"{doc_pair.local_path!r}; retried again in {minutes} minutes"
+            )
+            return
+        log.warning(
+            f"No permission on the server to sync {doc_pair.pair_state} "
+            f"{doc_pair.local_path!r} ({details}); retried every {minutes} minutes"
+        )
+        self.dao.increase_error(
+            doc_pair, NO_PERMISSION_ERROR, details=details, incr=threshold + 1
+        )
+        # Past the threshold: listed in the Errors, notified, not retried.
+        self.engine.queue_manager.push_error(doc_pair)
+
+    def _store_permissions(self, pair: DocPair, info: RemoteFileInfo, /) -> None:
+        """Record on *pair* the permissions just read from the server.
+
+        The stored ones come from the last scan or change and can be stale.
+        """
+        fresh = (
+            info.can_rename,
+            info.can_delete,
+            info.can_update,
+            info.can_create_child,
+        )
+        stored = (
+            pair.remote_can_rename,
+            pair.remote_can_delete,
+            pair.remote_can_update,
+            pair.remote_can_create_child,
+        )
+        if stored == fresh:
+            return
+        self.dao.update_remote_permissions(pair.id, info)
+        (
+            pair.remote_can_rename,
+            pair.remote_can_delete,
+            pair.remote_can_update,
+            pair.remote_can_create_child,
+        ) = fresh
 
     def _hold_under_skipped_folder(self, doc_pair: DocPair, /) -> bool:
         """Keep a local change away from a server folder Drive cannot read.
@@ -704,6 +769,9 @@ class AlfrescoProcessor(_ProcessorBase):
                 )
                 self.engine.queue_manager.push(doc_pair)
                 raise ThreadInterrupt()
+            except ForbiddenError as exc:
+                # Retrying every 60s cannot help until the user's rights change.
+                self._skip_without_permission(doc_pair, str(exc))
             except (PairInterrupt, ParentNotSynced) as exc:
                 log.debug(f"{type(exc).__name__}, wait 1s and requeue")
                 sleep(1)
@@ -804,6 +872,8 @@ class AlfrescoProcessor(_ProcessorBase):
         # Mirrors Nuxeo's L172 pre-check (which uses digest comparison).
         if doc_pair.pair_state in ("locally_modified", "locally_moved"):
             remote_info = self._safe_remote_info(doc_pair)
+            if remote_info is not None:
+                self._store_permissions(doc_pair, remote_info)
             if remote_info is not None and remote_info.is_locked:
                 self._mark_locked_on_server(doc_pair, remote_info.lock_owner)
                 return
@@ -1402,12 +1472,16 @@ class AlfrescoProcessor(_ProcessorBase):
             )
 
         parent_ref = parent_pair.remote_ref
-        if not parent_pair.remote_can_create_child:
-            log.warning(
-                f"Cannot create {doc_pair.local_name!r} in read-only "
-                f"folder {parent_pair.local_name!r}"
+        # Read fresh rather than from the DB, which may predate a change of
+        # rights; the same info is used below for the filter path.
+        parent_info = self.remote.get_fs_info(parent_ref)
+        self._store_permissions(parent_pair, parent_info)
+        if not parent_info.can_create_child:
+            self._skip_without_permission(
+                doc_pair,
+                f"cannot add documents to the server folder "
+                f"{parent_pair.local_name!r}",
             )
-            self.dao.unsynchronize_state(doc_pair, "READONLY")
             return
 
         remote_parent_path = (
@@ -1448,7 +1522,6 @@ class AlfrescoProcessor(_ProcessorBase):
         filter_path = ""
         filter_removed = False
         try:
-            parent_info = self.remote.get_fs_info(parent_ref)
             filter_path = f"{parent_info.path.rstrip('/')}/{name}"
             clean_filter_path = filter_path.rstrip("/") + "/"
             if clean_filter_path in self.dao.get_filters():
@@ -1612,11 +1685,9 @@ class AlfrescoProcessor(_ProcessorBase):
                     self.remove_void_transfers(doc_pair)
                     return
             else:
-                log.info(
-                    f"Skip update of remote document {doc_pair.local_name!r} "
-                    "as it is read-only."
+                self._skip_without_permission(
+                    doc_pair, "cannot change this document on the server"
                 )
-                self.dao.unsynchronize_state(doc_pair, "READONLY")
                 return
         if fs_item_info is None:
             fs_item_info = self.remote.get_fs_info(doc_pair.remote_ref)

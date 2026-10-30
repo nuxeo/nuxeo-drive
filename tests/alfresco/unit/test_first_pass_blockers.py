@@ -81,6 +81,7 @@ def _watcher():
     watcher._listing_failures = {}
     watcher._skipped_folders = set()
     watcher._next_skipped_retry = 0.0
+    watcher._next_skipped_files_retry = 0.0
     watcher._failure_reason = ""
     watcher._first_pass_failures = 0
     watcher._first_pass_notice = ""
@@ -1387,3 +1388,79 @@ class TestApplyUnfilteredRobustness:
 
         assert watcher._unfiltered_nodes == {"node-2"}
         assert load_pending_unfiltered(watcher.dao) == ({"node-2"}, False)
+
+
+# -- Login checked on every poll cycle -------------------------------------------
+
+
+class TestLoginCheckEveryCycle:
+    """An idle cycle only talks to the Sync Service, which keeps accepting a
+    ticket the repository has expired; before the folders are chosen nothing
+    talks to the server at all. The login is therefore checked every cycle."""
+
+    def _waiting_watcher(self):
+        watcher = _polling_watcher()
+        watcher._provisioner = None
+        watcher.dao.get_state_from_local.return_value = None  # No root pair yet.
+        return watcher
+
+    @pytest.mark.parametrize("first_pass", [True, False])
+    def test_checked_on_every_cycle_while_syncing(self, first_pass):
+        watcher = _polling_watcher()  # Provisioned and seeded: an idle cycle.
+
+        for _ in range(3):
+            watcher._handle_changes(first_pass=first_pass)
+
+        assert watcher.engine.remote.check_credentials.call_count == 3
+
+    def test_checked_on_every_cycle_while_waiting_for_folders(self):
+        watcher = self._waiting_watcher()
+
+        for _ in range(3):
+            watcher._handle_changes(first_pass=True)
+
+        assert watcher.engine.remote.check_credentials.call_count == 3
+
+    @pytest.mark.parametrize("waiting", [True, False])
+    def test_an_expired_login_is_reported_before_any_poll(self, waiting):
+        watcher = self._waiting_watcher() if waiting else _polling_watcher()
+        watcher.engine.remote.check_credentials.side_effect = AlfrescoAuthError(
+            "ticket expired"
+        )
+
+        watcher._handle_changes(first_pass=False)
+
+        watcher.engine.set_invalid_credentials.assert_called_once()
+        watcher._poll_device_sync.assert_not_called()
+        # Covered by the login notification, not the "files waiting" one.
+        assert watcher._failure_reason == ""
+
+    def test_other_failures_do_not_stop_the_cycle(self):
+        watcher = _polling_watcher()
+        watcher.engine.remote.check_credentials.side_effect = AlfrescoNetworkError(
+            "down"
+        )
+
+        with patch("nxdrive.alfresco.engine.watcher.remote_watcher.log") as log:
+            watcher._handle_changes(first_pass=False)
+
+        watcher.engine.set_invalid_credentials.assert_not_called()
+        watcher._poll_device_sync.assert_called_once()
+        # One line, no traceback, as it repeats every cycle during an outage.
+        assert "exc_info" not in log.warning.call_args.kwargs
+
+    def test_a_stop_request_is_not_swallowed(self):
+        watcher = _polling_watcher()
+        watcher.engine.remote.check_credentials.side_effect = ThreadInterrupt()
+
+        with pytest.raises(ThreadInterrupt):
+            watcher._handle_changes(first_pass=False)
+
+    def test_no_remote_means_no_check(self):
+        watcher = _polling_watcher()
+        remote = watcher.engine.remote
+        watcher.engine.remote = None
+
+        watcher._handle_changes(first_pass=False)
+
+        remote.check_credentials.assert_not_called()

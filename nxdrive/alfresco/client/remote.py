@@ -18,7 +18,13 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 from alfresco import Alfresco
 from alfresco.auth import BasicAuth, OAuth2Auth, TicketAuth
-from alfresco.exceptions import AlfrescoError, ConflictError, CorruptedFile
+from alfresco.exceptions import (
+    AlfrescoError,
+    AuthenticationError,
+    ConflictError,
+    CorruptedFile,
+    ForbiddenError,
+)
 from alfresco.models.node import Node
 from alfresco.models.subscription import Change, SyncStatus
 
@@ -50,7 +56,9 @@ log = getLogger(__name__)
 
 #: Optional fields every node fetch must ask for. ``isLocked`` is not returned
 #: by default, and without it the SDK reports every node as unlocked.
-NODE_FIELDS = ["path", "isLocked"]
+#: ``allowableOperations`` carries the user's permissions on the node, so Drive
+#: does not attempt changes the server would refuse with a 403.
+NODE_FIELDS = ["path", "isLocked", "allowableOperations"]
 
 ALFRESCO_UPLOAD_BLOCK_SIZE = 65536
 UPLOAD_PROGRESS_INTERVAL = 1.0
@@ -59,6 +67,31 @@ UPLOAD_PROGRESS_PERCENT_STEP = 1.0
 #: Most bytes we are willing to stream to emulate a ranged read when the
 #: server ignores the ``Range`` header.
 RANGE_FALLBACK_MAX_BYTES = 20 * 1024 * 1024
+
+
+def _permissions(node: Node, /) -> Dict[str, bool]:
+    """The user's permissions on *node*, from its ``allowableOperations``.
+
+    That field only arrives when asked for (see :data:`NODE_FIELDS`). Without
+    it everything is allowed, as before, and a refused change is handled when
+    the server answers 403.
+    """
+    raw = getattr(node, "_raw", None)
+    ops = raw.get("allowableOperations") if isinstance(raw, dict) else None
+    if not isinstance(ops, list):
+        return {
+            "can_rename": True,
+            "can_delete": True,
+            "can_update": bool(node.is_file),
+            "can_create_child": bool(node.is_folder),
+        }
+    allowed = set(ops)
+    return {
+        "can_rename": "update" in allowed,
+        "can_delete": "delete" in allowed,
+        "can_update": bool(node.is_file) and "update" in allowed,
+        "can_create_child": bool(node.is_folder) and "create" in allowed,
+    }
 
 
 class AlfrescoRemote:
@@ -452,14 +485,14 @@ class AlfrescoRemote:
         so their responses have no ``path`` and would otherwise degrade to
         the ``/<name>`` fallback in ``_node_to_remote_file_info()``.
         """
-        node = self.client.nodes.get(node_id, include=["path"])
+        node = self.client.nodes.get(node_id, include=NODE_FIELDS)
         return self._node_to_remote_file_info(node)
 
     # -- Root info (used during account binding) -----------------------------
 
     def get_root_node(self) -> Node:
         """Return the repository root node."""
-        return self.client.nodes.get("-root-", include=["path"])
+        return self.client.nodes.get("-root-", include=NODE_FIELDS)
 
     def get_filesystem_root_info(self) -> RemoteFileInfo:
         """Return a ``RemoteFileInfo`` for the root node.
@@ -546,10 +579,7 @@ class AlfrescoRemote:
             digest=None,
             digest_algorithm=None,
             download_url=None,
-            can_rename=True,
-            can_delete=True,
-            can_update=node.is_file,
-            can_create_child=node.is_folder,
+            **_permissions(node),
             lock_owner=node.lock_owner,
             lock_created=None,
             can_scroll_descendants=False,
@@ -622,6 +652,9 @@ class AlfrescoRemote:
         """
         try:
             node = self.get_node(fs_item_id, include=NODE_FIELDS)
+        except (AuthenticationError, ForbiddenError):
+            # Not "missing": the caller must re-login or report the permission.
+            raise
         except Exception:
             raise NotFound(f"Could not find {fs_item_id!r} on {self.server_url!r}")
         info = self._node_to_remote_file_info(node)
@@ -1071,7 +1104,9 @@ class AlfrescoRemote:
         before untrashing).
         """
         try:
-            node = self.get_node(ref, include=["path"])
+            node = self.get_node(ref, include=NODE_FIELDS)
+        except (AuthenticationError, ForbiddenError):
+            raise
         except Exception:
             if raise_if_missing:
                 raise NotFound(f"Could not find {ref!r} on {self.server_url!r}")
