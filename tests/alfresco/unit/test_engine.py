@@ -12,6 +12,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from nxdrive.alfresco.engine.engine import AlfrescoEngine
+from nxdrive.alfresco.engine.pending_unfiltered import CONF_PENDING_UNFILTERED
+from nxdrive.alfresco.engine.skipped_files import CONF_SKIPPED_FILES
+from nxdrive.alfresco.engine.skipped_folders import CONF_SKIPPED_FOLDERS
 from nxdrive.drive.constants import ROOT
 from nxdrive.drive.objects import Binder
 
@@ -135,7 +138,11 @@ class TestStartCleanup:
         engine._cleanup_after_sync_disabled()
         engine.dao.reinit_states.assert_called_once()
         assert engine.dao.remove_filter.call_count == 2
-        engine.dao.delete_config.assert_called_with("filters_configured")
+        engine.dao.delete_config.assert_any_call("filters_configured")
+        # The skipped folders pointed at rows that are gone now.
+        engine.dao.delete_config.assert_any_call(CONF_SKIPPED_FOLDERS)
+        engine.dao.delete_config.assert_any_call(CONF_PENDING_UNFILTERED)
+        engine.dao.delete_config.assert_any_call(CONF_SKIPPED_FILES)
         engine.syncStateCleared.emit.assert_called_once()
 
     def test_cleanup_handles_reinit_failure(self):
@@ -144,7 +151,7 @@ class TestStartCleanup:
         engine.dao.get_filters.return_value = []
         # Should not raise
         engine._cleanup_after_sync_disabled()
-        engine.dao.delete_config.assert_called_with("filters_configured")
+        engine.dao.delete_config.assert_any_call("filters_configured")
 
 
 # ------------------------------------------------------------------ open-file permission
@@ -913,3 +920,153 @@ class TestUnfilteredHandoff:
             engine.remove_filter("/Company Home/demo")
 
         engine._unfiltered.emit.assert_called_once_with("/Company Home/demo", [])
+
+
+# ------------------------------------------------------------------ rollback of a local deletion
+
+
+class TestRollbackDelete:
+    """Runs on the GUI thread, so a folder's content is left to the watcher."""
+
+    def _engine(self, pair):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine._remote_watcher = MagicMock()
+        engine.dao.get_state_from_local.return_value = pair
+        return engine
+
+    def test_folder_content_is_fetched_by_the_remote_watcher(self):
+        pair = MagicMock(folderish=True, remote_ref="node-1")
+        engine = self._engine(pair)
+        calls = []
+        engine.dao.remove_state_children.side_effect = lambda *_: calls.append("rm")
+        engine.dao.force_remote_creation.side_effect = lambda *_: calls.append("dl")
+        engine._unfiltered.emit.side_effect = lambda *_: calls.append("fetch")
+
+        engine.rollback_delete(Path("X"))
+
+        engine.dao.remove_state_children.assert_called_once_with(pair)
+        engine.dao.force_remote_creation.assert_called_once_with(pair)
+        engine._unfiltered.emit.assert_called_once_with("X", ["node-1"])
+        assert calls == ["rm", "dl", "fetch"]
+        # Never walked here, on the GUI thread.
+        engine._remote_watcher.scan_remote.assert_not_called()
+
+    def test_folder_without_node_id_asks_for_a_full_reseed(self):
+        engine = self._engine(MagicMock(folderish=True, remote_ref=""))
+
+        engine.rollback_delete(Path("X"))
+
+        engine._unfiltered.emit.assert_called_once_with("X", [])
+
+    def test_file_is_only_downloaded_again(self):
+        pair = MagicMock(folderish=False, remote_ref="node-1")
+        engine = self._engine(pair)
+
+        engine.rollback_delete(Path("X/doc.txt"))
+
+        engine.dao.remove_state_children.assert_not_called()
+        engine.dao.force_remote_creation.assert_called_once_with(pair)
+        engine._unfiltered.emit.assert_not_called()
+
+    def test_unknown_document_is_ignored(self):
+        engine = self._engine(None)
+
+        engine.rollback_delete(Path("X"))
+
+        engine.dao.force_remote_creation.assert_not_called()
+        engine._unfiltered.emit.assert_not_called()
+
+
+class TestPendingFetchIsSavedFirst:
+    """The ids are saved before the rows describing that content are dropped."""
+
+    def _saved(self, engine):
+        return [
+            c
+            for c in engine.dao.update_config.call_args_list
+            if c.args[0] == CONF_PENDING_UNFILTERED
+        ]
+
+    def test_remove_filter(self):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine.dao.get_config.return_value = None
+        engine.dao.get_filter_node_ids.return_value = ["node-1"]
+        calls = []
+        engine.dao.update_config.side_effect = lambda *a: calls.append("save")
+
+        with patch.object(
+            AlfrescoEngine.__bases__[0],
+            "remove_filter",
+            side_effect=lambda p: calls.append("delete"),
+        ):
+            engine.remove_filter("/Company Home/demo")
+
+        assert calls == ["save", "delete"]
+        assert '"node-1"' in self._saved(engine)[0].args[1]
+
+    def test_rollback_delete_of_a_folder(self):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine.dao.get_config.return_value = None
+        engine.dao.get_state_from_local.return_value = MagicMock(
+            folderish=True, remote_ref="node-1"
+        )
+        calls = []
+        engine.dao.update_config.side_effect = lambda *a: calls.append("save")
+        engine.dao.remove_state_children.side_effect = lambda *a: calls.append("rm")
+
+        engine.rollback_delete(Path("X"))
+
+        assert calls == ["save", "rm"]
+
+    def test_rollback_delete_of_a_file_saves_nothing(self):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine.dao.get_state_from_local.return_value = MagicMock(
+            folderish=False, remote_ref="node-1"
+        )
+
+        engine.rollback_delete(Path("X/doc.txt"))
+
+        assert not self._saved(engine)
+
+    def test_a_save_failure_does_not_block_the_action(self):
+        engine = _make_engine()
+        engine._unfiltered = MagicMock()
+        engine.dao.get_config.return_value = None
+        engine.dao.update_config.side_effect = RuntimeError("db locked")
+        engine.dao.get_filter_node_ids.return_value = ["node-1"]
+
+        with patch.object(AlfrescoEngine.__bases__[0], "remove_filter") as base:
+            engine.remove_filter("/Company Home/demo")
+
+        base.assert_called_once()
+        engine._unfiltered.emit.assert_called_once()
+
+
+class TestIsAuthError:
+    """Lets server-agnostic code (the folder picker) spot an expired login."""
+
+    def test_alfresco_login_errors(self):
+        from alfresco.exceptions import AuthenticationError, OAuth2Error
+
+        engine = _make_engine()
+
+        assert engine.is_auth_error(AuthenticationError("expired")) is True
+        assert engine.is_auth_error(OAuth2Error("refresh rejected")) is True
+
+    def test_other_errors(self):
+        from alfresco.exceptions import ForbiddenError, NetworkError
+
+        engine = _make_engine()
+
+        assert engine.is_auth_error(ForbiddenError("no")) is False
+        assert engine.is_auth_error(NetworkError("down")) is False
+        assert engine.is_auth_error(RuntimeError("boom")) is False
+
+    def test_the_base_engine_knows_none(self):
+        base = AlfrescoEngine.__bases__[0]
+
+        assert base.is_auth_error(_make_engine(), RuntimeError("boom")) is False

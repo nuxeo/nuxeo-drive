@@ -20,9 +20,22 @@ from tempfile import mkdtemp
 from time import monotonic_ns, sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 
+from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
+from alfresco.exceptions import ForbiddenError
 from alfresco.exceptions import NotFoundError as AlfrescoNotFoundError
 
 from nxdrive.alfresco.content_compare import content_matches, local_head_tail_digest
+from nxdrive.alfresco.engine.skipped_files import (
+    NO_PERMISSION_ERROR,
+    SKIPPED_FILE_RETRY_INTERVAL,
+    add_skipped_file,
+)
+from nxdrive.alfresco.engine.skipped_folders import (
+    HELD_UNDER_SKIPPED_FOLDER,
+    LISTING_FAILED_ERROR,
+    find_blocking_skipped_folder,
+    load_skipped_folders,
+)
 from nxdrive.drive.client.local import FileInfo
 from nxdrive.drive.constants import (
     CONNECTION_ERROR,
@@ -148,6 +161,126 @@ class AlfrescoProcessor(_ProcessorBase):
             incr=self.engine.queue_manager.get_error_threshold() + 1,
         )
         self.engine.queue_manager.push_error(doc_pair, exception=exception)
+
+    def _skip_without_permission(self, doc_pair: DocPair, details: str, /) -> None:
+        """List a change the server refuses for lack of permission, and skip it.
+
+        The document goes to the Errors with :data:`NO_PERMISSION_ERROR` and to
+        the skipped files, which the remote watcher retries every
+        :data:`SKIPPED_FILE_RETRY_INTERVAL` seconds in case the rights were
+        granted meanwhile. Those retries keep the error, so a refusal again
+        only keeps the document listed: no new notification.
+        """
+        self.remove_void_transfers(doc_pair)
+        add_skipped_file(self.dao, doc_pair.id)
+        minutes = int(SKIPPED_FILE_RETRY_INTERVAL // 60)
+        threshold = self.engine.queue_manager.get_error_threshold()
+        if (
+            doc_pair.last_error == NO_PERMISSION_ERROR
+            and doc_pair.error_count > threshold
+        ):
+            log.info(
+                f"Still no permission on the server to sync {doc_pair.pair_state} "
+                f"{doc_pair.local_path!r}; retried again in {minutes} minutes"
+            )
+            return
+        log.warning(
+            f"No permission on the server to sync {doc_pair.pair_state} "
+            f"{doc_pair.local_path!r} ({details}); retried every {minutes} minutes"
+        )
+        self.dao.increase_error(
+            doc_pair, NO_PERMISSION_ERROR, details=details, incr=threshold + 1
+        )
+        # Past the threshold: listed in the Errors, notified, not retried.
+        self.engine.queue_manager.push_error(doc_pair)
+
+    def _store_permissions(self, pair: DocPair, info: RemoteFileInfo, /) -> None:
+        """Record on *pair* the permissions just read from the server.
+
+        The stored ones come from the last scan or change and can be stale.
+        """
+        fresh = (
+            info.can_rename,
+            info.can_delete,
+            info.can_update,
+            info.can_create_child,
+        )
+        stored = (
+            pair.remote_can_rename,
+            pair.remote_can_delete,
+            pair.remote_can_update,
+            pair.remote_can_create_child,
+        )
+        if stored == fresh:
+            return
+        self.dao.update_remote_permissions(pair.id, info)
+        (
+            pair.remote_can_rename,
+            pair.remote_can_delete,
+            pair.remote_can_update,
+            pair.remote_can_create_child,
+        ) = fresh
+
+    def _hold_under_skipped_folder(self, doc_pair: DocPair, /) -> bool:
+        """Keep a local change away from a server folder Drive cannot read.
+
+        Without a listing of that folder, nothing can be checked before an
+        upload, and ``stream_file`` silently replaces a same-named document.
+        So no local change (creation, edit, move, deletion) is sent there:
+        the row is held as an error, out of the queue, and the remote watcher
+        releases it once the folder can be read again
+        (``AlfrescoRemoteWatcher._release_held_pairs``). Retrying it by hand
+        before that only holds it again. Deleting a folder that *contains* a
+        skipped folder is held too, as it would delete that content as well.
+        """
+        if not doc_pair.pair_state.startswith("locally_"):
+            return False
+        folder = find_blocking_skipped_folder(self.dao, doc_pair)
+        if not folder:
+            return False
+
+        threshold = self.engine.queue_manager.get_error_threshold()
+        if (
+            doc_pair.last_error == HELD_UNDER_SKIPPED_FOLDER
+            and doc_pair.error_count > threshold
+        ):
+            return True
+        log.info(
+            f"Holding {doc_pair.pair_state} {doc_pair.local_path!r}: the server "
+            f"folder {folder.local_path!r} cannot be read"
+        )
+        self.dao.increase_error(
+            doc_pair,
+            HELD_UNDER_SKIPPED_FOLDER,
+            details=str(folder.local_path),
+            incr=threshold + 1,
+        )
+        return True
+
+    def _keep_skipped_folder_error(self, before: DocPair, after: DocPair, /) -> None:
+        """Put back the error of a skipped folder that a handler just cleared.
+
+        Creating the folder locally, for instance, ends with
+        ``synchronize_state()``, which wipes the error. The folder is still
+        unreadable on the server, so it must stay in the Errors list until the
+        remote watcher can read it again.
+        """
+        if not after.folderish or after.last_error == LISTING_FAILED_ERROR:
+            return
+        if after.remote_ref not in load_skipped_folders(self.dao):
+            return
+        details = (
+            before.last_error_details
+            if before.last_error == LISTING_FAILED_ERROR
+            else None
+        ) or "Could not read this folder from the server"
+        log.debug(f"Keeping the unreadable-folder error on {after.local_path!r}")
+        self.dao.increase_error(
+            after,
+            LISTING_FAILED_ERROR,
+            details=details,
+            incr=self.engine.queue_manager.get_error_threshold() + 1,
+        )
 
     def _refresh_local_state(
         self,
@@ -620,8 +753,27 @@ class AlfrescoProcessor(_ProcessorBase):
                 )
                 self.remove_void_transfers(doc_pair)
                 self.giveup_error(doc_pair, "REMOTE_NOT_FOUND", exception=exc)
+            except AlfrescoAuthError:
+                # Every processor shares the same auth object, so once the
+                # session is gone every request fails instantly. The catch-all
+                # below would retry this pair forever and let all processors
+                # spin through the whole queue until the remote watcher's next
+                # poll noticed. Report it at once, keep the pair for after the
+                # re-login (no error recorded) and end this processor.
+                log.warning(
+                    f"Credentials are no longer valid, stopping this processor "
+                    f"({doc_pair.local_name!r} will be synced after re-login)"
+                )
+                self.engine.set_invalid_credentials(
+                    reason="processor request failed — re-login required"
+                )
+                self.engine.queue_manager.push(doc_pair)
+                raise ThreadInterrupt()
+            except ForbiddenError as exc:
+                # Retrying every 60s cannot help until the user's rights change.
+                self._skip_without_permission(doc_pair, str(exc))
             except (PairInterrupt, ParentNotSynced) as exc:
-                log.info(f"{type(exc).__name__}, wait 1s and requeue")
+                log.debug(f"{type(exc).__name__}, wait 1s and requeue")
                 sleep(1)
                 self.engine.queue_manager.push(doc_pair)
             except RemoteConflict as exc:
@@ -668,6 +820,9 @@ class AlfrescoProcessor(_ProcessorBase):
     def _handle_doc_pair_sync(
         self, doc_pair: DocPair, sync_handler: Callable, /
     ) -> None:
+        if self._hold_under_skipped_folder(doc_pair):
+            return
+
         self.engine.manager.osi.send_sync_status(
             doc_pair, self.local.abspath(doc_pair.local_path)
         )
@@ -717,6 +872,8 @@ class AlfrescoProcessor(_ProcessorBase):
         # Mirrors Nuxeo's L172 pre-check (which uses digest comparison).
         if doc_pair.pair_state in ("locally_modified", "locally_moved"):
             remote_info = self._safe_remote_info(doc_pair)
+            if remote_info is not None:
+                self._store_permissions(doc_pair, remote_info)
             if remote_info is not None and remote_info.is_locked:
                 self._mark_locked_on_server(doc_pair, remote_info.lock_owner)
                 return
@@ -727,6 +884,13 @@ class AlfrescoProcessor(_ProcessorBase):
                 )
                 self._mark_conflicted(doc_pair, reason=REMOTE_DRIFTED)
                 return
+        elif doc_pair.pair_state == "locally_resolved" and doc_pair.remote_ref:
+            # "Use local" already settled the conflict, so no lock or drift
+            # check here: only refresh the permissions, otherwise a retry would
+            # keep trusting a stale "cannot update" after access is restored.
+            remote_info = self._safe_remote_info(doc_pair)
+            if remote_info is not None:
+                self._store_permissions(doc_pair, remote_info)
 
         # A download would overwrite whatever the user is typing right now, and
         # their save would then race ours.  Wait for the file to be closed; the
@@ -747,6 +911,8 @@ class AlfrescoProcessor(_ProcessorBase):
             self._unlock_soft_path(soft_lock)
 
         pair = self.dao.get_state_from_id(doc_pair.id)
+        if pair:
+            self._keep_skipped_folder_error(doc_pair, pair)
         if pair and "deleted" not in pair.pair_state:
             self.engine.manager.osi.send_sync_status(
                 pair, self.local.abspath(pair.local_path)
@@ -1313,12 +1479,16 @@ class AlfrescoProcessor(_ProcessorBase):
             )
 
         parent_ref = parent_pair.remote_ref
-        if not parent_pair.remote_can_create_child:
-            log.warning(
-                f"Cannot create {doc_pair.local_name!r} in read-only "
-                f"folder {parent_pair.local_name!r}"
+        # Read fresh rather than from the DB, which may predate a change of
+        # rights; the same info is used below for the filter path.
+        parent_info = self.remote.get_fs_info(parent_ref)
+        self._store_permissions(parent_pair, parent_info)
+        if not parent_info.can_create_child:
+            self._skip_without_permission(
+                doc_pair,
+                f"cannot add documents to the server folder "
+                f"{parent_pair.local_name!r}",
             )
-            self.dao.unsynchronize_state(doc_pair, "READONLY")
             return
 
         remote_parent_path = (
@@ -1359,7 +1529,6 @@ class AlfrescoProcessor(_ProcessorBase):
         filter_path = ""
         filter_removed = False
         try:
-            parent_info = self.remote.get_fs_info(parent_ref)
             filter_path = f"{parent_info.path.rstrip('/')}/{name}"
             clean_filter_path = filter_path.rstrip("/") + "/"
             if clean_filter_path in self.dao.get_filters():
@@ -1523,11 +1692,9 @@ class AlfrescoProcessor(_ProcessorBase):
                     self.remove_void_transfers(doc_pair)
                     return
             else:
-                log.info(
-                    f"Skip update of remote document {doc_pair.local_name!r} "
-                    "as it is read-only."
+                self._skip_without_permission(
+                    doc_pair, "cannot change this document on the server"
                 )
-                self.dao.unsynchronize_state(doc_pair, "READONLY")
                 return
         if fs_item_info is None:
             fs_item_info = self.remote.get_fs_info(doc_pair.remote_ref)

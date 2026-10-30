@@ -61,6 +61,13 @@ def _make_watcher():
     w._unfiltered_nodes = set()
     w._unfiltered_needs_scan = False
     w._change_failures = {}
+    w._listing_failures = {}
+    w._skipped_folders = set()
+    w._next_skipped_retry = 0.0
+    w._next_skipped_files_retry = 0.0
+    w._failure_reason = ""
+    w._first_pass_failures = 0
+    w._first_pass_notice = ""
     w._local_scan_dirs = []
     w._local_scan_seen = set()
     w._local_scan_deletions = []

@@ -12,11 +12,16 @@ clients so we can exercise the overrides in isolation.
 """
 
 from pathlib import Path
+from threading import RLock
 from unittest.mock import Mock, patch
 
 import pytest
 
 from nxdrive.alfresco.engine.processor import DIFFERENT_CONTENT, AlfrescoProcessor
+from nxdrive.alfresco.engine.skipped_files import (
+    CONF_SKIPPED_FILES,
+    NO_PERMISSION_ERROR,
+)
 from nxdrive.drive.constants import UNACCESSIBLE_HASH, TransferStatus
 from nxdrive.drive.exceptions import PairInterrupt
 
@@ -711,22 +716,44 @@ class TestSynchronizeLocallyCreated:
         with pytest.raises(ParentNotSynced):
             proc._synchronize_locally_created(pair)
 
-    def test_readonly_parent_unsynchronizes(self, proc) -> None:
+    def test_readonly_parent_is_skipped_without_permission(self, proc) -> None:
+        """Read fresh from the server, not the DB, and listed in the Errors."""
         pair = Mock()
+        pair.id = 7
         pair.local_path = Path("/local/newfile.txt")
         pair.local_parent_path = Path("/local")
         pair.local_name = "newfile.txt"
         pair.folderish = False
+        pair.pair_state = "locally_created"
+        pair.last_error = None
+        pair.error_count = 0
 
         parent = Mock()
         parent.remote_ref = "parent-ref"
-        parent.remote_can_create_child = False
+        parent.remote_can_create_child = True  # Stale: rights were withdrawn.
         parent.remote_name = "LocalFolder"
         parent.remote_parent_path = ""
         proc.dao.get_state_from_local.return_value = parent
+        proc.remote.get_fs_info.return_value = Mock(
+            can_rename=True, can_delete=True, can_update=False, can_create_child=False
+        )
+        proc.dao.lock = RLock()
+        proc.dao.get_config.return_value = None
 
         proc._synchronize_locally_created(pair)
-        proc.dao.unsynchronize_state.assert_called_once_with(pair, "READONLY")
+
+        proc.remote.get_fs_info.assert_called_once_with("parent-ref")
+        proc.remote.stream_file.assert_not_called()
+        # The fresh permissions are recorded on the parent.
+        proc.dao.update_remote_permissions.assert_called_once()
+        assert parent.remote_can_create_child is False
+        assert proc.dao.increase_error.call_args.args[:2] == (
+            pair,
+            NO_PERMISSION_ERROR,
+        )
+        proc.engine.queue_manager.push_error.assert_called_once_with(pair)
+        proc.dao.update_config.assert_called_once_with(CONF_SKIPPED_FILES, "[7]")
+        proc.dao.unsynchronize_state.assert_not_called()
 
     def test_folder_creates_remote_folder(self, proc) -> None:
         pair = Mock()
@@ -1166,7 +1193,7 @@ class TestSynchronizeLocallyModified:
             pair, expected_pair_state=pair.pair_state
         )
 
-    def test_readonly_unsynchronizes(self, proc) -> None:
+    def test_readonly_is_skipped_without_permission(self, proc) -> None:
         pair = Mock()
         pair.local_path = Path("/local/file.txt")
         pair.local_name = "file.txt"
@@ -1176,11 +1203,22 @@ class TestSynchronizeLocallyModified:
         pair.remote_ref = "node-1"
         pair.remote_can_update = False
         pair.id = 1
+        pair.pair_state = "locally_modified"
+        pair.last_error = None
+        pair.error_count = 0
+        proc.dao.lock = RLock()
+        proc.dao.get_config.return_value = None
 
         proc.local.is_equal_digests.return_value = False
 
         proc._synchronize_locally_modified(pair)
-        proc.dao.unsynchronize_state.assert_called_once_with(pair, "READONLY")
+
+        proc.remote.stream_update.assert_not_called()
+        assert proc.dao.increase_error.call_args.args[:2] == (
+            pair,
+            NO_PERMISSION_ERROR,
+        )
+        proc.dao.unsynchronize_state.assert_not_called()
 
     def test_same_digest_just_syncs(self, proc) -> None:
         pair = Mock()
@@ -1865,6 +1903,58 @@ class TestHandleDocPairSync:
         proc._handle_doc_pair_sync(pair, handler)
         proc.dao._force_sync.assert_called_once()
         handler.assert_not_called()
+
+    def _resolved_pair(self, proc, remote_ref):
+        pair = Mock()
+        pair.local_parent_path = None
+        pair.local_path = Path("/file.txt")
+        pair.pair_state = "locally_resolved"
+        pair.local_name = "file.txt"
+        pair.remote_ref = remote_ref
+        pair.id = 1
+        proc.engine.dao.get_download.return_value = None
+        proc.engine.dao.get_upload.return_value = None
+        proc.dao.get_state_from_id.return_value = None
+        return pair
+
+    def test_locally_resolved_refreshes_permissions_only(self, proc):
+        """After "Use local", a retry must read the permissions again, but
+        not repeat the lock and drift checks the user already settled."""
+        pair = self._resolved_pair(proc, "node-1")
+        info = Mock(is_locked=True)
+        proc.remote.get_fs_info.return_value = info
+        proc._store_permissions = Mock()
+        proc._remote_has_drifted = Mock(return_value=True)
+        proc._mark_locked_on_server = Mock()
+        handler = Mock(__name__="handler")
+
+        proc._handle_doc_pair_sync(pair, handler)
+
+        proc.remote.get_fs_info.assert_called_once_with("node-1")
+        proc._store_permissions.assert_called_once_with(pair, info)
+        proc._remote_has_drifted.assert_not_called()
+        proc._mark_locked_on_server.assert_not_called()
+        handler.assert_called_once_with(pair)
+
+    def test_locally_resolved_unreachable_server_still_syncs(self, proc):
+        pair = self._resolved_pair(proc, "node-1")
+        proc.remote.get_fs_info.side_effect = OSError("offline")
+        proc._store_permissions = Mock()
+        handler = Mock(__name__="handler")
+
+        proc._handle_doc_pair_sync(pair, handler)
+
+        proc._store_permissions.assert_not_called()
+        handler.assert_called_once_with(pair)
+
+    def test_locally_resolved_without_server_copy_reads_nothing(self, proc):
+        pair = self._resolved_pair(proc, "")
+        handler = Mock(__name__="handler")
+
+        proc._handle_doc_pair_sync(pair, handler)
+
+        proc.remote.get_fs_info.assert_not_called()
+        handler.assert_called_once_with(pair)
 
     def test_normal_sync_calls_handler(self, proc):
         pair = Mock()

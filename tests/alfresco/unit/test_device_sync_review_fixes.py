@@ -52,6 +52,13 @@ def _watcher():
     watcher._interact = MagicMock()
     watcher._unfiltered_nodes = set()
     watcher._unfiltered_needs_scan = False
+    watcher._listing_failures = {}
+    watcher._skipped_folders = set()
+    watcher._next_skipped_retry = 0.0
+    watcher._next_skipped_files_retry = 0.0
+    watcher._failure_reason = ""
+    watcher._first_pass_failures = 0
+    watcher._first_pass_notice = ""
     watcher.remoteScanFinished = MagicMock()
     return watcher
 

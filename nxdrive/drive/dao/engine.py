@@ -1275,6 +1275,32 @@ class EngineDAO(BaseDAO):
             "SELECT * FROM States WHERE error_count > ?", (limit,)
         ).fetchall()
 
+    def get_states_with_error(self, error: str, /) -> DocPairs:
+        c = self._get_read_connection().cursor()
+        return c.execute(
+            "SELECT * FROM States WHERE last_error = ?", (error,)
+        ).fetchall()
+
+    def update_remote_permissions(self, row_id: int, info: RemoteFileInfo, /) -> None:
+        """Record the user's permissions on a node, leaving its state alone."""
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE States"
+                "   SET remote_can_rename = ?,"
+                "       remote_can_delete = ?,"
+                "       remote_can_update = ?,"
+                "       remote_can_create_child = ?"
+                " WHERE id = ?",
+                (
+                    info.can_rename,
+                    info.can_delete,
+                    info.can_update,
+                    info.can_create_child,
+                    row_id,
+                ),
+            )
+
     def get_local_children(self, path: Path, /) -> DocPairs:
         c = self._get_read_connection().cursor()
         return c.execute(
