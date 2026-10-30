@@ -884,6 +884,13 @@ class AlfrescoProcessor(_ProcessorBase):
                 )
                 self._mark_conflicted(doc_pair, reason=REMOTE_DRIFTED)
                 return
+        elif doc_pair.pair_state == "locally_resolved" and doc_pair.remote_ref:
+            # "Use local" already settled the conflict, so no lock or drift
+            # check here: only refresh the permissions, otherwise a retry would
+            # keep trusting a stale "cannot update" after access is restored.
+            remote_info = self._safe_remote_info(doc_pair)
+            if remote_info is not None:
+                self._store_permissions(doc_pair, remote_info)
 
         # A download would overwrite whatever the user is typing right now, and
         # their save would then race ours.  Wait for the file to be closed; the

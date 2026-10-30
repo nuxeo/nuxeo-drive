@@ -142,6 +142,8 @@ class TestUpdateStatus:
         mock_engine.is_paused.return_value = False
         mock_engine.is_syncing.return_value = False
         mock_engine.has_invalid_credentials.return_value = True
+        # Expired, with no refused re-login since (that one is "relogin_failed").
+        mock_engine.has_relogin_failed.return_value = False
 
         manager.restart_needed = False
         manager.updater = Mock()
@@ -157,6 +159,33 @@ class TestUpdateStatus:
             app.systray_window.setStatus.emit.assert_called_once()
             call_args = app.systray_window.setStatus.emit.call_args[0]
             assert call_args[1] == "auth_expired"  # error_state
+
+    def test_update_status_relogin_failed(self, mock_application):
+        """Test update_status reports a refused re-login over plain expiry."""
+        app, manager = mock_application
+
+        mock_engine = Mock(spec=Engine)
+        mock_engine.uid = "test_engine"
+        mock_engine.is_paused.return_value = False
+        mock_engine.is_syncing.return_value = False
+        mock_engine.has_invalid_credentials.return_value = True
+        mock_engine.has_relogin_failed.return_value = True
+
+        manager.restart_needed = False
+        manager.updater = Mock()
+        manager.updater.status = ""
+        app.conflicts_model.count = 5
+        app.errors_model.count = 0
+
+        with patch.object(app, "_window_root", return_value=app.systray_window):
+            from nxdrive.drive.gui.application import Application as RealApp
+
+            bound_method = RealApp.update_status.__get__(app, Application)
+            bound_method(mock_engine)
+
+            app.systray_window.setStatus.emit.assert_called_once()
+            call_args = app.systray_window.setStatus.emit.call_args[0]
+            assert call_args[1] == "relogin_failed"  # error_state
 
     def test_update_status_conflicted(self, mock_application):
         """Test update_status sets conflicted error state."""
@@ -328,6 +357,8 @@ class TestUpdateStatus:
         mock_engine.is_paused.return_value = False
         mock_engine.is_syncing.return_value = False
         mock_engine.has_invalid_credentials.return_value = True
+        # Expired, with no refused re-login since (that one is "relogin_failed").
+        mock_engine.has_relogin_failed.return_value = False
 
         manager.restart_needed = False
         manager.updater = Mock()

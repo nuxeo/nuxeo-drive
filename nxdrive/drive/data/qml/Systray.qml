@@ -365,10 +365,7 @@ Rectangle {
                         color: errorContent
                         text: qsTr("AUTH_EXPIRED") + tl.tr
                         subText: qsTr("AUTH_UPDATE_ACTION") + tl.tr
-                        onClicked: {
-                            var engineUid = api.get_invalid_credentials_engine_uid()
-                            api.web_update_token(engineUid != "" ? engineUid : accountSelect.getRole("uid"))
-                        }
+                        onClicked: api.web_update_token(accountSelect.getRole("uid"))
                     }
                 },
                 State {
@@ -378,10 +375,7 @@ Rectangle {
                         color: errorContent
                         text: qsTr("RELOGIN_FAILED") + tl.tr
                         subText: qsTr("RELOGIN_RETRY_ACTION") + tl.tr
-                        onClicked: {
-                            var engineUid = api.get_invalid_credentials_engine_uid()
-                            api.web_update_token(engineUid != "" ? engineUid : accountSelect.getRole("uid"))
-                        }
+                        onClicked: api.web_update_token(accountSelect.getRole("uid"))
                     }
                 },
                 State {

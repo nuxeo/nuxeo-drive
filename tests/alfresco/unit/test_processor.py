@@ -1904,6 +1904,58 @@ class TestHandleDocPairSync:
         proc.dao._force_sync.assert_called_once()
         handler.assert_not_called()
 
+    def _resolved_pair(self, proc, remote_ref):
+        pair = Mock()
+        pair.local_parent_path = None
+        pair.local_path = Path("/file.txt")
+        pair.pair_state = "locally_resolved"
+        pair.local_name = "file.txt"
+        pair.remote_ref = remote_ref
+        pair.id = 1
+        proc.engine.dao.get_download.return_value = None
+        proc.engine.dao.get_upload.return_value = None
+        proc.dao.get_state_from_id.return_value = None
+        return pair
+
+    def test_locally_resolved_refreshes_permissions_only(self, proc):
+        """After "Use local", a retry must read the permissions again, but
+        not repeat the lock and drift checks the user already settled."""
+        pair = self._resolved_pair(proc, "node-1")
+        info = Mock(is_locked=True)
+        proc.remote.get_fs_info.return_value = info
+        proc._store_permissions = Mock()
+        proc._remote_has_drifted = Mock(return_value=True)
+        proc._mark_locked_on_server = Mock()
+        handler = Mock(__name__="handler")
+
+        proc._handle_doc_pair_sync(pair, handler)
+
+        proc.remote.get_fs_info.assert_called_once_with("node-1")
+        proc._store_permissions.assert_called_once_with(pair, info)
+        proc._remote_has_drifted.assert_not_called()
+        proc._mark_locked_on_server.assert_not_called()
+        handler.assert_called_once_with(pair)
+
+    def test_locally_resolved_unreachable_server_still_syncs(self, proc):
+        pair = self._resolved_pair(proc, "node-1")
+        proc.remote.get_fs_info.side_effect = OSError("offline")
+        proc._store_permissions = Mock()
+        handler = Mock(__name__="handler")
+
+        proc._handle_doc_pair_sync(pair, handler)
+
+        proc._store_permissions.assert_not_called()
+        handler.assert_called_once_with(pair)
+
+    def test_locally_resolved_without_server_copy_reads_nothing(self, proc):
+        pair = self._resolved_pair(proc, "")
+        handler = Mock(__name__="handler")
+
+        proc._handle_doc_pair_sync(pair, handler)
+
+        proc.remote.get_fs_info.assert_not_called()
+        handler.assert_called_once_with(pair)
+
     def test_normal_sync_calls_handler(self, proc):
         pair = Mock()
         pair.local_parent_path = None
