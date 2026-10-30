@@ -20,6 +20,7 @@ from tempfile import mkdtemp
 from time import monotonic_ns, sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 
+from alfresco.exceptions import AuthenticationError as AlfrescoAuthError
 from alfresco.exceptions import NotFoundError as AlfrescoNotFoundError
 
 from nxdrive.alfresco.content_compare import content_matches, local_head_tail_digest
@@ -687,6 +688,22 @@ class AlfrescoProcessor(_ProcessorBase):
                 )
                 self.remove_void_transfers(doc_pair)
                 self.giveup_error(doc_pair, "REMOTE_NOT_FOUND", exception=exc)
+            except AlfrescoAuthError:
+                # Every processor shares the same auth object, so once the
+                # session is gone every request fails instantly. The catch-all
+                # below would retry this pair forever and let all processors
+                # spin through the whole queue until the remote watcher's next
+                # poll noticed. Report it at once, keep the pair for after the
+                # re-login (no error recorded) and end this processor.
+                log.warning(
+                    f"Credentials are no longer valid, stopping this processor "
+                    f"({doc_pair.local_name!r} will be synced after re-login)"
+                )
+                self.engine.set_invalid_credentials(
+                    reason="processor request failed — re-login required"
+                )
+                self.engine.queue_manager.push(doc_pair)
+                raise ThreadInterrupt()
             except (PairInterrupt, ParentNotSynced) as exc:
                 log.debug(f"{type(exc).__name__}, wait 1s and requeue")
                 sleep(1)
