@@ -12,11 +12,6 @@ of each licence is reproduced in Part 2 of this notice.
 PART 1. COMPONENTS
 ------------------------------------------------------------------------------
 
-alfresco-rest-client
-  Version:   1.0.1
-  Copyright: Copyright (c) Alfresco Software Limited, a Hyland company
-  Licence:   MIT
-
 Authlib
   Version:   1.6.12
   Copyright: Copyright (c) 2017, Hsiaoming Yang
@@ -447,7 +442,7 @@ License), requests, requests-file, watchdog.
 MIT LICENSE
 ------------------------------------------------------------------------------
 
-Applies to: alfresco-rest-client, charset-normalizer, dukpy, Duktape,
+Applies to: charset-normalizer, dukpy, Duktape,
 filelock, jmespath, PyObjC, PyYAML, sentry-sdk, six, truststore, urllib3,
 xattr. For each component, the copyright notice is the one shown for that
 component in Part 1 of this notice.
