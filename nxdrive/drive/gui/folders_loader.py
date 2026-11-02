@@ -41,6 +41,9 @@ class ContentLoaderMixin(QRunnable):
         self.force_refresh = force_refresh
         if item and self.item:
             self.info = self.item.data(qt.UserRole)
+        # Read here, on the GUI thread, as the dialog may be gone by the time
+        # run() fails on its worker thread.
+        self.engine = getattr(getattr(tree, "parent", None), "engine", None)
 
     def run(self) -> None:
         """Fetch children of a given item."""
@@ -62,15 +65,25 @@ class ContentLoaderMixin(QRunnable):
                     children = list(self.tree.client.get_children(info))
             else:
                 children = list(self.tree.client.get_top_documents())
-        except Exception:
+        except Exception as exc:
             path = info.get_path() if info else "root"
-            log.warning(f"Error while retrieving documents on {path!r}", exc_info=True)
+            expired = self._is_auth_error(exc)
+            if expired:
+                # Expected, and reported to the user below: no traceback.
+                log.warning(
+                    f"Cannot retrieve documents on {path!r}: the login has expired"
+                )
+                self._report_expired_login()
+                label = Translator.get("LOADING_ERROR_AUTH_EXPIRED")
+            else:
+                log.warning(
+                    f"Error while retrieving documents on {path!r}", exc_info=True
+                )
+                label = Translator.get("LOADING_ERROR") + " \U0001f937"
             self.tree.set_loading_cursor(False)
             if item:
                 item.removeRows(0, item.rowCount())
-                item.appendRow(
-                    QStandardItem(Translator.get("LOADING_ERROR") + " \U0001f937")
-                )
+                item.appendRow(QStandardItem(label))
             return
 
         # Used with the filters window only
@@ -79,6 +92,33 @@ class ContentLoaderMixin(QRunnable):
 
         self.fill_tree(children)
         self.tree.set_loading_cursor(False)
+
+    def _is_auth_error(self, exc: Exception, /) -> bool:
+        """Return whether the listing failed because the login has expired."""
+        engine = self.engine
+        try:
+            return engine is not None and engine.is_auth_error(exc) is True
+        except Exception:
+            log.warning("Could not tell whether the login has expired", exc_info=True)
+            return False
+
+    def _report_expired_login(self) -> None:
+        """Flag the engine, which brings up the re-login prompt.
+
+        The picker can be the only thing talking to the server, for instance
+        while the folders to sync are still to be chosen. Without this, the
+        re-login prompt might never appear, so the folders could never be
+        chosen.
+        """
+        engine = self.engine
+        if engine is None:
+            return
+        try:
+            engine.set_invalid_credentials(
+                reason="listing remote folders failed — re-login required"
+            )
+        except Exception:
+            log.warning("Could not report the expired login", exc_info=True)
 
     def add_loading_subitem(self, item: QStandardItem, /) -> None:
         """Add "Loading..." entry in advance for when the user will click on an item to expand it."""

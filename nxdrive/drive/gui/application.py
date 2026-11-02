@@ -2268,7 +2268,9 @@ class Application(QApplication):
 
         # Check error state
         if engine.has_invalid_credentials():
-            error_state = "auth_expired"
+            error_state = (
+                "relogin_failed" if engine.has_relogin_failed() else "auth_expired"
+            )
         elif self.conflicts_model.count:
             error_state = "conflicted"
         elif self.errors_model.count:

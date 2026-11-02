@@ -15,8 +15,9 @@ Excluded features: Direct Edit, Direct Transfer, Direct Download.
 """
 
 from logging import getLogger
+from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlsplit
 
 from alfresco.exceptions import AuthenticationError
@@ -27,6 +28,10 @@ from nxdrive.alfresco.client.device_sync import (
 )
 from nxdrive.alfresco.client.remote import AlfrescoRemote
 from nxdrive.alfresco.content_compare import content_matches
+from nxdrive.alfresco.engine.pending_unfiltered import (
+    CONF_PENDING_UNFILTERED,
+    add_pending_unfiltered,
+)
 from nxdrive.alfresco.engine.processor import (
     DIFFERENT_CONTENT,
     FILE_OPEN_LOCALLY,
@@ -34,6 +39,8 @@ from nxdrive.alfresco.engine.processor import (
     REMOTE_DRIFTED,
     AlfrescoProcessor,
 )
+from nxdrive.alfresco.engine.skipped_files import CONF_SKIPPED_FILES
+from nxdrive.alfresco.engine.skipped_folders import CONF_SKIPPED_FOLDERS
 from nxdrive.alfresco.engine.watcher.remote_watcher import (
     DEVICE_OS,
     AlfrescoRemoteWatcher,
@@ -180,6 +187,7 @@ class AlfrescoEngine(Engine):
         except Exception:
             log.warning(f"Could not read node ids for filter {path!r}", exc_info=True)
 
+        self._save_pending_fetch(node_ids)
         super().remove_filter(path)
 
         # Queued so the watcher's own thread mutates its state: a direct call
@@ -318,6 +326,14 @@ class AlfrescoEngine(Engine):
         except Exception:
             log.warning("Failed to clear filters_configured flag", exc_info=True)
 
+        # The rows they pointed to are gone with the States table.
+        try:
+            self.dao.delete_config(CONF_SKIPPED_FOLDERS)
+            self.dao.delete_config(CONF_PENDING_UNFILTERED)
+            self.dao.delete_config(CONF_SKIPPED_FILES)
+        except Exception:
+            log.warning("Failed to clear the remote watcher's backlog", exc_info=True)
+
         # Tell the GUI to drop any cached views (Recently Synchronised
         # list, conflicts/errors/ignoreds panels, syncing counter) that
         # still reference the rows we just deleted.  Emitted last so
@@ -328,6 +344,43 @@ class AlfrescoEngine(Engine):
             log.warning("Failed to emit syncStateCleared signal", exc_info=True)
 
     # -- Account removal -----------------------------------------------------
+
+    def rollback_delete(self, path: Path, /) -> None:
+        """Restore a document whose local deletion the user cancelled.
+
+        Same as the base class, except that a folder's content is fetched by
+        the remote watcher on its own thread, like a folder brought back into
+        the sync selection (see :meth:`remove_filter`). This is called from
+        the GUI thread (``Application._doc_deleted``), and walking the folder
+        here froze the window, kept a login error from reaching the re-login
+        prompt, left a partial walk unfinished and touched the watcher's state
+        from two threads. The watcher retries a failed fetch and falls back to
+        a full re-seed when the walk is only partial.
+        """
+        doc_pair = self.dao.get_state_from_local(path)
+        if not doc_pair:
+            log.info(f"Unable to rollback delete on non-existent doc {path}")
+            return
+        # Without a node id, only a full re-seed can find the content.
+        node_ids = [doc_pair.remote_ref] if doc_pair.remote_ref else []
+        if doc_pair.folderish:
+            self._save_pending_fetch(node_ids)
+            self.dao.remove_state_children(doc_pair)
+        self.dao.force_remote_creation(doc_pair)
+        if doc_pair.folderish:
+            self._unfiltered.emit(str(path), node_ids)
+
+    def _save_pending_fetch(self, node_ids: List[str], /) -> None:
+        """Record the content to fetch before the rows describing it are dropped.
+
+        The watcher only hears about it through a queued signal, so a restart
+        in between would otherwise lose it, and the change feed never replays
+        content that already existed: the folder would stay empty.
+        """
+        try:
+            add_pending_unfiltered(self.dao, node_ids, full_scan=not node_ids)
+        except Exception:
+            log.warning("Could not save the folders to fetch", exc_info=True)
 
     def unbind(self) -> None:
         """Release the Device Sync registration before the account is dropped.
@@ -366,6 +419,23 @@ class AlfrescoEngine(Engine):
                 "left behind on the server",
                 exc_info=True,
             )
+
+    # -- Engine Stop ---------------------------------------------------------
+
+    @Slot()
+    def stop(self) -> None:
+        try:
+            super().stop()
+        finally:
+            # Setting first_pass_done to False, to reinitiate later
+            if getattr(self, "_remote_watcher", None):
+                self._remote_watcher.first_pass_done = False
+
+    # -- Credentials ---------------------------------------------------------
+
+    def is_auth_error(self, exc: BaseException, /) -> bool:
+        """The Alfresco client raises this for a ticket or token it cannot renew."""
+        return isinstance(exc, AuthenticationError)
 
     # -- Sync state tracking -------------------------------------------------
 

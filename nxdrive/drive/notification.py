@@ -524,6 +524,49 @@ class InvalidCredentialNotification(Notification):
         )
 
 
+class ReloginFailedNotification(Notification):
+    """The password given to log back in was refused."""
+
+    def __init__(self, engine_uid: str, username: str, /) -> None:
+        super().__init__(
+            uid="RELOGIN_FAILED",
+            title=Translator.get("RELOGIN_FAILED"),
+            description=Translator.get(
+                "RELOGIN_FAILED_DESCRIPTION", values=[username or ""]
+            ),
+            engine_uid=engine_uid,
+            level=Notification.LEVEL_ERROR,
+            flags=(
+                Notification.FLAG_UNIQUE
+                | Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_ACTIONABLE
+                | Notification.FLAG_SYSTRAY
+            ),
+            action="web_update_token",
+            action_args=(engine_uid,),
+        )
+
+
+class FirstPassPendingNotification(Notification):
+    """New local files wait for the first remote pass; say why it is blocked."""
+
+    def __init__(self, engine_uid: str, reason: str, /) -> None:
+        super().__init__(
+            uid="FIRST_PASS_PENDING",
+            title=Translator.get("FIRST_PASS_PENDING"),
+            description=Translator.get(f"FIRST_PASS_PENDING_{reason.upper()}"),
+            engine_uid=engine_uid,
+            level=Notification.LEVEL_WARNING,
+            flags=(
+                Notification.FLAG_UNIQUE
+                | Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_SYSTRAY
+            ),
+        )
+
+
 class DisplayPendingTask(Notification):
     """Display a notification for pending tasks"""
 
@@ -589,6 +632,8 @@ class DefaultNotificationService(NotificationService):
         engine.newLocked.connect(self._newLocked)
         engine.invalidAuthentication.connect(self._invalidAuthentication)
         engine.online.connect(self._validAuthentication)
+        engine.firstPassBlocked.connect(self._firstPassBlocked)
+        engine.firstPassCompleted.connect(self._firstPassCompleted)
         engine.errorOpenedFile.connect(self._errorOpenedFile)
         engine.longPathError.connect(self._longPathError)
         engine.directTranferError.connect(self._direct_transfer_error)
@@ -708,6 +753,18 @@ class DefaultNotificationService(NotificationService):
             return
         notif = InvalidCredentialNotification(engine.uid)
         self.send_notification(notif)
+
+    def _firstPassBlocked(self, reason: str, /) -> None:
+        engine = self.sender()
+        if not engine:
+            return
+        self.send_notification(FirstPassPendingNotification(engine.uid, reason))
+
+    def _firstPassCompleted(self) -> None:
+        engine = self.sender()
+        if not engine:
+            return
+        self.discard_notification("FIRST_PASS_PENDING_" + engine.uid)
 
     def _display_pending_task(
         self,

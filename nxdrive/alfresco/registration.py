@@ -5,6 +5,7 @@
 
 """Alfresco server-type registration."""
 
+from logging import getLogger
 from typing import Any
 
 try:
@@ -16,6 +17,8 @@ except ImportError:
     _client_version = ""
 
 from nxdrive.drive.server_type import FileSystemID, ServerTypeConfig, register
+
+log = getLogger(__name__)
 
 
 def _alfresco_auth_factory(host: Any, token: Any, **kwargs: Any) -> Any:
@@ -41,12 +44,18 @@ def _alfresco_relogin_handler(engine: Any, password: Any) -> None:
     engine._alfresco_ticket = ticket
     engine._remote_password = ""
     engine._save_ticket(ticket)
+    engine.remote.update_alfresco_ticket(
+        user_id=engine.remote_user, password=password, alfresco_ticket=ticket
+    )
     engine.set_invalid_credentials(value=False)
-    engine.stop()
-    engine.remote = engine.init_remote()
-    engine.start()
-    engine.queue_manager.resume()
-    engine.dao.update_config("remote_need_full_scan", "1")
+    try:
+        engine.start()
+        engine.queue_manager.resume()
+    except Exception:
+        log.exception("Failed to start engine after relogin")
+        engine.set_invalid_credentials(value=True)
+        # Propagate to api.relogin method
+        raise
 
 
 def _alfresco_password_auth_handler(

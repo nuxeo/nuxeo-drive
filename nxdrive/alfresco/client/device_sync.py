@@ -28,7 +28,12 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Optional
 
 import alfresco
-from alfresco.exceptions import AlfrescoError, AuthenticationError, NotFoundError
+from alfresco.exceptions import (
+    AlfrescoError,
+    AuthenticationError,
+    NetworkError,
+    NotFoundError,
+)
 
 if TYPE_CHECKING:
     from nxdrive.alfresco.client.remote import AlfrescoRemote
@@ -107,6 +112,11 @@ class DeviceSyncProvisioner:
         self.subscriber_id: str = ""
         self.subscription_id: str = ""
 
+        #: Why the last :meth:`provision` call failed at the capability probe,
+        #: so the watcher can tell the user something more useful than "failed".
+        self.amp_missing = False
+        self.network_error = False
+
     def __repr__(self) -> str:
         return (
             f"<{type(self).__name__} "
@@ -127,6 +137,8 @@ class DeviceSyncProvisioner:
         Any failure is logged and returns ``False`` — the caller decides what
         to do, there is deliberately no silent fallback.
         """
+        self.amp_missing = False
+        self.network_error = False
         if not self._check_amp_available():
             return False
 
@@ -161,11 +173,12 @@ class DeviceSyncProvisioner:
             # the watcher cannot tell apart from a recoverable fault. Expired
             # credentials have to reach its invalid-credentials path instead.
             raise
-        except AlfrescoError:
+        except AlfrescoError as exc:
             log.exception(
                 "Could not determine whether the Device Sync AMP is "
                 "installed (transport failure)"
             )
+            self.network_error = isinstance(exc, NetworkError)
             return False
 
         if not available:
@@ -173,6 +186,7 @@ class DeviceSyncProvisioner:
                 "The Device Sync AMP is not installed on "
                 f"{self.remote.server_url!r} — the change feed is unavailable"
             )
+            self.amp_missing = True
             return False
 
         return True

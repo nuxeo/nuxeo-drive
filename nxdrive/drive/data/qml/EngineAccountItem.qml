@@ -12,6 +12,7 @@ Rectangle {
     width: parent ? parent.width : 0
     height: authenticated ? 100 : 125
     property bool authenticated: !api.has_invalid_credentials(uid)
+    property bool reloginFailed: api.has_relogin_failed(uid)
     property string forceUi: force_ui || wui
     property bool sync_enabled: feat_synchronization.enabled
 
@@ -77,6 +78,7 @@ Rectangle {
                         function onAuthChanged(engineUid) {
                             if (engineUid != uid) return
                             authenticated = !api.has_invalid_credentials(uid)
+                            reloginFailed = api.has_relogin_failed(uid)
                         }
                     }
 
@@ -110,12 +112,12 @@ Rectangle {
                 // Bad or outdated credentials
                 ScaledText {
                     visible: !authenticated
-                    text: qsTr("AUTH_EXPIRED") + tl.tr
+                    text: (reloginFailed ? qsTr("RELOGIN_FAILED") : qsTr("AUTH_EXPIRED")) + tl.tr
                     color: errorContent
                 }
                 Link {
                     visible: !authenticated
-                    text: qsTr("AUTH_UPDATE_ACTION") + tl.tr
+                    text: (reloginFailed ? qsTr("RELOGIN_RETRY_ACTION") : qsTr("AUTH_UPDATE_ACTION")) + tl.tr
                     color: errorContent
                     onClicked: api.web_update_token(uid)
                     Layout.fillWidth: true

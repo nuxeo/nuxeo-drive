@@ -880,7 +880,7 @@ def test_password_relogin_and_oauth_password_dispatch(api_env):
     api.relogin("missing", "secret")
     api.setMessage.emit.assert_called_once_with("CONNECTION_UNKNOWN", "error")
 
-    engine = SimpleNamespace(type="test-engine")
+    engine = SimpleNamespace(type="test-engine", uid="engine-1")
     manager.engines = {"engine-1": engine}
     browser_config = server_config(supports_browser_token_update=True)
     with patch.object(api_module.st, "get_by_engine_type", return_value=browser_config):
@@ -905,7 +905,11 @@ def test_password_relogin_and_oauth_password_dispatch(api_env):
     with patch.object(api_module.st, "get_by_engine_type", return_value=handler_config):
         api.relogin("engine-1", "secret")
     handler.assert_called_once_with(engine, "secret")
-    api.setMessage.emit.assert_not_called()
+    api.setMessage.emit.assert_called_once_with("CONNECTION_SUCCESS", "success")
+    api_env.application.set_icon_state.assert_called_with("idle")
+    api_env.application.show_settings.assert_called_with("Accounts")
+
+    api.setMessage.emit.reset_mock()
 
     handler.side_effect = RuntimeError("rejected")
     with patch.object(api_module.st, "get_by_engine_type", return_value=handler_config):
@@ -1274,3 +1278,81 @@ def test_text_task_and_pending_task_helpers(api_env):
     with patch.object(api_module, "log") as logger:
         api.log_qml("QML message")
     logger.debug.assert_called_once_with("[QML] QML message")
+
+
+class _LoginRefused(Exception):
+    pass
+
+
+def _relogin_engine(api_env):
+    engine = Mock(
+        name="engine", type="test-engine", uid="engine-1", remote_user="tester"
+    )
+    engine.is_auth_error.side_effect = lambda exc: isinstance(exc, _LoginRefused)
+    api_env.manager.engines = {"engine-1": engine}
+    return engine
+
+
+def _relogin_config(handler):
+    return server_config(supports_browser_token_update=False, relogin_handler=handler)
+
+
+def test_relogin_with_a_wrong_password_is_reported(api_env):
+    api = api_env.api
+    engine = _relogin_engine(api_env)
+    handler = Mock(side_effect=_LoginRefused("[HTTP 403] rejected"))
+
+    with patch.object(
+        api_module.st, "get_by_engine_type", return_value=_relogin_config(handler)
+    ), patch.object(api_module, "log") as log, patch(
+        "nxdrive.drive.notification.Translator"
+    ):
+        api.relogin("engine-1", "wrong")
+
+    engine.set_relogin_failed.assert_called_once_with(True)
+    notif = api_env.manager.notification_service.send_notification.call_args.args[0]
+    assert notif.uid == "RELOGIN_FAILED_engine-1"
+    assert notif.level == "danger"
+    assert notif.action == "web_update_token"
+    api.setMessage.emit.assert_called_once_with("RELOGIN_WRONG_PASSWORD", "error")
+    # Expected: one line, no traceback.
+    assert "exc_info" not in log.warning.call_args.kwargs
+
+
+def test_relogin_failing_for_another_reason_keeps_the_old_handling(api_env):
+    api = api_env.api
+    engine = _relogin_engine(api_env)
+    handler = Mock(side_effect=RuntimeError("engine did not start"))
+
+    with patch.object(
+        api_module.st, "get_by_engine_type", return_value=_relogin_config(handler)
+    ), patch.object(api_module, "log") as log:
+        api.relogin("engine-1", "secret")
+
+    engine.set_relogin_failed.assert_not_called()
+    api.setMessage.emit.assert_called_once_with("AUTH_EXPIRED", "error")
+    assert log.warning.call_args.kwargs["exc_info"] is True
+
+
+def test_a_successful_relogin_clears_the_refusal_notification(api_env):
+    api = api_env.api
+    _relogin_engine(api_env)
+
+    with patch.object(
+        api_module.st, "get_by_engine_type", return_value=_relogin_config(Mock())
+    ):
+        api.relogin("engine-1", "right")
+
+    api_env.manager.notification_service.discard_notification.assert_called_once_with(
+        "RELOGIN_FAILED_engine-1"
+    )
+    api.setMessage.emit.assert_called_once_with("CONNECTION_SUCCESS", "success")
+
+
+def test_has_relogin_failed(api_env):
+    api = api_env.api
+    engine = _relogin_engine(api_env)
+    engine.has_relogin_failed.return_value = True
+
+    assert api.has_relogin_failed("engine-1") is True
+    assert api.has_relogin_failed("missing") is False

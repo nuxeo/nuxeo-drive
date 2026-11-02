@@ -246,6 +246,113 @@ class TestContentLoaderMixin:
             mock_tree.set_loading_cursor.assert_called_with(False)
 
 
+class TestExpiredLoginIsReported:
+    """The picker can be the only thing talking to the server (e.g. while the
+    folders to sync are still to be chosen), so it must raise the re-login
+    prompt itself instead of only showing "Loading error"."""
+
+    class _AuthError(Exception):
+        pass
+
+    def _loader(self, error):
+        tree = TestContentLoaderMixin().create_mock_tree()
+        engine = MagicMock()
+        engine.is_auth_error.side_effect = lambda exc: isinstance(exc, self._AuthError)
+        tree.parent.engine = engine
+        tree.client.get_top_documents.side_effect = error
+        return ContentLoaderMixin(tree), tree, engine
+
+    def _run(self, loader):
+        with patch("nxdrive.drive.gui.folders_loader.QStandardItem"), patch(
+            "nxdrive.drive.gui.folders_loader.Translator"
+        ):
+            loader.run()
+
+    def test_expired_login_flags_the_engine(self):
+        loader, tree, engine = self._loader(self._AuthError("ticket expired"))
+
+        self._run(loader)
+
+        engine.set_invalid_credentials.assert_called_once()
+        assert "re-login" in engine.set_invalid_credentials.call_args.kwargs["reason"]
+        tree.set_loading_cursor.assert_called_with(False)
+
+    def test_expired_login_shows_its_reason_without_a_traceback(self):
+        loader, tree, _ = self._loader(self._AuthError("ticket expired"))
+        root = tree._invisible_root
+
+        with patch("nxdrive.drive.gui.folders_loader.QStandardItem") as item_cls, patch(
+            "nxdrive.drive.gui.folders_loader.Translator"
+        ) as translator, patch("nxdrive.drive.gui.folders_loader.log") as log:
+            translator.get.side_effect = lambda key: f"<{key}>"
+            loader.run()
+
+        item_cls.assert_called_once_with("<LOADING_ERROR_AUTH_EXPIRED>")
+        root.appendRow.assert_called_once_with(item_cls.return_value)
+        assert "exc_info" not in log.warning.call_args.kwargs
+
+    def test_other_errors_keep_the_generic_message_and_traceback(self):
+        loader, _, _ = self._loader(Exception("Network error"))
+
+        with patch("nxdrive.drive.gui.folders_loader.QStandardItem") as item_cls, patch(
+            "nxdrive.drive.gui.folders_loader.Translator"
+        ) as translator, patch("nxdrive.drive.gui.folders_loader.log") as log:
+            translator.get.side_effect = lambda key: f"<{key}>"
+            loader.run()
+
+        assert item_cls.call_args.args[0].startswith("<LOADING_ERROR> ")
+        assert log.warning.call_args.kwargs["exc_info"] is True
+
+    def test_the_auth_expired_label_is_translated(self):
+        import json
+        from pathlib import Path
+
+        for folder in ("nxdrive/data/i18n", "nxdrive/drive/data/i18n"):
+            labels = json.loads(
+                (Path(__file__).parents[4] / folder / "i18n.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            assert (
+                labels["LOADING_ERROR_AUTH_EXPIRED"]
+                == "Authentication expired. Please log in again."
+            )
+
+    def test_other_errors_do_not_flag_the_engine(self):
+        loader, _, engine = self._loader(Exception("Network error"))
+
+        self._run(loader)
+
+        engine.set_invalid_credentials.assert_not_called()
+
+    def test_the_engine_is_read_when_the_loader_is_created(self):
+        """run() happens on a worker thread, possibly after the dialog is gone."""
+        loader, tree, engine = self._loader(self._AuthError("ticket expired"))
+        tree.parent = None
+
+        self._run(loader)
+
+        engine.set_invalid_credentials.assert_called_once()
+
+    def test_no_engine_is_handled(self):
+        tree = TestContentLoaderMixin().create_mock_tree()
+        tree.parent = None
+        tree.client.get_top_documents.side_effect = self._AuthError("expired")
+        loader = ContentLoaderMixin(tree)
+
+        self._run(loader)  # Must not raise.
+
+        assert loader.engine is None
+
+    def test_a_failing_report_does_not_break_the_picker(self):
+        loader, tree, engine = self._loader(self._AuthError("ticket expired"))
+        engine.set_invalid_credentials.side_effect = RuntimeError("deleted")
+
+        self._run(loader)
+
+        tree.set_loading_cursor.assert_called_with(False)
+
+
 class TestDocumentContentLoader:
     """Test cases for DocumentContentLoader class."""
 

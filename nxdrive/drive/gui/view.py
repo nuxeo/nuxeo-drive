@@ -163,6 +163,8 @@ class EngineModel(QAbstractListModel):
         engine.syncSuspended.connect(self._relay_engine_events)
         engine.uiChanged.connect(self.uiChanged)
         engine.authChanged.connect(self.authChanged)
+        # A refused re-login changes the banner without any other event.
+        engine.authChanged.connect(self._relay_engine_events)
 
     def _relay_engine_events(self, *_args: object) -> None:
         engine = self.sender()

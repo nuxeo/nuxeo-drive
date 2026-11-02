@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from nxdrive.alfresco.client.remote import NODE_FIELDS
 from nxdrive.drive.constants import TransferStatus
 
 
@@ -421,7 +422,7 @@ class TestRenameAndMove:
         remote.client.nodes.update.assert_called_once_with(
             "node-1", {"name": "NewName.txt"}
         )
-        remote.client.nodes.get.assert_called_once_with("node-1", include=["path"])
+        remote.client.nodes.get.assert_called_once_with("node-1", include=NODE_FIELDS)
         assert info.name == "NewName.txt"
 
     def test_move_returns_remote_file_info(self, _client_patch) -> None:
@@ -442,7 +443,7 @@ class TestRenameAndMove:
         remote.client.nodes.move.assert_called_once_with(
             "node-1", "new-parent", name="File.txt"
         )
-        remote.client.nodes.get.assert_called_once_with("node-1", include=["path"])
+        remote.client.nodes.get.assert_called_once_with("node-1", include=NODE_FIELDS)
         assert info.parent_uid == "new-parent"
 
 
@@ -560,7 +561,7 @@ class TestMakeFolder:
         info = remote.make_folder("parent", "NewDir")
 
         assert info.path == "/Company Home/parent/NewDir"
-        remote.client.nodes.get.assert_called_once_with("new-id", include=["path"])
+        remote.client.nodes.get.assert_called_once_with("new-id", include=NODE_FIELDS)
 
     def test_conflict_adopts_existing(self, _client_patch) -> None:
         from alfresco.exceptions import ConflictError
@@ -1818,7 +1819,7 @@ class TestGetFilesystemRootInfo:
         info = remote.get_filesystem_root_info()
         assert info.uid == "root-id"
         assert info.folderish is True
-        remote.client.nodes.get.assert_called_once_with("-root-", include=["path"])
+        remote.client.nodes.get.assert_called_once_with("-root-", include=NODE_FIELDS)
 
 
 class TestNodeToRemoteFileInfoExtended:
