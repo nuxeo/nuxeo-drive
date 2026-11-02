@@ -110,3 +110,20 @@ def test_oauth2_code_masking(tmp_path):
     assert "response_type=code&client_id=alfresco" in data
     assert "code_challenge=ch4ll3nge" in data
     assert "state=st4te" in data
+
+
+def test_oauth2_code_masking_in_parsed_callback(tmp_path):
+    """The full nxdrive://authorize log line hides the code in both of its copies."""
+    log_file = tmp_path / "log5.log"
+    configure(log_filename=log_file, force_configure=True)
+    logging.info(
+        "Event URL=nxdrive://authorize/?code=s3cr3t-c0de&state=st4te, "
+        "info={'command': 'authorize', 'code': 's3cr3t-c0de', 'state': 'st4te'}, "
+        "path=PosixPath('.')"
+    )
+
+    data = log_file.read_text()
+    assert "s3cr3t-c0de" not in data
+    assert "authorize/?code=*********&state=st4te" in data
+    assert "'code': '*********', 'state': 'st4te'" in data
+    assert "'command': 'authorize'" in data

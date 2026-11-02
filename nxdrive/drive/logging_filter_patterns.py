@@ -11,7 +11,9 @@ nxdrive authentication token (embedded in URL nxdrive://token/*********/user/use
 token in key value pair 'token': 'AUTHENTICATION_TOKEN'),
 extra info containing S3 bucket credentials,
 AWS (X-Amz-Security-Token, X-Amz-Credential, X-Amz-Signature) and Set-Cookie (Hide AWSALB and AWSALBCORS),
-OAuth2 one-time authorization code in redirect URLs (?code=*********)
+OAuth2 one-time authorization code in redirect URLs (?code=*********) and parsed dicts ('code': '*********')
+
+The same patterns are applied to Sentry breadcrumbs and events (see tracing.py).
 
 """
 
@@ -32,4 +34,5 @@ patterns = [
     ),
     (r"Set-Cookie': '(.*?)'", r"Set-Cookie': '*********"),
     (r"([?&/]code=)[^&\s\"'#]+", r"\1*********"),
+    (r"(['\"]code['\"]:\s*['\"])[^'\"]+", r"\1*********"),
 ]

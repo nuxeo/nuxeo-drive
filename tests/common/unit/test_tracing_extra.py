@@ -121,6 +121,7 @@ def test_setup_sentry_initializes_client_and_runtime_context(monkeypatch):
         attach_stacktrace=True,
         include_local_variables=False,
         before_send=tracing.before_send,
+        before_breadcrumb=tracing.before_breadcrumb,
         before_send_metric=tracing.before_send_metric,
         integrations=[logging_integration.return_value],
         traces_sample_rate=None,
@@ -411,3 +412,38 @@ def test_capture_fatal_error_reuses_initialized_sentry(monkeypatch):
     )
     capture_message.assert_called_once_with(tracing._FATAL_ERROR_MESSAGE, level="error")
     client.close.assert_not_called()
+
+
+def test_before_breadcrumb_masks_sensitive_data():
+    crumb = {
+        "type": "log",
+        "message": "Event URL=nxdrive://authorize/?code=s3cr3t&state=st, "
+        "info={'command': 'authorize', 'code': 's3cr3t', 'state': 'st'}",
+    }
+
+    result = tracing.before_breadcrumb(crumb, {})
+
+    assert result is crumb
+    assert "s3cr3t" not in crumb["message"]
+    assert "'code': '*********'" in crumb["message"]
+    assert tracing.before_breadcrumb({"type": "http"}, {}) == {"type": "http"}
+
+
+def test_before_send_masks_sensitive_data():
+    enable_sentry()
+    tracing._EVENTS.clear()
+    event = {
+        "message": "?code=s3cr3t",
+        "logentry": {
+            "message": "info={'code': 's3cr3t'}",
+            "formatted": "info={'code': 's3cr3t'}",
+        },
+    }
+
+    assert tracing.before_send(event, {}) is event
+    assert event["message"] == "?code=*********"
+    assert event["logentry"] == {
+        "message": "info={'code': '*********'}",
+        "formatted": "info={'code': '*********'}",
+    }
+    tracing._EVENTS.clear()

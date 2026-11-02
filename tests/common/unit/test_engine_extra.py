@@ -907,6 +907,31 @@ def test_update_token_changed_user_persists_user_before_token(base_engine):
     base_engine.start.assert_not_called()
 
 
+def test_update_token_keeps_invalid_credentials_when_save_fails(base_engine):
+    base_engine._load_configuration = MagicMock()
+    base_engine._save_token = MagicMock(side_effect=OSError("disk full"))
+    base_engine.set_invalid_credentials = MagicMock()
+    base_engine.start = MagicMock()
+
+    with pytest.raises(OSError):
+        Engine.update_token(base_engine, {"access_token": "new"}, "bob")
+
+    base_engine.set_invalid_credentials.assert_not_called()
+
+
+def test_update_token_marks_login_valid_after_saving(base_engine):
+    calls = MagicMock()
+    base_engine._load_configuration = MagicMock()
+    base_engine._save_token = calls.save
+    base_engine.set_invalid_credentials = calls.set_invalid
+    base_engine.start = MagicMock()
+
+    Engine.update_token(base_engine, {"access_token": "new"}, base_engine.remote_user)
+
+    assert [c[0] for c in calls.mock_calls] == ["save", "set_invalid"]
+    calls.set_invalid.assert_called_once_with(value=False)
+
+
 def test_setup_local_folder_creates_and_checks_only_requested_path(
     base_engine, tmp_path
 ):
