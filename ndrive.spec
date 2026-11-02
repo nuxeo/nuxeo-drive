@@ -53,6 +53,7 @@ excludes = [
     "pydev",
     "scipy",
     "yappi",
+    "nxdrive.alfresco",
 ]
 
 data = [

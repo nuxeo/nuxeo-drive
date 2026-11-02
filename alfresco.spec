@@ -54,6 +54,7 @@ excludes = [
     "pydev",
     "scipy",
     "yappi",
+    "nxdrive.nuxeo",
 ]
 
 data = [
