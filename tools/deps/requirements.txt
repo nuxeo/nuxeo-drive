@@ -487,8 +487,9 @@ tldextract==5.3.1 \
     --hash=sha256:6bfe36d518de569c572062b788e16a659ccaceffc486d243af0484e8ecf432d9 \
     --hash=sha256:a72756ca170b2510315076383ea2993478f7da6f897eef1f4a5400735d5057fb
     # via pypac
-truststore==0.10.1 \
-    --hash=sha256:b64e6025a409a43ebdd2807b0c41c8bff49ea7ae6550b5087ac6df6619352d4c
+truststore==0.10.5 \
+    --hash=sha256:30d36967ccaded5cbb38d602c433f53600036c79d502f4533a49b60a03bbefcd \
+    --hash=sha256:9aaaedaefaf06d8b206278cf8b5012bc897f485a874503501e12d776df78951c
 urllib3==2.8.0 \
     --hash=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3 \
     --hash=sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63
