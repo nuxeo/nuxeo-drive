@@ -386,6 +386,7 @@
     "RELOGIN_FAILED_DESCRIPTION": "The password for %1 was not accepted. Click here to try again.",
     "RELOGIN_RETRY_ACTION": "Click here to try again",
     "RELOGIN_WRONG_PASSWORD": "The password was not accepted. Please try again.",
+    "RELOGIN_WRONG_USER": "Incorrect username",
     "RELEASE_NOTES_TITLE": "%1 - Släppanteckningar",
     "RELEASE_NOTES_MSG": "Din %1 har uppdaterats korrekt till versionen <b>%2</b>, läs <a href=\"https://doc.nuxeo.com/n/Bm2\">versionsinformationen</a> för mer information.",
     "RELEASE_NOTES_MSG_ALFRESCO": "Your %1 has been correctly updated to the version <b>%2</b>.",
