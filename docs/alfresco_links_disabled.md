@@ -76,7 +76,7 @@ Alfresco case (or route it to Alfresco docs).
 **Files:**
 - Python: [`nxdrive/drive/gui/application.py`](../nxdrive/drive/gui/application.py) — `Application._show_release_notes`
 - i18n reference: [`nxdrive/drive/data/i18n/i18n.json`](../nxdrive/drive/data/i18n/i18n.json)
-- i18n Crowdin source: [`nxdrive/data/i18n/i18n.json`](../nxdrive/data/i18n/i18n.json)
+- i18n Crowdin source: [`nxdrive/drive/data/i18n/i18n.json`](../nxdrive/drive/data/i18n/i18n.json)
 
 The default `RELEASE_NOTES_MSG` contains a link to the Nuxeo release-notes page
 (`https://doc.nuxeo.com/n/Bm2`). For Alfresco a new key `RELEASE_NOTES_MSG_ALFRESCO`

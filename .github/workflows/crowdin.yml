@@ -13,7 +13,7 @@ on:
     branches:
       - master
     paths:
-      - "nxdrive/data/i18n/i18n.json"
+      - "nxdrive/drive/data/i18n/i18n.json"
 
 jobs:
   crowdin:
@@ -30,9 +30,9 @@ jobs:
           project_id: ${{ secrets.CROWDIN_PROJECT_ID }}
           token: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
 
-          source: nxdrive/data/i18n/i18n.json
+          source: nxdrive/drive/data/i18n/i18n.json
           # https://support.crowdin.com/configuration-file/#placeholders
-          translation: "nxdrive/data/i18n/i18n-%two_letters_code%.json"
+          translation: "nxdrive/drive/data/i18n/i18n-%two_letters_code%.json"
 
           # Auto-approve reference sentences we are pushing (english)
           auto_approve_imported: true

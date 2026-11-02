@@ -307,16 +307,12 @@ class TestExpiredLoginIsReported:
         import json
         from pathlib import Path
 
-        for folder in ("nxdrive/data/i18n", "nxdrive/drive/data/i18n"):
-            labels = json.loads(
-                (Path(__file__).parents[4] / folder / "i18n.json").read_text(
-                    encoding="utf-8"
-                )
-            )
-            assert (
-                labels["LOADING_ERROR_AUTH_EXPIRED"]
-                == "Authentication expired. Please log in again."
-            )
+        path = Path(__file__).parents[4] / "nxdrive/drive/data/i18n/i18n.json"
+        labels = json.loads(path.read_text(encoding="utf-8"))
+        assert (
+            labels["LOADING_ERROR_AUTH_EXPIRED"]
+            == "Authentication expired. Please log in again."
+        )
 
     def test_other_errors_do_not_flag_the_engine(self):
         loader, _, engine = self._loader(Exception("Network error"))

@@ -117,11 +117,9 @@ def test_a_login_change_refreshes_the_systray_banner():
     assert model._relay_engine_events in relayed
 
 
-@pytest.mark.parametrize("folder", ["nxdrive/data/i18n", "nxdrive/drive/data/i18n"])
-def test_translations(folder):
-    labels = json.loads(
-        (Path(__file__).parents[3] / folder / "i18n.json").read_text(encoding="utf-8")
-    )
+def test_translations():
+    path = Path(__file__).parents[3] / "nxdrive/drive/data/i18n/i18n.json"
+    labels = json.loads(path.read_text(encoding="utf-8"))
     assert labels["RELOGIN_FAILED"] == "Incorrect password"
     assert "%1" in labels["RELOGIN_FAILED_DESCRIPTION"]
     assert labels["RELOGIN_RETRY_ACTION"]
