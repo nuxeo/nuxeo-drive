@@ -524,7 +524,8 @@ def check_against_me(root, server_name: str):
 
         # Skip if "alfresco", because local server is not available for this server type
         if server_name != "alfresco":
-            job(root, version, exe, previous, "dev")
+            # Built from the current sources, so it always supports --accept-eula
+            job(root, version, exe, previous, "dev", accept_eula=True)
     finally:
         # Restore the original version
         version_update(server_name, version, lineno)
@@ -545,7 +546,10 @@ def check_against_last_release(root, server_name: str):
     create_versions(root, ga_version)
 
     # And gooo!
-    job(root, version, last_ga, ga_version, "ga")
+    accept_eula = packaging.version.parse(ga_version) >= packaging.version.parse(
+        "8.0.0"
+    )
+    job(root, version, last_ga, ga_version, "ga", accept_eula=accept_eula)
 
 
 def generate_installer(root, version, server_name: str, move=False):
@@ -572,9 +576,11 @@ def generate_installer(root, version, server_name: str, move=False):
     return dst_file
 
 
-def job(root, version, executable, previous_version, name):
+def job(root, version, executable, previous_version, name, *, accept_eula=True):
     """Repetitive tasks.
     *name* is a string to customize the log file to archive.
+    *accept_eula* adds --accept-eula to bind-server; builds older than 8.0.0
+    do not know that option and would exit with an error.
     """
 
     src = os.getcwd()
@@ -595,11 +601,13 @@ def job(root, version, executable, previous_version, name):
             url = os.getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo")
             username = os.getenv("NXDRIVE_TEST_USERNAME", "Administrator")
             password = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
+            eula_args = ["--accept-eula=yes"] if accept_eula else []
             launch_drive(
                 executable,
                 "nuxeo",
                 [
                     "bind-server",
+                    *eula_args,
                     username,
                     url,
                     f"--password={password}",

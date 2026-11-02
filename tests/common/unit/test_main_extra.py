@@ -67,11 +67,12 @@ def main_module(monkeypatch):
     return _load_main(monkeypatch)
 
 
-def _set_runtime(module, *, platform="darwin", version=(3, 13, 1)):
+def _set_runtime(module, *, platform="darwin", version=(3, 13, 1), stdin=None):
     module.sys = SimpleNamespace(
         argv=["ndrive", "console", "--debug"],
         platform=platform,
         stderr=object(),
+        stdin=stdin,
         stdout=object(),
         version_info=version,
     )
@@ -182,15 +183,39 @@ def test_main_attaches_windows_console(main_module, monkeypatch):
     monkeypatch.setitem(sys.modules, "ctypes", ctypes)
     stdout = object()
     stderr = object()
-    open_ = Mock(side_effect=[stdout, stderr])
+    stdin = object()
+    open_ = Mock(side_effect=[stdout, stderr, stdin])
 
     with patch("builtins.open", open_):
         assert main_module.main() == 1
 
     attach_console.assert_called_once_with(-1)
-    assert open_.call_args_list == [call("CONOUT$", "w"), call("CONOUT$", "w")]
+    assert open_.call_args_list == [
+        call("CONOUT$", "w"),
+        call("CONOUT$", "w"),
+        call("CONIN$", "r"),
+    ]
     assert main_module.sys.stdout is stdout
     assert main_module.sys.stderr is stderr
+    assert main_module.sys.stdin is stdin
+
+
+def test_main_keeps_redirected_windows_input(main_module, monkeypatch):
+    piped_stdin = object()
+    _set_runtime(main_module, platform="win32", stdin=piped_stdin)
+    main_module.check_executable_path.return_value = False
+    ctypes = ModuleType("ctypes")
+    ctypes.windll = SimpleNamespace(
+        kernel32=SimpleNamespace(AttachConsole=Mock(return_value=True))
+    )
+    monkeypatch.setitem(sys.modules, "ctypes", ctypes)
+    open_ = Mock(side_effect=[object(), object()])
+
+    with patch("builtins.open", open_):
+        assert main_module.main() == 1
+
+    assert open_.call_args_list == [call("CONOUT$", "w"), call("CONOUT$", "w")]
+    assert main_module.sys.stdin is piped_stdin
 
 
 def test_main_logs_windows_console_open_error(main_module, monkeypatch):
@@ -209,7 +234,7 @@ def test_main_logs_windows_console_open_error(main_module, monkeypatch):
         assert main_module.main() == 1
 
     logger.error.assert_called_once_with(
-        "Failed to attach console output: %s", logger.error.call_args.args[1]
+        "Failed to attach console input/output: %s", logger.error.call_args.args[1]
     )
     assert isinstance(logger.error.call_args.args[1], OSError)
 
