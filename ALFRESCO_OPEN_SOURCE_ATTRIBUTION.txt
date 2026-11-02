@@ -19,7 +19,7 @@ alfresco-rest-client
   Licence:   MIT
 
 Authlib
-  Version:   1.6.12
+  Version:   1.9.1
   Copyright: Copyright (c) 2017, Hsiaoming Yang
   Licence:   BSD-3-Clause
 
@@ -34,7 +34,7 @@ botocore
   Licence:   Apache-2.0
 
 certifi
-  Version:   2026.2.25
+  Version:   2026.10.19
   Copyright: Copyright (c) Kenneth Reitz
   Licence:   MPL-2.0
 
@@ -75,7 +75,7 @@ Duktape (bundled within dukpy 0.5.0)
   Licence:   MIT
 
 filelock
-  Version:   3.29.0
+  Version:   4.2.1
   Copyright: Copyright (c) tox-dev and filelock contributors
   Licence:   MIT
 
@@ -95,7 +95,7 @@ jwt
   Licence:   Apache-2.0
 
 packaging
-  Version:   26.2
+  Version:   26.3
   Copyright: Copyright (c) Donald Stufft and individual contributors
   Licence:   Apache-2.0
 
@@ -197,7 +197,7 @@ truststore
   Licence:   MIT
 
 urllib3
-  Version:   2.7.0
+  Version:   2.8.0
   Copyright: Copyright (c) 2008-2020 Andrey Petrov and contributors
   Licence:   MIT
 
