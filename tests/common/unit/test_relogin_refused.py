@@ -126,6 +126,7 @@ def test_translations(folder):
     assert "%1" in labels["RELOGIN_FAILED_DESCRIPTION"]
     assert labels["RELOGIN_RETRY_ACTION"]
     assert labels["RELOGIN_WRONG_PASSWORD"]
+    assert labels["RELOGIN_WRONG_USER"] == "Incorrect username"
 
 
 @pytest.mark.parametrize(

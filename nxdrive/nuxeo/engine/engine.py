@@ -506,7 +506,6 @@ class Engine(_EngineBase):
         self._remote_token = token
         if self.remote:
             self.remote.update_token(token)
-        self.set_invalid_credentials(value=False)
 
         username_changed = username != self.remote_user
         if username_changed:
@@ -519,6 +518,9 @@ class Engine(_EngineBase):
         # Save the token *after* remote_user is up-to-date so the
         # encryption key (remote_user + server_url) is consistent.
         self._save_token(self._remote_token)
+        # Only flag the login as valid once it is saved: a failed save must
+        # keep the "Authentication expired" state.
+        self.set_invalid_credentials(value=False)
 
         if username_changed:
             # The current Remote still has the old user's headers;

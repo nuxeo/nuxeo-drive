@@ -135,6 +135,9 @@ class Engine(QObject):
     #: The last re-login attempt was refused (wrong password). Shown instead of
     #: the plain "Authentication expired" until a re-login succeeds.
     _relogin_failed = False
+    #: The last OAuth re-login was done with a different user than the account's.
+    #: Shown as "Incorrect username" until a re-login succeeds.
+    _relogin_wrong_user = False
 
     # ------------------------------------------------------------------ __init__
     def __init__(
@@ -786,6 +789,7 @@ class Engine(QObject):
     ) -> None:
         if not value:
             self._relogin_failed = False
+            self._relogin_wrong_user = False
         changed = self._invalid_credentials is not value
         self._invalid_credentials = value
         if not changed:
@@ -810,6 +814,16 @@ class Engine(QObject):
 
     def has_relogin_failed(self) -> bool:
         return self._relogin_failed
+
+    def set_relogin_wrong_user(self, value: bool = True, /) -> None:
+        """Record whether the last re-login was done with a different user."""
+        if self._relogin_wrong_user is value:
+            return
+        self._relogin_wrong_user = value
+        self.authChanged.emit(self.uid)
+
+    def has_relogin_wrong_user(self) -> bool:
+        return self._relogin_wrong_user
 
     def is_auth_error(self, exc: BaseException, /) -> bool:
         """Return whether *exc* means the server no longer accepts our login.
@@ -1047,7 +1061,6 @@ class Engine(QObject):
         self._remote_token = token
         if self.remote:
             self.remote.update_token(token)
-        self.set_invalid_credentials(value=False)
         username_changed = username != self.remote_user
         if username_changed:
             self.remote_user = username
@@ -1055,6 +1068,9 @@ class Engine(QObject):
         # Save the token *after* remote_user is up-to-date so the
         # encryption key (remote_user + server_url) is consistent.
         self._save_token(self._remote_token)
+        # Only flag the login as valid once it is saved: a failed save must
+        # keep the "Authentication expired" state.
+        self.set_invalid_credentials(value=False)
 
         if username_changed:
             # The current Remote still has the old user's headers;

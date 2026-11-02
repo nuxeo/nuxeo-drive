@@ -47,7 +47,11 @@ from nxdrive.drive.exceptions import (
     StartupPageConnectionError,
 )
 from nxdrive.drive.feature import Feature
-from nxdrive.drive.notification import Notification, ReloginFailedNotification
+from nxdrive.drive.notification import (
+    InvalidCredentialNotification,
+    Notification,
+    ReloginFailedNotification,
+)
 from nxdrive.drive.objects import Binder, DocPair
 from nxdrive.drive.options import Options
 from nxdrive.drive.qt import constants as qt
@@ -61,6 +65,7 @@ from nxdrive.drive.utils import (
     get_default_local_folder,
     get_task_type,
     normalized_path,
+    obfuscate_path,
     save_config,
     sizeof_fmt,
     test_url,
@@ -1243,6 +1248,28 @@ class QMLDriveApi(QObject):
         engine = self._get_engine(uid)
         return bool(engine and engine.has_relogin_failed())
 
+    def _report_relogin_wrong_user(self, engine: Any, username: str, /) -> None:
+        """Refuse a re-login done with another user and ask to log in again.
+
+        The new token is dropped: keeping it would switch the account to the
+        other user and the next start would fail on the sync folder check.
+        """
+        log.error(f"Username does not match [{engine.remote_user!r} -> {username!r}]")
+        engine.set_relogin_failed(False)
+        engine.set_invalid_credentials(
+            value=True, reason="re-login with a different username"
+        )
+        engine.set_relogin_wrong_user(True)
+        self._manager.notification_service.send_notification(
+            InvalidCredentialNotification(engine.uid)
+        )
+        self.application.show_settings("Accounts")
+
+    @Slot(str, result=bool)
+    def has_relogin_wrong_user(self, uid: str, /) -> bool:
+        engine = self._get_engine(uid)
+        return bool(engine and engine.has_relogin_wrong_user())
+
     @Slot(str, str, str, str)
     def oauth2_password_auth(
         self, local_folder: str, server_url: str, username: str, password: str, /
@@ -1457,7 +1484,12 @@ class QMLDriveApi(QObject):
         else:
             username = auth.get_username()
             if "engine" in self.callback_params:
-                error = self.update_token(token, username)
+                engine = manager.engines.get(self.callback_params["engine"])
+                if engine and username != engine.remote_user:
+                    self._report_relogin_wrong_user(engine, username)
+                    error = "RELOGIN_WRONG_USER"
+                else:
+                    error = self.update_token(token, username)
             else:
                 error = self.create_account(token, username)
         finally:
@@ -1499,7 +1531,8 @@ class QMLDriveApi(QObject):
                 + self.callback_params["engine_type"]
             )
             log.info(
-                f"Creating new account [{local_folder=}, {server_url=}, {username=}]"
+                "Creating new account "
+                f"[local_folder={obfuscate_path(local_folder)!r}, {server_url=}, {username=}]"
             )
 
             error = self.bind_server(
@@ -1512,7 +1545,7 @@ class QMLDriveApi(QObject):
         except Exception:
             log.exception(
                 "Unexpected error while trying to create a new account "
-                f"[{local_folder=}, {server_url=}, {username=}]"
+                f"[local_folder={obfuscate_path(local_folder)!r}, {server_url=}, {username=}]"
             )
             error = "CONNECTION_UNKNOWN"
         return error
@@ -1525,7 +1558,7 @@ class QMLDriveApi(QObject):
         try:
             log.info(
                 "Updating token for account "
-                f"[{engine.local_folder}, {engine.server_url},"
+                f"[{obfuscate_path(engine.local_folder)}, {engine.server_url},"
                 f" {engine.remote_user!r} -> {username!r}]"
             )
 
@@ -1542,7 +1575,7 @@ class QMLDriveApi(QObject):
         except Exception:
             log.exception(
                 "Unexpected error while trying to update token for account "
-                f"[{engine.local_folder}, {engine.server_url}, {engine.remote_user}]"
+                f"[{obfuscate_path(engine.local_folder)}, {engine.server_url}, {engine.remote_user}]"
             )
             error = "CONNECTION_UNKNOWN"
         finally:

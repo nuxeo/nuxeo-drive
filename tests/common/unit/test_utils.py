@@ -1920,6 +1920,7 @@ class TestTestUrl:
 
     def test_url_http_error_401(self):
         import requests as req
+
         from nxdrive.drive.utils import test_url
 
         mock_resp = Mock()
@@ -1937,6 +1938,7 @@ class TestTestUrl:
 
     def test_url_connection_error(self):
         import requests as req
+
         from nxdrive.drive.utils import test_url
 
         # When requests.get raises ConnectionError, it propagates
@@ -1946,6 +1948,7 @@ class TestTestUrl:
 
     def test_url_ssl_certificate_verify_failed(self):
         from requests.exceptions import SSLError
+
         from nxdrive.drive.exceptions import InvalidSSLCertificate
         from nxdrive.drive.utils import test_url
 
@@ -1955,6 +1958,7 @@ class TestTestUrl:
 
     def test_url_ssl_certificate_required(self):
         from requests.exceptions import SSLError
+
         from nxdrive.drive.exceptions import MissingClientSSLCertificate
         from nxdrive.drive.utils import test_url
 
@@ -1964,6 +1968,7 @@ class TestTestUrl:
 
     def test_url_ssl_password_required(self):
         from requests.exceptions import SSLError
+
         from nxdrive.drive.exceptions import EncryptedSSLCertificateKey
         from nxdrive.drive.utils import test_url
 
@@ -2066,3 +2071,18 @@ class TestIfFrozen:
             mock_opts.is_frozen = True
             result = my_func()
         assert result == "called"
+
+
+@pytest.mark.parametrize(
+    "path, expected",
+    [
+        ("/Users/jdoe/Alfresco", "*********/Alfresco"),
+        ("/Users/jdoe/Alfresco/", "*********/Alfresco"),
+        (Path("/home/jdoe/My Drive"), "*********/My Drive"),
+        ("Alfresco", "*********/Alfresco"),
+        ("/", "*********"),
+        ("", "*********"),
+    ],
+)
+def test_obfuscate_path(path, expected):
+    assert nxdrive.drive.utils.obfuscate_path(path) == expected

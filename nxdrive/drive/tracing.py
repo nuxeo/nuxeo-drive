@@ -5,16 +5,20 @@
 
 import logging
 import os
+import re
 from typing import TYPE_CHECKING, Any, Dict, Set
 from uuid import uuid4
 
+from .logging_filter_patterns import patterns
 from .options import Options
 
 if TYPE_CHECKING:
+    from sentry_sdk._types import Breadcrumb as _Breadcrumb
     from sentry_sdk._types import Event as _Event
     from sentry_sdk._types import Hint as _Hint
     from sentry_sdk.types import Metric as _Metric
 else:
+    _Breadcrumb = Dict[str, Any]
     _Event = Dict[str, Any]
     _Hint = Dict[str, Any]
     _Metric = Dict[str, Any]
@@ -113,8 +117,33 @@ def should_ignore(event: _Event) -> bool:
     return False
 
 
+def _mask(text: Any, /) -> Any:
+    """Apply the log masking patterns, which Sentry does not go through."""
+    if not isinstance(text, str):
+        return text
+    for pattern, replacement in patterns:
+        text = re.sub(pattern, replacement, text)
+    return text
+
+
+def before_breadcrumb(crumb: _Breadcrumb, _: _Hint, /) -> _Breadcrumb:
+    """Hide sensitive data from the log history attached to Sentry events."""
+    if "message" in crumb:
+        crumb["message"] = _mask(crumb["message"])
+    return crumb
+
+
 def before_send(event: _Event, _: _Hint, /) -> Any:
     """Alter an event before sending to the Sentry server."""
+    if "message" in event:
+        event["message"] = _mask(event["message"])
+    logentry = event.get("logentry")
+    if logentry:
+        event["logentry"] = {
+            key: _mask(value) if key in ("message", "formatted") else value
+            for key, value in logentry.items()
+        }
+
     extra = event.get("extra", {})
     if _FATAL_ERROR_MARKER in extra:
         extra.pop(_FATAL_ERROR_MARKER, None)
@@ -160,6 +189,7 @@ def setup_sentry(app_version: str, /, *, force: bool = False) -> bool:
         attach_stacktrace=True,
         include_local_variables=False,
         before_send=before_send,
+        before_breadcrumb=before_breadcrumb,
         before_send_metric=before_send_metric,
         integrations=[
             LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
