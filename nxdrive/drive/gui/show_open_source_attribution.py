@@ -116,5 +116,5 @@ def get_open_source_attribution_console_message(server_type: str = "Nuxeo") -> N
             log.warning("No content in Open Source Attribution text")
     except EOFError:
         log.warning("End of File reached for Open Source Attribution.")
-    except RuntimeError:
-        log.warning("No input received.")
+    except (RuntimeError, OSError, ValueError):
+        log.warning("Console input/output unavailable for Open Source Attribution.")

@@ -262,6 +262,6 @@ def get_eula_console_message(server_type: str = "Nuxeo") -> bool:
     except EOFError:
         log.warning("End of File reached. Rejecting EULA.")
         return False
-    except RuntimeError:
-        log.warning("No input received. Rejecting EULA.")
+    except (RuntimeError, OSError, ValueError):
+        log.warning("Console input/output unavailable. Rejecting EULA.")
         return False

@@ -733,7 +733,9 @@ class CliHandler:
         # Force EULA acceptance before processing commands
         # 'uninstall' will be skipped for EULA acceptance
         # 'launch' has its own EULA check for both console and GUI modes
-        if command not in ("uninstall", "launch"):
+        # 'ctx_direct_transfer' (direct-transfer) opens the GUI through launch(),
+        # so it relies on the graphical EULA window instead of the console prompt
+        if command not in ("uninstall", "launch", "ctx_direct_transfer"):
 
             from .gui.show_eula import get_eula_console_message
 

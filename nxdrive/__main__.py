@@ -64,7 +64,10 @@ def main() -> int:
             try:
                 sys.stdout = open("CONOUT$", "w")
                 sys.stderr = open("CONOUT$", "w")
-                sys.stdin = open("CONIN$", "r")
+                # Keep redirected input (e.g. "echo Y | ndrive ..."); only fall back
+                # to the console keyboard when no input stream was inherited.
+                if sys.stdin is None:
+                    sys.stdin = open("CONIN$", "r")
             except OSError as exc:
                 import logging
 
