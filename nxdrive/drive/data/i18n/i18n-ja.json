@@ -458,7 +458,7 @@
     "FATAL_ERROR_SEND_TOOLTIP": "Send the traceback and recent logs to Hyland",
     "FATAL_ERROR_SENT": "Error sent to Hyland",
     "FDA_POPUP_CHECKBOX_LABEL": "今後このメッセージを表示しない",
-    "FDA_POPUP_MESSAGE_PART_1": "Mac ですべての Finder のお気に入りを表示するには、このアプリの format@@0 を有効にします。",
+    "FDA_POPUP_MESSAGE_PART_1": "Mac ですべての Finder のお気に入りを表示するには、このアプリの「ディスクへのフルアクセス」を有効にします。",
     "FDA_POPUP_MESSAGE_PART_2": "「システム設定」→「プライバシーとセキュリティ」→「ディスクへのフルアクセス」に移動し、Nuxeo Driveへのアクセスを有効にしてください。",
     "FDA_POPUP_MESSAGE_PART_3": "次に、Nuxeo Driveを再起動して変更を適用します。",
     "FDA_POPUP_SYSTEM_SETTINGS": "システム設定を開く",

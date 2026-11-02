@@ -461,7 +461,7 @@
     "FDA_POPUP_MESSAGE_PART_1": "Pour afficher tous les Favoris du Finder sur votre Mac, activez l'accès complet au disque pour cette application.",
     "FDA_POPUP_MESSAGE_PART_2": "Allez dans Paramètres du système → Confidentialité et sécurité → Accès au disque complet, activez l'accès pour Nuxeo Drive.",
     "FDA_POPUP_MESSAGE_PART_3": "Ensuite, redémarrez Nuxeo Drive pour appliquer les modifications.",
-    "FDA_POPUP_SYSTEM_SETTINGS": "Ouvrir les paramètres de la console",
+    "FDA_POPUP_SYSTEM_SETTINGS": "Ouvrir les réglages système",
     "FDA_POPUP_NOT_NOW": "Pas maintenant",
     "FDA_POPUP_WARNING_LABEL": "Autorisation requise",
     "FDA_SETTINGS_BUTTON_HOVER": "Ouvrez Paramètres Système > Confidentialité & Sécurité > Accès complet au disque",

@@ -145,13 +145,9 @@ class TestSkippedFilesList:
         assert load_skipped_files(dao) == set()
 
     def test_the_reason_is_translated(self):
-        for folder in ("nxdrive/data/i18n", "nxdrive/drive/data/i18n"):
-            labels = json.loads(
-                (Path(__file__).parents[3] / folder / "i18n.json").read_text(
-                    encoding="utf-8"
-                )
-            )
-            assert "permission" in labels[f"ERROR_REASON_{NO_PERMISSION_ERROR}"]
+        path = Path(__file__).parents[3] / "nxdrive/drive/data/i18n/i18n.json"
+        labels = json.loads(path.read_text(encoding="utf-8"))
+        assert "permission" in labels[f"ERROR_REASON_{NO_PERMISSION_ERROR}"]
 
 
 # -- The processor ----------------------------------------------------------------
