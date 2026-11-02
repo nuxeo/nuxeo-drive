@@ -4,7 +4,6 @@
 docs/changes/4.5.0.md
 
 # No need to check foreign languages
-nxdrive/data/i18n/i18n-*
 nxdrive/drive/data/i18n/i18n-*
 
 # That file has false positives, it is not useful to test it

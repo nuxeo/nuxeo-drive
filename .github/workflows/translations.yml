@@ -6,7 +6,7 @@ permissions:
 on:
   pull_request:
     paths:
-      - "nxdrive/data/i18n/*.json"
+      - "nxdrive/drive/data/i18n/*.json"
 
 jobs:
   translations:
