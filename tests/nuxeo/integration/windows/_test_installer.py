@@ -89,6 +89,7 @@ def test_installer_arguments(installer_path):
     Test arguments the installer can manage:
 
     - Mandatory arguments
+        ACCEPTEULA: Accept or reject EULA.
         TARGETURL: The URL of the Nuxeo server.
         TARGETUSERNAME: The username of the user who will be using Nuxeo Drive.
     - Optional arguments
@@ -101,6 +102,7 @@ def test_installer_arguments(installer_path):
     print(f"test_installer_arguments called with installer_path={installer_path}")
     with Installer(installer_path) as installer:
         args = [
+            "/ACCEPTEULA=yes",
             f'/TARGETURL="{env.NXDRIVE_TEST_NUXEO_URL}"',
             f'/TARGETUSERNAME="{env.NXDRIVE_TEST_USERNAME}"',
             f'/TARGETPASSWORD="{env.NXDRIVE_TEST_PASSWORD}"',

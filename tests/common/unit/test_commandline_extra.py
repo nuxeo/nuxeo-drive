@@ -171,6 +171,7 @@ def _options(tmp_path, command="launch", **kwargs):
         "log_level_console": "INFO",
         "log_level_file": "DEBUG",
         "nxdrive_home": str(tmp_path / "cli-home"),
+        "accept_eula": "No",
     }
     values.update(kwargs)
     return Namespace(**values)
@@ -342,6 +343,10 @@ def test_handle_configures_nuxeo_and_dispatches_command(cli, tmp_path):
     )
     ssl_socket = MagicMock()
     ssl_socket.supportsSsl.return_value = True
+    # handle() resolves the home folder from Path.home(), not from options-home.
+    eula_marker = tmp_path / ".nuxeo-drive" / "eula_accepted"
+    eula_marker.parent.mkdir()
+    eula_marker.touch()
 
     with patch.object(cli, "clean_folder", return_value=27) as command, _handle_runtime(
         cli, tmp_path, options, qssl_socket=ssl_socket
@@ -367,6 +372,109 @@ def test_handle_configures_nuxeo_and_dispatches_command(cli, tmp_path):
     ssl_socket.supportsSsl.assert_called_once_with()
     command.assert_called_once_with(options)
     assert Options.update_site_url == "https://updates.example/nuxeo"
+
+
+EULA_PROMPT = "nxdrive.drive.gui.show_eula.get_eula_console_message"
+
+
+def _eula_marker(tmp_path):
+    return tmp_path / ".nuxeo-drive" / "eula_accepted"
+
+
+def test_handle_runs_command_and_saves_eula_when_user_accepts(cli, tmp_path):
+    options = _options(tmp_path, "clean_folder")
+
+    with patch.object(cli, "clean_folder", return_value=27) as command, _handle_runtime(
+        cli, tmp_path, options
+    ) as runtime, patch(EULA_PROMPT, return_value=True) as prompt:
+        result = cli.handle(["clean-folder"])
+
+    assert result == 27
+    prompt.assert_called_once_with("NUXEO")
+    command.assert_called_once_with(options)
+    runtime.get_manager.assert_called_once_with()
+    assert _eula_marker(tmp_path).is_file()
+
+
+def test_handle_stops_without_saving_eula_when_user_rejects(cli, tmp_path):
+    options = _options(tmp_path, "clean_folder")
+
+    with patch.object(cli, "clean_folder", return_value=27) as command, _handle_runtime(
+        cli, tmp_path, options
+    ) as runtime, patch(EULA_PROMPT, return_value=False) as prompt:
+        result = cli.handle(["clean-folder"])
+
+    assert result == 1
+    prompt.assert_called_once_with("NUXEO")
+    command.assert_not_called()
+    runtime.get_manager.assert_not_called()
+    assert not _eula_marker(tmp_path).exists()
+
+
+def test_handle_skips_eula_prompt_when_already_accepted(cli, tmp_path):
+    options = _options(tmp_path, "clean_folder")
+    _eula_marker(tmp_path).parent.mkdir()
+    _eula_marker(tmp_path).touch()
+
+    with patch.object(cli, "clean_folder", return_value=27) as command, _handle_runtime(
+        cli, tmp_path, options
+    ), patch(EULA_PROMPT) as prompt:
+        result = cli.handle(["clean-folder"])
+
+    assert result == 27
+    prompt.assert_not_called()
+    command.assert_called_once_with(options)
+
+
+@pytest.mark.parametrize("value", ("yes", "YES", " Yes "))
+def test_handle_accept_eula_option_skips_prompt_and_saves_eula(cli, tmp_path, value):
+    options = _options(tmp_path, "clean_folder", accept_eula=value)
+
+    with patch.object(cli, "clean_folder", return_value=27) as command, _handle_runtime(
+        cli, tmp_path, options
+    ), patch(EULA_PROMPT) as prompt:
+        result = cli.handle(["clean-folder", "--accept-eula", value])
+
+    assert result == 27
+    prompt.assert_not_called()
+    command.assert_called_once_with(options)
+    assert _eula_marker(tmp_path).is_file()
+
+
+@pytest.mark.parametrize("value", ("No", "no", "true", ""))
+def test_handle_accept_eula_option_other_values_keep_prompt(cli, tmp_path, value):
+    options = _options(tmp_path, "clean_folder", accept_eula=value)
+
+    with patch.object(cli, "clean_folder", return_value=27) as command, _handle_runtime(
+        cli, tmp_path, options
+    ), patch(EULA_PROMPT, return_value=False) as prompt:
+        result = cli.handle(["clean-folder", "--accept-eula", value])
+
+    assert result == 1
+    prompt.assert_called_once_with("NUXEO")
+    command.assert_not_called()
+    assert not _eula_marker(tmp_path).exists()
+
+
+@pytest.mark.parametrize(
+    ("command_name", "argv"),
+    (("launch", ["--accept-eula", "yes"]), ("uninstall", ["uninstall"])),
+)
+def test_handle_launch_and_uninstall_bypass_cli_eula_gate(
+    cli, tmp_path, command_name, argv
+):
+    options = _options(tmp_path, command_name, accept_eula="yes")
+
+    with patch.object(cli, command_name, return_value=0) as command, _handle_runtime(
+        cli, tmp_path, options
+    ), patch(EULA_PROMPT) as prompt:
+        result = cli.handle(argv)
+
+    assert result == 0
+    prompt.assert_not_called()
+    command.assert_called_once_with(options)
+    # launch() shows its own EULA window, so the option must not pre-accept it.
+    assert not _eula_marker(tmp_path).exists()
 
 
 def test_handle_rejects_server_key_missing_from_registry(cli, tmp_path):

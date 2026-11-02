@@ -116,11 +116,12 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 ;    {#MyAppExeName} /SILENT ARGS
 ;
 ; Where ARGS are:
+;    /ACCEPTEULA=yes                             (mandatory)
 ;    /TARGETURL="http://localhost:8080/alfresco" (mandatory)
-;    /TARGETUSERNAME="username"               (mandatory)
+;    /TARGETUSERNAME="username"                  (mandatory)
 ;    /TARGETPASSWORD="password"
 ;    /TARGETDRIVEFOLDER="%USERPROFILE%\Documents\Hyland Drive for Alfresco"
-Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --password ""{param:TARGETPASSWORD}"" --local-folder ""{param:TARGETDRIVEFOLDER}"" ""{param:TARGETUSERNAME}"" ""{param:TARGETURL}"""; Flags: nowait postinstall skipifnotsilent; Check: NeedEngineBinding
+Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --accept-eula ""{param:ACCEPTEULA}"" --password ""{param:TARGETPASSWORD}"" --local-folder ""{param:TARGETDRIVEFOLDER}"" ""{param:TARGETUSERNAME}"" ""{param:TARGETURL}"""; Flags: nowait postinstall skipifnotsilent; Check: NeedEngineBinding
 
 
 [Code]
@@ -212,11 +213,13 @@ function NeedEngineBinding(): Boolean;
 // Check if the sysadmin wants to bind an engine.
 // It will check mandatory arguments.
 var
+    eula: String;
     url: String;
     username: String;
 begin
+    eula := ExpandConstant('{param:ACCEPTEULA}');
     url := ExpandConstant('{param:TARGETURL}');
     username := ExpandConstant('{param:TARGETUSERNAME}');
-    if (Length(url) > 0) and (Length(username) > 0) then
+    if (CompareText(eula, 'yes') = 0) and (Length(url) > 0) and (Length(username) > 0) then
         Result := True;
 end;

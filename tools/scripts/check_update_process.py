@@ -600,6 +600,7 @@ def job(root, version, executable, previous_version, name):
                 "nuxeo",
                 [
                     "bind-server",
+                    "--accept-eula=yes",
                     username,
                     url,
                     f"--password={password}",

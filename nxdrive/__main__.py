@@ -64,11 +64,12 @@ def main() -> int:
             try:
                 sys.stdout = open("CONOUT$", "w")
                 sys.stderr = open("CONOUT$", "w")
+                sys.stdin = open("CONIN$", "r")
             except OSError as exc:
                 import logging
 
                 logging.getLogger(__name__).error(
-                    "Failed to attach console output: %s", exc
+                    "Failed to attach console input/output: %s", exc
                 )
 
     # Catch CTRL+C

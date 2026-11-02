@@ -75,6 +75,10 @@ To get options for a specific command:
 
   {} command --help
 
+To accept the EULA without being prompted (e.g. in scripts),
+add "--accept-eula yes" after the command. It has no effect
+without a command: the graphical application asks on its own.
+
 """
 DEFAULT_LOCAL_FOLDER = get_default_local_folder()
 RETRY = 0
@@ -153,6 +157,18 @@ class CliHandler:
             default=Options.debug,
             action="store_true",
             help="Fire a debugger one uncaught error and enable REST API parameter checks.",
+        )
+
+        common_parser.add_argument(
+            "--accept-eula",
+            default="No",
+            action="store",
+            help=(
+                "Pass 'yes' (case-insensitive) after a command (e.g. bind-server) to"
+                " accept the EULA and skip the EULA and open source attribution"
+                " prompts. Any other value (default: 'No') keeps the interactive EULA"
+                " prompt. Ignored without a command and by 'uninstall'."
+            ),
         )
 
         # Commands available only for Nuxeo
@@ -715,27 +731,31 @@ class CliHandler:
                 options.ssl_no_verify = True
 
         # Force EULA acceptance before processing commands
-        # 'version', 'uninstall', 'help' -- will be skipped for EULA acceptance
+        # 'uninstall' will be skipped for EULA acceptance
         # 'launch' has its own EULA check for both console and GUI modes
-        if command not in ("version", "v", "uninstall", "help", "launch"):
+        if command not in ("uninstall", "launch"):
 
             from .gui.show_eula import get_eula_console_message
 
             # This file locks the EULA choice (Accept) and prevents launch of EULA dialog again
             eula_lock_file_path = Options.nxdrive_home / "eula_accepted"
-
             if not Path.exists(eula_lock_file_path):
-                accepted = get_eula_console_message(Options.server_type)
-                if not accepted:
+                eula_accepted = False
+                accept_eula_value = getattr(options, "accept_eula").strip().upper()
+                if accept_eula_value == "YES":
+                    log.info("EULA accepted via command --accept-eula")
+                    eula_accepted = True
+                if (not eula_accepted) and (
+                    not get_eula_console_message(Options.server_type)
+                ):
                     log.warning("EULA Not Accepted. Quitting.")
                     return 1
-                else:
-                    log.info("EULA Accepted! :)")
-                    with open(eula_lock_file_path, mode="w") as f:
-                        # This is just binary form of "ACCEPTED"
-                        f.write(
-                            "01000001 01000011 01000011 01000101 01010000 01010100 01000101 01000100"
-                        )
+                log.info("EULA Accepted! :)")
+                with open(eula_lock_file_path, mode="w") as f:
+                    # This is just binary form of "ACCEPTED"
+                    f.write(
+                        "01000001 01000011 01000011 01000101 01010000 01010100 01000101 01000100"
+                    )
 
         if command != "uninstall":
             self._install_faulthandler()

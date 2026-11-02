@@ -81,8 +81,10 @@ So it *may* work, but we **do not support** this as it can break the auto-update
 
 ###### Mandatory arguments
 
-Note: You cannot use one of these arguments without the other, they are complementary.
+Note: You cannot use one of these arguments without the others, they are complementary.
+If any of them is missing, the account is not configured during the installation.
 
+- `ACCEPTEULA=yes`: Accept the End User License Agreement (EULA) on behalf of the user. The value must be `yes`.
 - `TARGETURL`:  The URL of the Nuxeo server.
 - `TARGETUSERNAME`: The username of the user who will be using Nuxeo Drive.
 
@@ -103,19 +105,19 @@ Path must include the Nuxeo Drive folder.
 Install Nuxeo Drive and configure the Nuxeo server to `http://localhost:8080/nuxeo` with the username `username`:
 
 ```batch
-nuxeo-drive.exe /SILENT /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="username"
+nuxeo-drive.exe /SILENT /ACCEPTEULA=yes /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="username"
 ```
 
 Same as above, but add the associated password:
 
 ```batch
-nuxeo-drive.exe /SILENT /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="username" /TARGETPASSWORD="password"
+nuxeo-drive.exe /SILENT /ACCEPTEULA=yes /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="username" /TARGETPASSWORD="password"
 ```
 
 A full installation, useful for large automatic deployments:
 
 ```batch
-nuxeo-drive.exe /VERYSILENT /TARGETDRIVEFOLDER="%USERPROFILE%\Documents\Nuxeo Drive" /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="foo"
+nuxeo-drive.exe /VERYSILENT /ACCEPTEULA=yes /TARGETDRIVEFOLDER="%USERPROFILE%\Documents\Nuxeo Drive" /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="foo"
 ```
 
 Even if `username` is wrong, it will allow the customization of the Nuxeo server on all clients. The users will be asked to enter their username and password upon the first connection.
