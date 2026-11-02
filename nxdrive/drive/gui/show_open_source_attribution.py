@@ -104,12 +104,17 @@ def get_open_source_attribution_console_message(server_type: str = "Nuxeo") -> N
         log.error(f"Unable to read {server_type}_OPEN_SOURCE_ATTRIBUTION.txt : {e}")
         return
 
-    if content:
-        print(content)
-        print()  # Just a new line break
-        print("Enter any key to proceed:")
-        input()
-    else:
-        # If content is empty, we just log a warning
-        # This notice is not mandatory, so it should not block execution
-        log.warning("No content in Open Source Attribution text")
+    try:
+        if content:
+            print(content)
+            print()  # Just a new line break
+            print("Enter any key to proceed:")
+            input()
+        else:
+            # If content is empty, we just log a warning
+            # This notice is not mandatory, so it should not block execution
+            log.warning("No content in Open Source Attribution text")
+    except EOFError:
+        log.warning("End of File reached for Open Source Attribution.")
+    except (RuntimeError, OSError, ValueError):
+        log.warning("Console input/output unavailable for Open Source Attribution.")

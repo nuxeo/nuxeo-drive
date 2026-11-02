@@ -43,9 +43,12 @@ ndrive -v
 
 ## Common (global) flags
 
-These flags are accepted on the top-level parser **and** on every subcommand,
-regardless of position. They come from `common_parser` in
-`make_cli_parser`.
+These flags are accepted on the top-level parser **and** on every subcommand.
+They come from `common_parser` in `make_cli_parser`.
+
+> **Position matters.** When a subcommand is used, put these flags **after**
+> it (e.g. `ndrive bind-server --log-level-console DEBUG …`). A value placed
+> before the subcommand is silently replaced by the subcommand's default.
 
 ### Available on every build
 
@@ -57,6 +60,7 @@ regardless of position. They come from `common_parser` in
 | `--log-filename PATH` | Log file path. Defaults to `<nxdrive-home>/logs/<server-type>.log`. |
 | `--debug` | Fires a post-mortem debugger on uncaught errors and enables extra REST API parameter checks. |
 | `--sync-and-quit` | Wait for the first successful sync pass, then quit. |
+| `--accept-eula yes` | Accept the EULA without being prompted (see [EULA acceptance](#eula-acceptance)). Any value other than `yes` (case-insensitive) keeps the prompt. Ignored without a subcommand and by `uninstall`. |
 | `-v`, `--version` | Print the current version and exit. |
 
 Example combining several flags:
@@ -149,6 +153,27 @@ ndrive bind-server \
     --remote-repo default \
     jdoe https://demo.example.com/nuxeo
 ```
+
+Unattended (scripts, CI), accepting the EULA up-front:
+
+```bash
+ndrive bind-server --accept-eula yes jdoe https://demo.example.com/nuxeo
+```
+
+---
+
+### EULA acceptance
+
+Until the EULA has been accepted once, every subcommand except `uninstall`
+first prints the EULA in the terminal and asks `Enter Y to accept, N to
+reject:`. The answer can be typed or piped (e.g. `echo Y | ndrive bind-server …`).
+Rejecting it, or having no input available, stops the command with exit code `1`.
+
+Pass `--accept-eula yes` after the subcommand to accept it without the prompt.
+The acceptance is saved as the `eula_accepted` file in `<nxdrive-home>`, so the
+prompt is not shown again, including by the graphical application.
+Without a subcommand the option is ignored: the graphical application always
+shows its own EULA window until the EULA has been accepted.
 
 ---
 
@@ -373,6 +398,7 @@ A restart is required for the change to take effect. See
 - `--log-filename`
 - `--debug`
 - `--sync-and-quit`
+- `--accept-eula`
 - `-v`, `--version`
 
 ### Nuxeo-only
@@ -400,8 +426,9 @@ A restart is required for the change to take effect. See
 Most subcommands return:
 
 - `0` — success
-- `1` — expected failure (e.g. "no engine registered for local folder", or a
-  missing required argument such as `--local-folder` for `clean-folder`)
+- `1` — expected failure (e.g. "no engine registered for local folder", a
+  missing required argument such as `--local-folder` for `clean-folder`, or
+  the EULA was not accepted)
 
 Unexpected errors bubble up as tracebacks and, when `--debug` is set, drop
 you into a post-mortem debugger.

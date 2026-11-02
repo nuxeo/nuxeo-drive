@@ -237,23 +237,31 @@ def get_eula_console_message(server_type: str = "Nuxeo") -> bool:
         log.error(f"Unable to read {server_type}_EULA.txt : {e}")
         return False
 
-    if content:
-        print(content)
-        print()  # Just a new line break
-        answer = ""
-        while answer.upper() not in ("Y", "N"):
-            print("Enter Y to accept, N to reject:")
-            answer = input()
+    try:
+        if content:
+            print(content)
+            print()  # Just a new line break
+            answer = ""
 
-        if answer.upper() == "Y":
-            from .show_open_source_attribution import (
-                get_open_source_attribution_console_message,
-            )
+            while answer.upper() not in ("Y", "N"):
+                print("Enter Y to accept, N to reject:")
+                answer = input().strip()
 
-            get_open_source_attribution_console_message(server_type)
+            if answer.upper() == "Y":
+                from .show_open_source_attribution import (
+                    get_open_source_attribution_console_message,
+                )
+
+                get_open_source_attribution_console_message(server_type)
+            else:
+                return False
+            return True
         else:
+            log.warning("No content in EULA text")
             return False
-        return True
-    else:
-        log.warning("No content in EULA text")
+    except EOFError:
+        log.warning("End of File reached. Rejecting EULA.")
+        return False
+    except (RuntimeError, OSError, ValueError):
+        log.warning("Console input/output unavailable. Rejecting EULA.")
         return False
