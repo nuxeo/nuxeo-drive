@@ -334,15 +334,16 @@ pyobjc-framework-CoreServices==10.3.1 ; sys_platform == "darwin" \
     --hash=sha256:9d43b77fa11af139ba39d94921e695cf804226737f68167f8bdb8f1c449c932e \
     --hash=sha256:ccb64113ee612a05308ab8ed57ec224e22445d5a125bec11e24c35d58d1f77e4 \
     --hash=sha256:e6c7b6bb821cc7fb4f04c08560d460783a7fa08093f5e153241bf10296a16cb4
-pyobjc-framework-Cocoa==10.3.1 ; sys_platform == "darwin" \
-    --hash=sha256:11b4e0bad4bbb44a4edda128612f03cdeab38644bbf174de0c13129715497296 \
-    --hash=sha256:1cf20714daaa986b488fb62d69713049f635c9d41a60c8da97d835710445281a \
-    --hash=sha256:4cb4f8491ab4d9b59f5187e42383f819f7a46306a4fa25b84f126776305291d1 \
-    --hash=sha256:5f31021f4f8fdf873b57a97ee1f3c1620dbe285e0b4eaed73dd0005eb72fd773 \
-    --hash=sha256:6c5af24610ab639bd1f521ce4500484b40787f898f691b7a23da3339e6bc8b90 \
-    --hash=sha256:743d2a1ac08027fd09eab65814c79002a1d0421d7c0074ffd1217b6560889744 \
-    --hash=sha256:a7151186bb7805deea434fae9a4423335e6371d105f29e73cc2036c6779a9dbc \
-    --hash=sha256:de5e62e5ccf2871a94acf3bf79646b20ea893cc9db78afa8d1fe1b0d0f7cbdb0
+pyobjc-framework-Cocoa==13.0 ; sys_platform == "darwin" \
+    --hash=sha256:16dd1e8890ed695ce12bcd367ed0ac9f3e70dd1f7a8098b6398427c162591b83 \
+    --hash=sha256:1a6b9f9e0ab123e51fa7df43bbc6c0414a444facd2225ad4f221a0d842c49ad6 \
+    --hash=sha256:88be6d452e7531f695ce6d41428aa74bcaade9ddbc50af592419b9f2fbb7c879 \
+    --hash=sha256:9282ebad57784ec18f4b7ea2e6b65bac0a6f56cc21a5c63e061fa48a9b49dd26 \
+    --hash=sha256:bb0bcba2e4e9d05af875306e0e055cfc2f152fd602d5f2f1a54490adebebcd34 \
+    --hash=sha256:bb7a23941fc8d7866578dbc84e56140efd343a1d28510f530dd1dbf80807daf4 \
+    --hash=sha256:d6fa11ea29d85d46e65ed1c9fdba3a5131ad26971bf24bb7d16aa55f06bcdc1e \
+    --hash=sha256:e1618d315939c9fae57cb858d4db496ec61f82495ce6a877398131ee494fc19d \
+    --hash=sha256:f1e26ad2225d1c84973cce725f2f4aeeb4d5f653a36c8a9f0b691c5529dc7780
 pyobjc-framework-FSEvents==10.3.1 ; sys_platform == "darwin" \
     --hash=sha256:282ebeeba0190524fe1d5d21d729ebcb7034e379a8039a6ccdf5f5c6e4470e02 \
     --hash=sha256:420736c645e15006c1ed962767bfd164b1d5dba7d9dc3cd9730e4c9922b05c27 \
