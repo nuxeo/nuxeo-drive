@@ -1030,6 +1030,146 @@ def test_check_filesystem_rejects_another_account_binding(base_engine):
         base_engine._check_fs(base_engine.local_folder)
 
 
+@pytest.mark.parametrize(
+    "marker_url",
+    [
+        "http://server.example/",
+        "http://server.example",
+        "https://server.example",
+        "https://SERVER.example/",
+    ],
+)
+def test_check_filesystem_accepts_scheme_and_slash_differences(base_engine, marker_url):
+    base_engine.check_fs_marker = MagicMock(return_value=True)
+    base_engine.local.get_root_id.return_value = f"{marker_url}|alice|device|engine-1"
+    base_engine._check_fs(base_engine.local_folder)
+
+
+@pytest.mark.parametrize(
+    "root_id",
+    [
+        "http://server.example/|mallory|device|engine-1",
+        "https://other.example/|alice|device|engine-1",
+        "https://server.example:8443/|alice|device|engine-1",
+        "https://server.example/other/|alice|device|engine-1",
+    ],
+)
+def test_check_filesystem_still_rejects_other_user_or_server(base_engine, root_id):
+    base_engine.check_fs_marker = MagicMock(return_value=True)
+    base_engine.local.get_root_id.return_value = root_id
+    with pytest.raises(RootAlreadyBindWithDifferentAccount):
+        base_engine._check_fs(base_engine.local_folder)
+
+
+@pytest.mark.parametrize(
+    ("url1", "url2", "expected"),
+    [
+        ("http://host/", "https://host/", True),
+        ("https://host", "https://host/", True),
+        ("http://host:8080/nuxeo", "https://HOST:8080/nuxeo/", True),
+        ("https://host/", "https://other/", False),
+        ("https://host:8080/", "https://host/", False),
+        ("https://host/a", "https://host/b", False),
+        (None, "", True),
+        (None, "https://host/", False),
+    ],
+)
+def test_same_server(url1, url2, expected):
+    assert Engine._same_server(url1, url2) is expected
+
+
+class FakeRootMarkerClient:
+    """Keeps the sync folder ``ndriveroot`` marker in memory."""
+
+    def __init__(self, value: str = ""):
+        self.value = value
+
+    def get_root_id(self):
+        return self.value
+
+    def set_root_id(self, value: bytes):
+        self.value = value.decode("utf-8")
+
+
+def test_update_root_id_server_url_rewrites_only_the_url(base_engine):
+    base_engine.local = FakeRootMarkerClient(
+        "http://server.example/|alice|device|engine-1"
+    )
+    with patch.object(engine_module.Feature, "synchronization", True):
+        base_engine._update_root_id_server_url()
+    assert base_engine.local.value == "https://server.example/|alice|device|engine-1"
+
+
+@pytest.mark.parametrize("sync_enabled", [True, False])
+def test_update_root_id_server_url_skips_missing_marker_or_sync(
+    base_engine, sync_enabled
+):
+    base_engine.local.get_root_id.return_value = (
+        "" if sync_enabled else "http://server.example/|alice"
+    )
+    with patch.object(engine_module.Feature, "synchronization", sync_enabled):
+        base_engine._update_root_id_server_url()
+    base_engine.local.set_root_id.assert_not_called()
+
+
+def test_update_root_id_server_url_skips_missing_folder(base_engine, tmp_path):
+    base_engine.local_folder = tmp_path / "missing"
+    with patch.object(engine_module.Feature, "synchronization", True):
+        base_engine._update_root_id_server_url()
+    base_engine.local.get_root_id.assert_not_called()
+
+
+def test_update_root_id_server_url_tolerates_write_errors(base_engine):
+    base_engine.local.get_root_id.return_value = "http://server.example/|alice"
+    base_engine.local.set_root_id.side_effect = PermissionError("read-only")
+    with patch.object(engine_module.Feature, "synchronization", True):
+        base_engine._update_root_id_server_url()
+    base_engine.local.set_root_id.assert_called_once()
+
+
+def test_bind_with_http_then_https_upgrade_then_restart(base_engine):
+    """NXDRIVE regression: the account was bound with http://, Drive upgraded
+    it to https:// on the next start, and the start after that crashed with
+    RootAlreadyBindWithDifferentAccount."""
+    base_engine.server_url = "http://server.example/"
+    base_engine.check_fs_marker = MagicMock(return_value=True)
+    base_engine.manager.proxy.settings.return_value = {}
+    # Marker written at bind time, as in _add_top_level_state()
+    base_engine.local = FakeRootMarkerClient(
+        "http://server.example/|alice|device|engine-1"
+    )
+
+    with (
+        patch.object(engine_module.Feature, "synchronization", True),
+        option_values(is_frozen=True),
+        patch.object(engine_module.requests, "get") as get,
+    ):
+        # First restart: folder check, then the HTTPS upgrade
+        base_engine._check_fs(base_engine.local_folder)
+        base_engine._check_https()
+
+        get.assert_called_once_with("https://server.example/", proxies={})
+        assert base_engine.server_url == "https://server.example/"
+        base_engine.dao.update_config.assert_called_with(
+            "server_url", "https://server.example/"
+        )
+        assert (
+            base_engine.local.value == "https://server.example/|alice|device|engine-1"
+        )
+
+        # Second restart: must not raise
+        base_engine._check_fs(base_engine.local_folder)
+
+
+def test_check_filesystem_accepts_marker_left_by_older_upgrade(base_engine):
+    """Installs already broken by the old behavior: DB has https, marker http."""
+    base_engine.check_fs_marker = MagicMock(return_value=True)
+    base_engine.local = FakeRootMarkerClient(
+        "http://server.example/|alice|device|engine-1"
+    )
+    base_engine._check_fs(base_engine.local_folder)
+
+
 def test_check_fs_marker_handles_missing_mismatch_and_success(base_engine, tmp_path):
     base_engine.local_folder = tmp_path / "missing"
     assert base_engine.check_fs_marker() is False
