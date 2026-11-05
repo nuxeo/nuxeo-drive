@@ -1118,8 +1118,52 @@ class Engine(QObject):
             root_id = self.local.get_root_id()
             if root_id:
                 server_url, user, *_ = root_id.split("|")
-                if (self.server_url, self.remote_user) != (server_url, user):
+                if user != self.remote_user or not self._same_server(
+                    self.server_url, server_url
+                ):
                     raise RootAlreadyBindWithDifferentAccount(user, server_url)
+                if server_url != self.server_url:
+                    self._update_root_id_server_url()
+
+    @staticmethod
+    def _same_server(url1: Optional[str], url2: Optional[str], /) -> bool:
+        """Tell if two server URLs point to the same server.
+
+        The scheme and a trailing slash are ignored because _check_https()
+        may upgrade a stored http:// URL to https:// after the bind.
+        """
+
+        def key(url: Optional[str]) -> str:
+            if not url:
+                return ""
+            parts = urlsplit(url)
+            if not parts.netloc:
+                return url.rstrip("/")
+            return f"{parts.netloc.lower()}{parts.path.rstrip('/')}"
+
+        return key(url1) == key(url2)
+
+    def _update_root_id_server_url(self) -> None:
+        """Rewrite the server URL stored in the sync folder marker.
+
+        Keeps the marker aligned with the database after the server URL changed,
+        so that _check_fs() still recognizes the folder on next start.
+        """
+        if not Feature.synchronization or not self.local_folder.is_dir():
+            return
+        try:
+            root_id = self.local.get_root_id()
+            if not root_id:
+                return
+            old_url, *rest = root_id.split("|")
+            if old_url == self.server_url:
+                return
+            value = "|".join((self.server_url, *rest))
+            self.local.set_root_id(value.encode("utf-8"))
+        except OSError:
+            log.warning("Cannot update the sync folder server URL", exc_info=True)
+            return
+        log.info(f"Updated sync folder server URL to {self.server_url!r}")
 
     @if_frozen
     def _check_https(self) -> None:
@@ -1139,6 +1183,7 @@ class Engine(QObject):
             self.server_url = url
             self.dao.update_config("server_url", self.server_url)
             log.info(f"Updated server URL to {self.server_url!r}")
+            self._update_root_id_server_url()
 
     def cancel_action_on(self, pair_id: int, /) -> None:
         for thread in self._threads:
