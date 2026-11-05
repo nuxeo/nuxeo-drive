@@ -1167,7 +1167,9 @@ def test_check_filesystem_accepts_marker_left_by_older_upgrade(base_engine):
     base_engine.local = FakeRootMarkerClient(
         "http://server.example/|alice|device|engine-1"
     )
-    base_engine._check_fs(base_engine.local_folder)
+    with patch.object(engine_module.Feature, "synchronization", True):
+        base_engine._check_fs(base_engine.local_folder)
+    assert base_engine.local.value == "https://server.example/|alice|device|engine-1"
 
 
 def test_check_fs_marker_handles_missing_mismatch_and_success(base_engine, tmp_path):

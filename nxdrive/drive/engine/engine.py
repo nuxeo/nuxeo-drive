@@ -1122,6 +1122,8 @@ class Engine(QObject):
                     self.server_url, server_url
                 ):
                     raise RootAlreadyBindWithDifferentAccount(user, server_url)
+                if server_url != self.server_url:
+                    self._update_root_id_server_url()
 
     @staticmethod
     def _same_server(url1: Optional[str], url2: Optional[str], /) -> bool:
