@@ -13,6 +13,7 @@ from os.path import abspath
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from urllib.parse import urlencode, urlparse, urlsplit, urlunsplit
+from uuid import UUID
 
 import requests
 from urllib3.exceptions import LocationParseError
@@ -30,6 +31,7 @@ from nxdrive.drive.constants import (
 )
 from nxdrive.drive.dao.engine import EngineDAO
 from nxdrive.drive.engine.engine import Engine
+from nxdrive.drive.engine.workers import Runner
 from nxdrive.drive.exceptions import (
     AddonForbiddenError,
     AddonNotInstalledError,
@@ -55,7 +57,7 @@ from nxdrive.drive.notification import (
 from nxdrive.drive.objects import Binder, DocPair
 from nxdrive.drive.options import Options
 from nxdrive.drive.qt import constants as qt
-from nxdrive.drive.qt.imports import QObject, QUrl, Signal, Slot
+from nxdrive.drive.qt.imports import QObject, QThreadPool, QUrl, Signal, Slot
 from nxdrive.drive.translator import Translator
 from nxdrive.drive.updater.constants import Login
 from nxdrive.drive.utils import (
@@ -84,6 +86,7 @@ class QMLDriveApi(QObject):
     setMessage = Signal(str, str)
     downloadLocationChanged = Signal()
     showReloginPopup = Signal(str, str)  # (engine_uid, username)
+    collectionSearchFinished = Signal(str, int, str, str, str)
 
     def __init__(self, application: "Application", /) -> None:
         super().__init__()
@@ -457,6 +460,102 @@ class QMLDriveApi(QObject):
         except Exception:
             log.exception("CSV export error.")
             return False
+
+    @Slot(str, int, str)
+    def load_collection_documents(
+        self, uid: str, request_id: int, collection_id: str, /
+    ) -> None:
+        QThreadPool.globalInstance().start(
+            Runner(self._load_collection_documents, uid, request_id, collection_id)
+        )
+
+    @Slot(str, int, str, str)
+    def load_collection_folder(
+        self, uid: str, request_id: int, collection_id: str, folder_id: str, /
+    ) -> None:
+        QThreadPool.globalInstance().start(
+            Runner(
+                self._load_collection_documents,
+                uid,
+                request_id,
+                collection_id,
+                folder_id,
+            )
+        )
+
+    def _load_collection_documents(
+        self, uid: str, request_id: int, collection_id: str, folder_id: str = "", /
+    ) -> None:
+        try:
+            engine = self._get_engine(uid)
+            if not engine:
+                raise ValueError("Account unavailable")
+            if collection_id:
+                collection_uid = str(UUID(collection_id))
+                path = "api/v1/search/lang/NXQL/execute"
+                params = {
+                    "query": "SELECT * FROM Document WHERE "
+                    f"collectionMember:collectionIds/* = '{collection_uid}' "
+                    "AND ecm:isTrashed = 0"
+                }
+                if folder_id:
+                    folder_uid = str(UUID(folder_id))
+                    params["query"] = (
+                        "SELECT * FROM Document WHERE "
+                        f"ecm:parentId = '{folder_uid}' AND ecm:isTrashed = 0"
+                    )
+            else:
+                path = "api/v1/search/pp/user_collections/execute"
+                params = {"searchTerm": "%", "user": "$currentUser"}
+            documents = []
+            page = 0
+            while True:
+                response = engine.remote.client.request(
+                    "GET",
+                    path,
+                    params=dict(params, currentPageIndex=page, offset=0, pageSize=40),
+                    headers={
+                        "fetch-document": "properties",
+                        "properties": "dublincore,common",
+                        "Accept": "application/json",
+                    },
+                    enrichers=["permissions"],
+                )
+                result = response.json()
+                for document in result["entries"]:
+                    properties = document.get("properties") or {}
+                    documents.append(
+                        {
+                            "id": document["uid"],
+                            "name": document.get("title")
+                            or properties.get("dc:title")
+                            or document["uid"],
+                            "type": document.get("type", ""),
+                            "path": document.get("path", ""),
+                            "folderish": "Folderish" in (document.get("facets") or []),
+                        }
+                    )
+                if not result.get("isNextPageAvailable", False):
+                    break
+                if not result["entries"]:
+                    raise ValueError("Empty page with more results available")
+                page += 1
+            self.collectionSearchFinished.emit(
+                uid, request_id, collection_id, json.dumps(documents), ""
+            )
+        except Exception:
+            log.warning("Could not load collection documents", exc_info=True)
+            self.collectionSearchFinished.emit(
+                uid,
+                request_id,
+                collection_id,
+                "[]",
+                (
+                    "Could not load collection items."
+                    if collection_id
+                    else "Could not load collections."
+                ),
+            )
 
     @Slot(str)
     def open_direct_transfer(self, uid: str, /) -> None:

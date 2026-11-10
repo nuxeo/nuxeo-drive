@@ -1524,6 +1524,28 @@ class Processor(_ProcessorBase):
                 f"{remote_id} doesn't match the remote {doc_pair.remote_ref}"
             )
             return
+        if self.dao.is_collection_state(doc_pair) and not doc_pair.folderish:
+            canonical = self.dao.get_normal_state_from_remote(doc_pair.remote_ref)
+            if (
+                canonical
+                and canonical.id != doc_pair.id
+                and not self.dao.is_collection_state(canonical)
+                and canonical.remote_state != "deleted"
+            ):
+                if doc_pair.local_state not in ("synchronized", "deleted"):
+                    self.dao.set_conflict_state(doc_pair)
+                    return
+                if (
+                    doc_pair.local_state != "deleted"
+                    and self.local.get_info(doc_pair.local_path).get_digest()
+                    != doc_pair.local_digest
+                ):
+                    log.warning(
+                        "Preserving edited collection duplicate at %r",
+                        doc_pair.local_path,
+                    )
+                    self.dao.set_conflict_state(doc_pair)
+                    return
         try:
             if doc_pair.local_state == "deleted":
                 pass

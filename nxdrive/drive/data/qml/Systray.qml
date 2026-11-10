@@ -11,7 +11,7 @@ import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
     id: systray
-    width: 365; height: 370
+    width: 405; height: 370
     border {
         width: 1
         color: darkShadow
@@ -148,8 +148,7 @@ Rectangle {
                         id: accountSelect
                         color: secondaryText
 
-                        // Width management: systray width minus the 5 icon's width
-                        Layout.preferredWidth: systray.width - (accountIcon.width * 5)
+                        Layout.preferredWidth: systray.width - (accountIcon.width * 6)
 
                         // When picking an account, refresh the file list and tasks list.
                         onActivated: {
@@ -195,6 +194,16 @@ Rectangle {
                     tooltip: qsTr("OPEN_ROOT_FOLDER").arg(APP_NAME) + tl.tr
                     enabled: feat_synchronization.enabled
                     opacity: feat_synchronization.enabled ? 1.0 : 0.5
+                }
+
+                IconLabel {
+                    objectName: "collectionsToolbarIcon"
+                    icon: MdiFont.Icon.folderMultipleOutline
+                    iconColor: secondaryIcon
+                    tooltip: qsTr("Manage collection sync")
+                    enabled: feat_synchronization.enabled
+                    opacity: enabled ? 1.0 : 0.5
+                    onClicked: collectionsFavoritesWindow.openForAccount(accountSelect.getRole("uid"))
                 }
 
                 // Icon 5: open the Direct Transfer window

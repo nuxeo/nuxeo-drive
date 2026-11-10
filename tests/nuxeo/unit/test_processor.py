@@ -61,6 +61,67 @@ def doc_pair():
     return pair
 
 
+class TestCollectionDuplicateCleanup:
+    def test_clean_collection_copy_is_deleted_only_locally(
+        self, processor, doc_pair, tmp_path
+    ):
+        processor.engine.download_dir = tmp_path
+        doc_pair.remote_parent_ref = (
+            "collectionSyncRootFolderItemFactory#repo#collection"
+        )
+        doc_pair.remote_parent_path = "/root"
+        doc_pair.local_state = "synchronized"
+        processor.local.get_remote_id.return_value = doc_pair.remote_ref
+        processor.local.get_info.return_value.get_digest.return_value = (
+            doc_pair.local_digest
+        )
+        processor.dao.get_normal_state_from_remote.return_value = Mock(
+            id=2,
+            remote_ref=doc_pair.remote_ref,
+            remote_parent_ref="factory#repo#workspace",
+            remote_parent_path="/root",
+            remote_state="synchronized",
+        )
+        processor.dao.is_collection_state.side_effect = lambda pair: pair is doc_pair
+        processor.engine.use_trash.return_value = True
+
+        processor._synchronize_remotely_deleted(doc_pair)
+
+        processor.local.delete.assert_called_once_with(doc_pair.local_path)
+        processor.dao.remove_state.assert_called_once_with(doc_pair)
+        processor.remote.delete.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "local_state,digest", [("modified", "abc123"), ("synchronized", "edited")]
+    )
+    def test_edited_collection_copy_is_preserved(
+        self, processor, doc_pair, local_state, digest
+    ):
+        doc_pair.remote_parent_ref = (
+            "collectionSyncRootFolderItemFactory#repo#collection"
+        )
+        doc_pair.remote_parent_path = "/root"
+        doc_pair.local_state = local_state
+        processor.local.get_remote_id.return_value = doc_pair.remote_ref
+        processor.local.get_info.return_value.get_digest.return_value = digest
+        processor.dao.get_normal_state_from_remote.return_value = Mock(
+            id=2,
+            remote_ref=doc_pair.remote_ref,
+            remote_parent_ref="factory#repo#workspace",
+            remote_parent_path="/root",
+            remote_state="synchronized",
+        )
+        processor.dao.is_collection_state.side_effect = lambda pair: pair is doc_pair
+
+        processor._synchronize_remotely_deleted(doc_pair)
+
+        processor.dao.set_conflict_state.assert_called_once_with(doc_pair)
+        processor.local.delete.assert_not_called()
+        processor.local.delete_final.assert_not_called()
+        processor.dao.remove_state.assert_not_called()
+        processor.remote.delete.assert_not_called()
+
+
 class TestHandleDocPairSync:
     """Tests for _handle_doc_pair_sync method."""
 

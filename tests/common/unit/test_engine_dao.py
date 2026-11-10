@@ -18,6 +18,66 @@ from ...markers import windows_only
 log = getLogger(__name__)
 
 
+def test_normal_state_prefers_workspace_over_collection(engine_dao):
+    with engine_dao("engine_migration.db") as dao:
+        collection = Mock(
+            id=1,
+            remote_ref="document",
+            remote_state="synchronized",
+            remote_parent_ref="collectionSyncRootFolderItemFactory#repo#collection",
+            remote_parent_path="/root",
+        )
+        workspace = Mock(
+            id=2,
+            remote_ref="document",
+            remote_state="synchronized",
+            remote_parent_ref="defaultFileSystemItemFactory#repo#workspace",
+            remote_parent_path="/root/workspace",
+        )
+        with patch.object(
+            dao,
+            "get_states_from_remote",
+            side_effect=lambda ref: (
+                [collection, workspace] if ref == "document" else []
+            ),
+        ):
+            assert dao.get_normal_state_from_remote("document") is workspace
+            workspace.remote_state = "deleted"
+            assert dao.get_normal_state_from_remote("document") is collection
+        collection.remote_parent_ref = "defaultFileSystemItemFactory#repo#folder"
+        collection.remote_parent_path = (
+            "/root/collectionSyncRootFolderItemFactory#repo#collection/folder"
+        )
+        with patch.object(dao, "get_states_from_remote", return_value=[]):
+            assert dao.is_collection_state(collection)
+            assert not dao.is_collection_state(workspace)
+
+        nested_document = Mock(
+            id=3,
+            remote_ref="document",
+            remote_state="synchronized",
+            remote_parent_ref="collection-folder",
+            remote_parent_path="/root/collection",
+        )
+        nested_parent = Mock(
+            id=4,
+            remote_ref="collection-folder",
+            remote_state="synchronized",
+            remote_parent_ref="collectionSyncRootFolderItemFactory#repo#collection",
+            remote_parent_path="/root",
+        )
+        with patch.object(
+            dao,
+            "get_states_from_remote",
+            side_effect=lambda ref: (
+                [nested_parent] if ref == "collection-folder" else []
+            ),
+        ):
+            assert dao.is_collection_state(nested_document)
+        with patch.object(dao, "get_states_from_remote", return_value=[]):
+            assert dao.get_normal_state_from_remote("missing") is None
+
+
 def test_acquire_processors(engine_dao):
     with engine_dao("engine_migration.db") as dao:
         assert dao.acquire_processor(666, 2)

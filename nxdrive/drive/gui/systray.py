@@ -108,8 +108,8 @@ class SystrayWindow(QQuickWindow):
     def __init__(self, parent: Optional[QWindow] = None) -> None:
         super().__init__(parent)
         self.activeChanged.connect(self._on_active_changed)
-        self.setMinimumSize(QSize(365, 370))
-        self.setMaximumSize(QSize(365, 370))
+        self.setMinimumSize(QSize(405, 370))
+        self.setMaximumSize(QSize(405, 370))
 
     @Slot()
     def _on_active_changed(self) -> None:

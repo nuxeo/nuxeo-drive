@@ -13,6 +13,10 @@ import "tasksManager"
 
 QtObject {
 
+    property var collectionsFavoritesWindow: CollectionsFavoritesWindow {
+        id: collectionsFavoritesWindow
+    }
+
     property var settingsWindow: CustomWindow {
         id: settingsWindow
         minimumWidth: 640

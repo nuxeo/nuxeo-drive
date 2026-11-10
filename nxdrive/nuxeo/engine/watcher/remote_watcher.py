@@ -380,6 +380,26 @@ class RemoteWatcher(RemoteWatcherBase):
                 continue
 
             log.debug(f"Scanning remote child: {child_info!r}")
+            if self.dao.is_collection_state(doc_pair) and not child_info.folderish:
+                canonical = self.dao.get_normal_state_from_remote(child_info.uid)
+                if (
+                    canonical
+                    and not self.dao.is_collection_state(canonical)
+                    and canonical.remote_state != "deleted"
+                    and self.engine.local.exists(canonical.local_path)
+                    and self.engine.local.get_remote_id(canonical.local_path)
+                    == child_info.uid
+                ):
+                    duplicate = children.pop(child_info.uid, None)
+                    if duplicate:
+                        self.dao.delete_remote_state(duplicate)
+                        self.remove_void_transfers(duplicate)
+                    log.info(
+                        "Using workspace copy %r for collection member %r",
+                        canonical.local_path,
+                        child_info.uid,
+                    )
+                    continue
             if WORKSPACE_ROOT in child_info.uid:
                 child_info = self.engine.remote.expand_sync_root_name(child_info)
             new_pair = False
@@ -450,7 +470,28 @@ class RemoteWatcher(RemoteWatcherBase):
             )
             return None
 
-        if self.dao.get_normal_state_from_remote(child_info.uid):
+        existing = self.dao.get_normal_state_from_remote(child_info.uid)
+        if existing:
+            if (
+                self.dao.is_collection_state(existing)
+                and not self.dao.is_collection_state(parent_pair)
+                and existing.remote_state != "deleted"
+            ):
+                log.info(
+                    "Promoting collection document %r to workspace parent %r",
+                    child_info.uid,
+                    parent_pair.remote_ref,
+                )
+                existing.remote_state = "modified"
+                remote_parent_path = (
+                    parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+                )
+                if self.dao.update_remote_state(
+                    existing, child_info, remote_parent_path=remote_parent_path
+                ):
+                    self.remove_void_transfers(existing)
+                refreshed = self.dao.get_state_from_id(existing.id, from_write=True)
+                return (refreshed, False) if refreshed else None
             log.warning(
                 "Illegal state: a remote creation cannot happen if "
                 "there already is the same remote ref in the database"
@@ -788,7 +829,9 @@ class RemoteWatcher(RemoteWatcherBase):
                 # See https://hyland.atlassian.net/browse/NXDRIVE-167
                 doc_pair = self.dao.get_first_state_from_partial_remote(remote_ref)
                 if doc_pair:
-                    doc_pairs = [doc_pair]
+                    doc_pairs = self.dao.get_states_from_remote(
+                        doc_pair.remote_ref
+                    ) or [doc_pair]
 
             updated = False
             doc_pairs = doc_pairs or []

@@ -5,12 +5,162 @@
 
 """Unit tests for QMLDriveApi functions."""
 
+import json
 from typing import Any, Dict
 from unittest.mock import Mock, patch
 
 import pytest
+from requests import Response
 
 from nxdrive.drive.gui.api import QMLDriveApi
+
+
+class TestCollectionSearch:
+    def setup_method(self):
+        self.api = QMLDriveApi(Mock())
+        self.engine = Mock()
+        self.api._get_engine = Mock(return_value=self.engine)
+        self.finished = Mock()
+        self.api.collectionSearchFinished.connect(self.finished)
+
+    def _response(self, payload):
+        response = Response()
+        response.status_code = 200
+        response._content = json.dumps(payload).encode("utf-8")
+        return response
+
+    def test_collections_endpoint_and_pagination(self):
+        self.engine.remote.client.request.side_effect = [
+            self._response(
+                {
+                    "entries": [{"uid": "one", "title": "Project documents"}],
+                    "isNextPageAvailable": True,
+                }
+            ),
+            self._response(
+                {
+                    "entries": [
+                        {"uid": "two", "properties": {"dc:title": "Team resources"}}
+                    ],
+                    "isNextPageAvailable": False,
+                }
+            ),
+        ]
+        self.api._load_collection_documents("account", 1, "")
+        calls = self.engine.remote.client.request.call_args_list
+        assert calls[0].args == ("GET", "api/v1/search/pp/user_collections/execute")
+        assert calls[0].kwargs["params"] == {
+            "searchTerm": "%",
+            "user": "$currentUser",
+            "currentPageIndex": 0,
+            "offset": 0,
+            "pageSize": 40,
+        }
+        assert calls[1].kwargs["params"]["currentPageIndex"] == 1
+        assert calls[1].kwargs["params"]["offset"] == 0
+        assert calls[0].kwargs["enrichers"] == ["permissions"]
+        result = self.finished.call_args.args
+        assert result[:3] == ("account", 1, "")
+        assert '"name": "Team resources"' in result[3]
+        assert result[4] == ""
+
+    def test_collection_members_endpoint(self):
+        collection_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"
+        self.engine.remote.client.request.return_value = self._response({"entries": []})
+        self.api._load_collection_documents("account", 2, collection_id)
+        request = self.engine.remote.client.request.call_args
+        assert request.args == ("GET", "api/v1/search/lang/NXQL/execute")
+        assert request.kwargs["params"]["query"] == (
+            "SELECT * FROM Document WHERE collectionMember:collectionIds/* = "
+            f"'{collection_id}' AND ecm:isTrashed = 0"
+        )
+        self.finished.assert_called_once_with("account", 2, collection_id, "[]", "")
+
+    def test_nested_folder_children_and_pagination(self):
+        collection_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"
+        folder_id = "11111111-1111-1111-1111-111111111111"
+        self.engine.remote.client.request.side_effect = [
+            self._response(
+                {
+                    "entries": [
+                        {
+                            "uid": "folder",
+                            "type": "CustomFolder",
+                            "facets": ["Folderish"],
+                        }
+                    ],
+                    "isNextPageAvailable": True,
+                }
+            ),
+            self._response({"entries": [{"uid": "file", "type": "File"}]}),
+        ]
+        self.api._load_collection_documents("account", 7, collection_id, folder_id)
+        calls = self.engine.remote.client.request.call_args_list
+        assert calls[0].args == ("GET", "api/v1/search/lang/NXQL/execute")
+        assert calls[0].kwargs["params"]["query"] == (
+            f"SELECT * FROM Document WHERE ecm:parentId = '{folder_id}' "
+            "AND ecm:isTrashed = 0"
+        )
+        assert calls[1].kwargs["params"]["currentPageIndex"] == 1
+        result = self.finished.call_args.args
+        assert result[:3] == ("account", 7, collection_id)
+        documents = json.loads(result[3])
+        assert documents[0]["folderish"] is True
+        assert documents[1]["folderish"] is False
+        assert result[4] == ""
+
+    def test_invalid_nested_folder_id_is_not_requested(self):
+        self.api._load_collection_documents(
+            "account", 8, "5e5f75bf-4853-488e-ac80-a6870dfcb0cc", "invalid"
+        )
+        self.engine.remote.client.request.assert_not_called()
+        assert self.finished.call_args.args[4] == "Could not load collection items."
+
+    def test_nested_folder_slot_uses_background_runner(self):
+        with patch("nxdrive.drive.gui.api.QThreadPool") as pool:
+            self.api.load_collection_folder("account", 9, "collection", "folder")
+        runner = pool.globalInstance.return_value.start.call_args.args[0]
+        assert runner.fn == self.api._load_collection_documents
+        assert runner.args == ("account", 9, "collection", "folder")
+
+    @pytest.mark.parametrize("collection_id", ["invalid", "' OR ecm:isTrashed = 1"])
+    def test_invalid_collection_id_is_not_requested(self, collection_id):
+        self.api._load_collection_documents("account", 3, collection_id)
+        self.engine.remote.client.request.assert_not_called()
+        assert self.finished.call_args.args[4] == "Could not load collection items."
+
+    def test_request_failure_is_reported(self):
+        self.engine.remote.client.request.side_effect = RuntimeError(
+            "Connection failed"
+        )
+        self.api._load_collection_documents("account", 4, "")
+        self.finished.assert_called_once_with(
+            "account", 4, "", "[]", "Could not load collections."
+        )
+
+    def test_invalid_json_response_is_reported(self):
+        response = self._response({})
+        response._content = b"Not JSON"
+        self.engine.remote.client.request.return_value = response
+        self.api._load_collection_documents("account", 4, "")
+        self.finished.assert_called_once_with(
+            "account", 4, "", "[]", "Could not load collections."
+        )
+
+    def test_missing_account_is_reported(self):
+        self.api._get_engine.return_value = None
+        self.api._load_collection_documents("missing", 5, "")
+        self.engine.remote.client.request.assert_not_called()
+        self.finished.assert_called_once_with(
+            "missing", 5, "", "[]", "Could not load collections."
+        )
+
+    def test_slot_uses_background_runner(self):
+        with patch("nxdrive.drive.gui.api.QThreadPool") as pool:
+            self.api.load_collection_documents("account", 6, "")
+        runner = pool.globalInstance.return_value.start.call_args.args[0]
+        assert runner.fn == self.api._load_collection_documents
+        assert runner.args == ("account", 6, "")
 
 
 class TestQMLDriveApiJsonDefault:

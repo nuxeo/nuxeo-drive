@@ -34,6 +34,112 @@ from nxdrive.nuxeo.engine.watcher.remote_watcher import (
 MODULE = "nxdrive.nuxeo.engine.watcher.remote_watcher"
 
 
+def test_collection_rescan_queues_legacy_copy_for_local_cleanup():
+    watcher = _watcher()
+    parent = _pair(remote_ref=f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#repo#collection")
+    duplicate = _pair(id=2, remote_ref="document", folderish=False)
+    canonical = _pair(id=3, remote_ref="document", folderish=False)
+    watcher._init_scan_remote = Mock(return_value="/root/collection")
+    watcher.dao.get_remote_children.return_value = [duplicate]
+    watcher.dao.get_normal_state_from_remote.return_value = canonical
+    watcher.dao.is_collection_state.side_effect = lambda pair: pair is parent
+    watcher.engine.local.exists.return_value = True
+    watcher.engine.local.get_remote_id.return_value = "document"
+    watcher.engine.remote.get_fs_children.return_value = [
+        _info(uid="document", folderish=False)
+    ]
+
+    watcher._scan_remote_recursive(parent, _info())
+
+    watcher.dao.delete_remote_state.assert_called_once_with(duplicate)
+    watcher.dao.insert_remote_state.assert_not_called()
+    watcher.dao.update_remote_state.assert_not_called()
+
+
+def test_collection_first_document_is_promoted_without_new_state():
+    watcher = _watcher()
+    collection = _pair(
+        remote_ref="document",
+        folderish=False,
+        remote_parent_ref=f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#repo#collection",
+        local_path=Path("/sync/Collection/document.pdf"),
+        local_state="modified",
+    )
+    workspace = _pair(id=2, remote_ref="workspace", remote_parent_path="/root")
+    info = _info(uid="document", parent_uid="workspace", folderish=False)
+    watcher.dao.get_normal_state_from_remote.return_value = collection
+    watcher.dao.is_collection_state.side_effect = lambda pair: pair is collection
+    watcher.dao.get_state_from_id.return_value = collection
+
+    result = watcher._find_remote_child_match_or_create(workspace, info)
+
+    assert result == (collection, False)
+    assert collection.local_state == "modified"
+    assert collection.remote_state == "modified"
+    watcher.dao.insert_remote_state.assert_not_called()
+    watcher.dao.remove_state.assert_not_called()
+    watcher.dao.update_remote_state.assert_called_once_with(
+        collection, info, remote_parent_path="/root/workspace"
+    )
+
+
+def test_workspace_first_document_is_not_inserted_under_collection():
+    watcher = _watcher()
+    workspace_document = _pair(remote_ref="document", folderish=False)
+    collection = _pair(
+        remote_ref=f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#repo#collection"
+    )
+    watcher.dao.get_normal_state_from_remote.return_value = workspace_document
+    watcher.dao.is_collection_state.side_effect = lambda pair: pair is collection
+
+    assert (
+        watcher._find_remote_child_match_or_create(
+            collection, _info(uid="document", folderish=False)
+        )
+        is None
+    )
+    watcher.dao.insert_remote_state.assert_not_called()
+    watcher.dao.update_remote_state.assert_not_called()
+
+
+def test_factory_changed_delete_marks_all_copies_but_does_not_delete_server():
+    watcher = _watcher()
+    workspace = _pair(
+        id=1,
+        remote_ref="factory#repo#document",
+        local_path=Path("/sync/Projects/document"),
+    )
+    collection = _pair(
+        id=2,
+        remote_ref=workspace.remote_ref,
+        local_path=Path("/sync/Collection/document"),
+        remote_parent_ref=f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#repo#collection",
+    )
+    watcher._get_changes = Mock(
+        return_value={
+            "fileSystemChanges": [
+                {
+                    "eventDate": 1,
+                    "eventId": DELETED_EVENT,
+                    "fileSystemItemId": "document",
+                }
+            ]
+        }
+    )
+    watcher.dao.get_states_from_remote.side_effect = lambda ref: (
+        [workspace, collection] if ref == workspace.remote_ref else []
+    )
+    watcher.dao.get_first_state_from_partial_remote.return_value = workspace
+    watcher.engine.remote.get_fs_item.return_value = None
+
+    watcher._update_remote_states()
+
+    watcher.dao.delete_remote_state.assert_any_call(workspace)
+    watcher.dao.delete_remote_state.assert_any_call(collection)
+    assert watcher.dao.delete_remote_state.call_count == 2
+    watcher.engine.remote.delete.assert_not_called()
+
+
 def test_first_pass_done_flips_when_the_first_pass_completes():
     watcher = RemoteWatcher(MagicMock(), MagicMock())
 

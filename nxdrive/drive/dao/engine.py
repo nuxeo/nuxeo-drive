@@ -1333,10 +1333,39 @@ class EngineDAO(BaseDAO):
         ).fetchone()
         return doc_pair
 
+    def is_collection_state(self, state: DocPair, /) -> bool:
+        factory = "collectionSyncRootFolderItemFactory#"
+        current = state
+        visited = set()
+        while current and current.id not in visited:
+            visited.add(current.id)
+            refs = (current.remote_ref, current.remote_parent_ref)
+            if any(ref and ref.startswith(factory) for ref in refs):
+                return True
+            if factory in (current.remote_parent_path or ""):
+                return True
+            parent_ref = current.remote_parent_ref
+            if not parent_ref:
+                break
+            parents = self.get_states_from_remote(parent_ref)
+            current = next(
+                (parent for parent in parents if parent.remote_state != "deleted"),
+                parents[0] if parents else None,
+            )
+        return False
+
     def get_normal_state_from_remote(self, ref: str, /) -> Optional[DocPair]:
-        # TODO Select the only states that is not a collection
         states = self.get_states_from_remote(ref)
-        return states[0] if states else None
+        if not states:
+            return None
+        return min(
+            states,
+            key=lambda state: (
+                state.remote_state == "deleted",
+                self.is_collection_state(state),
+                state.id,
+            ),
+        )
 
     def get_state_from_remote_with_path(
         self, ref: str, path: str, /
