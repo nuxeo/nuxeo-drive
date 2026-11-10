@@ -11,9 +11,9 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from nxdrive.drive.gui import application as application_module
+from nxdrive.drive.gui import systray as systray_module
 from nxdrive.drive.gui.application import Application
 from nxdrive.drive.gui.custom_window import CustomWindow
-from nxdrive.drive.gui import systray as systray_module
 from nxdrive.drive.gui.systray import DriveSystrayIcon, SystrayWindow
 from nxdrive.drive.qt import constants as qt
 from nxdrive.drive.qt.imports import (
@@ -80,8 +80,8 @@ def test_custom_window_key_and_visibility_handlers(qapp):
 def test_systray_window_constructor_sets_fixed_size_and_active_handler(qapp):
     window = SystrayWindow()
 
-    assert window.minimumSize() == QSize(365, 370)
-    assert window.maximumSize() == QSize(365, 370)
+    assert window.minimumSize() == QSize(405, 370)
+    assert window.maximumSize() == QSize(405, 370)
 
     window.close()
 
