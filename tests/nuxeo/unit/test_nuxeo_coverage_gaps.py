@@ -355,6 +355,7 @@ class TestProcessorSynchronizationGaps:
     def test_download_duplicate_fallback_streams_remote_content(self, tmp_path):
         processor = _processor()
         processor.engine.download_dir = tmp_path
+        processor.dao.is_collection_state.return_value = False
         pair = _pair()
         duplicate = _pair(local_path=Path("stale"))
         processor.dao.get_valid_duplicate_file.return_value = duplicate
@@ -366,6 +367,36 @@ class TestProcessorSynchronizationGaps:
 
         assert result == expected
         processor.remote.stream_content.assert_called_once()
+
+    def test_collection_download_uses_fetched_blob_metadata(self, tmp_path):
+        processor = _processor()
+        processor.engine.download_dir = tmp_path
+        processor.dao.get_valid_duplicate_file.return_value = None
+        processor.dao.is_collection_state.return_value = True
+        pair = _pair(
+            remote_ref="defaultFileSystemItemFactory#default#document-id",
+            remote_parent_ref=(
+                "collectionSyncRootFolderItemFactory#default#collection-id"
+            ),
+            remote_parent_path=("/root/collectionSyncFolderItemFactory#collections"),
+        )
+        fs_item_info = Mock()
+        processor.remote.get_collection_fs_info.return_value = fs_item_info
+        expected = tmp_path / "downloaded"
+        processor.remote.stream_content.return_value = expected
+
+        result = processor._download_content(pair, Path("target.txt"))
+
+        assert result == expected
+        processor.remote.get_collection_fs_info.assert_called_once_with(
+            pair.remote_ref,
+            pair.remote_parent_ref,
+            f"{pair.remote_parent_path}/{pair.remote_parent_ref}",
+        )
+        assert (
+            processor.remote.stream_content.call_args.kwargs["fs_item_info"]
+            is fs_item_info
+        )
 
     def test_remote_content_update_without_rename_keeps_original_path(self):
         processor = _processor()

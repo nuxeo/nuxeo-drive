@@ -65,6 +65,7 @@ Window {
     }
 
     function browseCollection(collectionId, collectionName) {
+        api.log_collection_action(accountUid, "open_collection", collectionId)
         activeCollectionId = collectionId
         activeCollectionName = collectionName
         navigationPath = [{id: collectionId, name: collectionName}]
@@ -72,6 +73,7 @@ Window {
     }
 
     function browseFolder(folderId, folderName) {
+        api.log_collection_action(accountUid, "open_folder", folderId)
         var updated = navigationPath.slice()
         updated.push({id: folderId, name: folderName})
         navigationPath = updated
@@ -101,6 +103,8 @@ Window {
     }
 
     function selectCollection(collectionId, selected) {
+        api.log_collection_action(
+            accountUid, selected ? "select_collection" : "deselect_collection", collectionId)
         var updated = selectedCollectionIds.slice()
         var position = updated.indexOf(collectionId)
         if (selected && position < 0)
@@ -115,6 +119,7 @@ Window {
             collectionIds: selectedCollectionIds.slice(),
             favorites: syncFavorites
         }
+        api.apply_collection_selection(accountUid, selectedCollectionIds.slice())
         applied(accountUid, selectedCollectionIds.slice(), syncFavorites)
         close()
     }
@@ -131,6 +136,13 @@ Window {
                 collectionWindow.collectionsLoading = false
                 collectionWindow.collectionsError = error ? qsTr("Could not load collections.") : ""
                 collectionWindow.collections = JSON.parse(documents)
+                collectionWindow.selectedCollectionIds = collectionWindow.collections
+                    .filter(function(collection) { return collection.selected })
+                    .map(function(collection) { return collection.id })
+                collectionWindow.selectionsByAccount[uid] = {
+                    collectionIds: collectionWindow.selectedCollectionIds.slice(),
+                    favorites: collectionWindow.syncFavorites
+                }
             } else if (collectionId === collectionWindow.activeCollectionId && requestId === collectionWindow.membersRequest) {
                 collectionWindow.membersLoading = false
                 collectionWindow.membersError = error ? qsTr("Could not load collection items.") : ""
@@ -265,10 +277,20 @@ Window {
                         }
 
                         ScaledText {
-                            text: modelData.scope || ""
+                            text: qsTr("%1 items").arg(modelData.file_count)
                             color: secondaryText
-                            Layout.maximumWidth: collectionList.width / 3
-                            elide: Text.ElideRight
+                            Layout.preferredWidth: 64
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        IconLabel {
+                            icon: MdiFont.Icon.chevronRight
+                            tooltip: qsTr("Open collection")
+                            Layout.preferredWidth: 20
+                            Layout.preferredHeight: 28
+                            horizontalAlignment: Text.AlignHCenter
+                            onClicked: collectionWindow.browseCollection(modelData.id, modelData.name)
                         }
                     }
 

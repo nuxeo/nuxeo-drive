@@ -469,6 +469,91 @@ class QMLDriveApi(QObject):
             Runner(self._load_collection_documents, uid, request_id, collection_id)
         )
 
+    @Slot(str, list)
+    def apply_collection_selection(
+        self, uid: str, collection_ids: List[str], /
+    ) -> None:
+        log.info(
+            "Collection sync apply requested: account=%s selected=%s",
+            uid,
+            collection_ids,
+        )
+        QThreadPool.globalInstance().start(
+            Runner(self._apply_collection_selection, uid, collection_ids)
+        )
+
+    @Slot(str, str, str)
+    def log_collection_action(self, uid: str, action: str, item_id: str, /) -> None:
+        log.info(
+            "Collection sync UI action: account=%s action=%s item=%s",
+            uid,
+            action,
+            item_id,
+        )
+
+    def _apply_collection_selection(
+        self, uid: str, collection_ids: List[str], /
+    ) -> None:
+        try:
+            engine = self._get_engine(uid)
+            if not engine:
+                log.warning(
+                    "Cannot apply collection selection: account %s unavailable", uid
+                )
+                return
+
+            selected_ids = {
+                str(UUID(collection_id)) for collection_id in collection_ids
+            }
+            configured_ids = set(
+                json.loads(engine.dao.get_config("collection_sync_ids", default="[]"))
+            )
+            log.info(
+                "Applying collection sync selection for account %s: %d selected",
+                uid,
+                len(selected_ids),
+            )
+            for collection_id in configured_ids - selected_ids:
+                collection_info = engine.remote.get_info(
+                    collection_id, fetch_parent_uid=False
+                )
+                collection_path = (
+                    collection_info.path if collection_info else collection_id
+                )
+                log.info("Disabling collection sync for %s", collection_path)
+                engine.remote.unregister_as_root(collection_path)
+                log.info("Disabled collection sync for %s", collection_path)
+            for collection_id in selected_ids:
+                collection_info = engine.remote.get_info(
+                    collection_id, fetch_parent_uid=False
+                )
+                if not collection_info:
+                    raise ValueError(
+                        f"Cannot find selected collection {collection_id!r}"
+                    )
+                collection_path = collection_info.path
+                log.info(
+                    "Enabling collection sync: collection_id=%s document_path=%s",
+                    collection_id,
+                    collection_path,
+                )
+                engine.remote.register_as_root(collection_path)
+                log.info(
+                    "Collection sync enable request returned: collection_id=%s document_path=%s",
+                    collection_id,
+                    collection_path,
+                )
+
+            engine.dao.update_config(
+                "collection_sync_ids", json.dumps(sorted(selected_ids))
+            )
+            engine.dao.update_config("remote_need_full_scan", "/")
+            log.info("Requested full sync scan for collection selection on %s", uid)
+        except Exception:
+            log.exception(
+                "Failed to apply collection sync selection for account %s", uid
+            )
+
     @Slot(str, int, str, str)
     def load_collection_folder(
         self, uid: str, request_id: int, collection_id: str, folder_id: str, /
@@ -486,6 +571,12 @@ class QMLDriveApi(QObject):
     def _load_collection_documents(
         self, uid: str, request_id: int, collection_id: str, folder_id: str = "", /
     ) -> None:
+        log.info(
+            "Loading collection entries: account=%s collection=%s folder=%s",
+            uid,
+            collection_id or "all",
+            folder_id or "root",
+        )
         try:
             engine = self._get_engine(uid)
             if not engine:
@@ -507,6 +598,13 @@ class QMLDriveApi(QObject):
             else:
                 path = "api/v1/search/pp/user_collections/execute"
                 params = {"searchTerm": "%", "user": "$currentUser"}
+            selected_ids = set()
+            if not collection_id:
+                selected_ids = set(
+                    json.loads(
+                        engine.dao.get_config("collection_sync_ids", default="[]")
+                    )
+                )
             documents = []
             page = 0
             while True:
@@ -533,6 +631,7 @@ class QMLDriveApi(QObject):
                             "type": document.get("type", ""),
                             "path": document.get("path", ""),
                             "folderish": "Folderish" in (document.get("facets") or []),
+                            "selected": document["uid"] in selected_ids,
                         }
                     )
                 if not result.get("isNextPageAvailable", False):
@@ -540,11 +639,28 @@ class QMLDriveApi(QObject):
                 if not result["entries"]:
                     raise ValueError("Empty page with more results available")
                 page += 1
+            if not collection_id:
+                for document in documents:
+                    document["file_count"] = self._count_collection_files(
+                        engine, document["id"]
+                    )
             self.collectionSearchFinished.emit(
                 uid, request_id, collection_id, json.dumps(documents), ""
             )
+            log.info(
+                "Loaded %d collection entries: account=%s collection=%s folder=%s",
+                len(documents),
+                uid,
+                collection_id or "all",
+                folder_id or "root",
+            )
         except Exception:
-            log.warning("Could not load collection documents", exc_info=True)
+            log.exception(
+                "Could not load collection entries: account=%s collection=%s folder=%s",
+                uid,
+                collection_id or "all",
+                folder_id or "root",
+            )
             self.collectionSearchFinished.emit(
                 uid,
                 request_id,
@@ -556,6 +672,39 @@ class QMLDriveApi(QObject):
                     else "Could not load collections."
                 ),
             )
+
+    def _count_collection_files(self, engine: Engine, collection_id: str, /) -> int:
+        collection_uid = str(UUID(collection_id))
+        params = {
+            "query": "SELECT * FROM Document WHERE "
+            f"collectionMember:collectionIds/* = '{collection_uid}' "
+            "AND ecm:isTrashed = 0"
+        }
+        file_count = 0
+        page = 0
+        while True:
+            response = engine.remote.client.request(
+                "GET",
+                "api/v1/search/lang/NXQL/execute",
+                params=dict(params, currentPageIndex=page, offset=0, pageSize=40),
+                headers={
+                    "fetch-document": "properties",
+                    "properties": "dublincore,common",
+                    "Accept": "application/json",
+                },
+                enrichers=["permissions"],
+            )
+            result = response.json()
+            entries = result["entries"]
+            file_count += sum(
+                "Folderish" not in (document.get("facets") or [])
+                for document in entries
+            )
+            if not result.get("isNextPageAvailable", False):
+                return file_count
+            if not entries:
+                raise ValueError("Empty page with more results available")
+            page += 1
 
     @Slot(str)
     def open_direct_transfer(self, uid: str, /) -> None:

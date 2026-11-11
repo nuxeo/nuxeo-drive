@@ -28,6 +28,7 @@ from nxdrive.nuxeo.engine.watcher.constants import (
 )
 from nxdrive.nuxeo.engine.watcher.remote_watcher import (
     COLLECTION_SYNC_ROOT_FACTORY_NAME,
+    COLLECTIONS_FOLDER_UID,
     RemoteWatcher,
 )
 
@@ -54,6 +55,131 @@ def test_collection_rescan_queues_legacy_copy_for_local_cleanup():
     watcher.dao.delete_remote_state.assert_called_once_with(duplicate)
     watcher.dao.insert_remote_state.assert_not_called()
     watcher.dao.update_remote_state.assert_not_called()
+
+
+def test_root_scan_logs_collection_uuid_match(caplog):
+    collection_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"
+    watcher = _watcher()
+    root = _pair(local_path=ROOT, remote_ref="top-level")
+    collection_root = _info(
+        name="Domain100",
+        uid=f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#default#{collection_id}",
+        parent_uid="top-level",
+        path=f"/top-level/{COLLECTION_SYNC_ROOT_FACTORY_NAME}#default#{collection_id}",
+    )
+    watcher._init_scan_remote = Mock(return_value="/top-level")
+    watcher.dao.get_config.return_value = f'["{collection_id}"]'
+    watcher.engine.remote.get_fs_children.return_value = [collection_root]
+    watcher._find_remote_child_match_or_create = Mock(return_value=None)
+    caplog.set_level("INFO", logger=MODULE)
+
+    watcher._scan_remote_recursive(root, _info(uid="top-level"))
+
+    assert f"selected_ids=['{collection_id}']" in caplog.text
+    assert "missing_ids=[]" in caplog.text
+    assert "collections_parent=None" in caplog.text
+
+
+def test_root_scan_synthesizes_missing_selected_collection(caplog):
+    collection_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"
+    watcher = _watcher()
+    root = _pair(local_path=ROOT, remote_ref="top-level")
+    collections_pair = _pair(
+        id=2,
+        local_path=Path("/sync/Collections"),
+        remote_ref=COLLECTIONS_FOLDER_UID,
+    )
+    collection_doc = SimpleNamespace(
+        uid=collection_id,
+        repository="default",
+        name="Domain100",
+        path="/default-domain/UserWorkspaces/nco-admin/Collections/Domain100",
+        last_modification_time=None,
+        last_contributor="nco-admin",
+    )
+    watcher._init_scan_remote = Mock(return_value="/top-level")
+    watcher.dao.get_remote_children.return_value = []
+    watcher.dao.get_config.return_value = f'["{collection_id}"]'
+    watcher.engine.remote.get_fs_children.return_value = []
+    watcher.engine.remote.get_info.return_value = collection_doc
+    watcher._find_remote_child_match_or_create = Mock(
+        return_value=(collections_pair, True)
+    )
+    watcher._do_scan_remote = Mock()
+    caplog.set_level("INFO", logger=MODULE)
+
+    watcher._scan_remote_recursive(root, _info(uid="top-level"))
+
+    collections_root = watcher._find_remote_child_match_or_create.call_args.args[1]
+    assert collections_root.uid == COLLECTIONS_FOLDER_UID
+    assert collections_root.name == "Collections"
+    watcher._do_scan_remote.assert_called_once_with(
+        collections_pair, collections_root, force_recursion=True
+    )
+
+    watcher.dao.get_state_from_local.return_value = root
+    watcher.engine.remote.get_fs_children.return_value = []
+    roots = watcher._get_selected_collection_roots(collections_root)
+    assert len(roots) == 1
+    assert roots[0].uid == (
+        f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#default#{collection_id}"
+    )
+    assert roots[0].name == "Domain100"
+    assert roots[0].parent_uid == COLLECTIONS_FOLDER_UID
+    assert roots[0].path == f"{collections_root.path}/{roots[0].uid}"
+    assert "Synthesized collection root under Collections" in caplog.text
+
+
+def test_rehome_collection_root_preserves_local_contents(tmp_path):
+    watcher = _watcher()
+    old_path = tmp_path / "Domain100"
+    old_path.mkdir()
+    (old_path / "existing.txt").write_text("preserve me")
+    collections_path = tmp_path / "Collections"
+    collections_path.mkdir()
+    new_path = collections_path / "Domain100"
+    collection_uid = f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#default#collection-id"
+    existing = _pair(remote_ref=collection_uid, local_path=old_path)
+    collections_pair = _pair(
+        id=2,
+        remote_ref=COLLECTIONS_FOLDER_UID,
+        local_path=collections_path,
+        remote_parent_ref="top-level",
+        remote_parent_path="/top-level",
+    )
+
+    def move_local_folder(source, destination, *, name=None):
+        target = Path(destination) / (name or Path(source).name)
+        Path(source).rename(target)
+        return SimpleNamespace(path=target)
+
+    watcher.engine.local.exists.side_effect = lambda path: Path(path).exists()
+    watcher.engine.local.move.side_effect = move_local_folder
+    watcher.engine.local.get_info.side_effect = lambda path: SimpleNamespace(
+        path=Path(path), size=0, last_modification_time=None
+    )
+    watcher.dao.get_states_from_partial_local.return_value = []
+    watcher.dao.update_local_state.return_value = True
+    watcher.dao.get_state_from_id.return_value = existing
+    info = _info(
+        uid=collection_uid,
+        name="Domain100",
+        parent_uid=COLLECTIONS_FOLDER_UID,
+        path=f"/top-level/{COLLECTIONS_FOLDER_UID}/{collection_uid}",
+    )
+
+    result = watcher._rehome_collection_root(
+        existing, collections_pair, info, new_path, "/top-level/collections"
+    )
+
+    assert result == (existing, False)
+    assert not old_path.exists()
+    assert (new_path / "existing.txt").read_text() == "preserve me"
+    watcher.dao.update_remote_state.assert_called_once_with(
+        existing,
+        info,
+        remote_parent_path=f"/top-level/{COLLECTIONS_FOLDER_UID}",
+    )
 
 
 def test_collection_first_document_is_promoted_without_new_state():
@@ -100,6 +226,28 @@ def test_workspace_first_document_is_not_inserted_under_collection():
     )
     watcher.dao.insert_remote_state.assert_not_called()
     watcher.dao.update_remote_state.assert_not_called()
+
+
+def test_collection_root_scan_uses_collection_member_query():
+    watcher = _watcher()
+    collection = _pair(
+        remote_ref=f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#default#collection-id",
+        local_path=Path("/sync/Domain100"),
+    )
+    info = _info(
+        uid=collection.remote_ref,
+        name="Domain100",
+        folderish=True,
+        can_scroll_descendants=False,
+    )
+    watcher._init_scan_remote = Mock(return_value="/root/Domain100")
+    watcher.dao.get_remote_children.return_value = []
+    watcher.engine.remote.get_collection_fs_children.return_value = []
+
+    watcher._scan_remote_recursive(collection, info)
+
+    watcher.engine.remote.get_collection_fs_children.assert_called_once_with(info)
+    watcher.engine.remote.get_fs_children.assert_not_called()
 
 
 def test_factory_changed_delete_marks_all_copies_but_does_not_delete_server():

@@ -20,6 +20,10 @@ class TestCollectionSearch:
         self.api = QMLDriveApi(Mock())
         self.engine = Mock()
         self.api._get_engine = Mock(return_value=self.engine)
+        self.engine.dao.get_config.return_value = "[]"
+        self.engine.remote.get_info.side_effect = lambda collection_id, **kwargs: Mock(
+            path=f"/collection/{collection_id}"
+        )
         self.finished = Mock()
         self.api.collectionSearchFinished.connect(self.finished)
 
@@ -45,6 +49,27 @@ class TestCollectionSearch:
                     "isNextPageAvailable": False,
                 }
             ),
+            self._response(
+                {
+                    "entries": [
+                        {"uid": "folder", "facets": ["Folderish"]},
+                        {"uid": "file-one", "facets": []},
+                    ],
+                    "isNextPageAvailable": True,
+                }
+            ),
+            self._response(
+                {
+                    "entries": [{"uid": "file-two", "facets": []}],
+                    "isNextPageAvailable": False,
+                }
+            ),
+            self._response(
+                {
+                    "entries": [{"uid": "file-three", "facets": []}],
+                    "isNextPageAvailable": False,
+                }
+            ),
         ]
         self.api._load_collection_documents("account", 1, "")
         calls = self.engine.remote.client.request.call_args_list
@@ -61,7 +86,12 @@ class TestCollectionSearch:
         assert calls[0].kwargs["enrichers"] == ["permissions"]
         result = self.finished.call_args.args
         assert result[:3] == ("account", 1, "")
-        assert '"name": "Team resources"' in result[3]
+        documents = json.loads(result[3])
+        assert documents[1]["name"] == "Team resources"
+        assert documents[0]["file_count"] == 2
+        assert documents[1]["file_count"] == 1
+        assert calls[2].kwargs["params"]["currentPageIndex"] == 0
+        assert calls[3].kwargs["params"]["currentPageIndex"] == 1
         assert result[4] == ""
 
     def test_collection_members_endpoint(self):
@@ -75,6 +105,71 @@ class TestCollectionSearch:
             f"'{collection_id}' AND ecm:isTrashed = 0"
         )
         self.finished.assert_called_once_with("account", 2, collection_id, "[]", "")
+
+    def test_collection_list_marks_configured_collections_selected(self):
+        collection_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"
+        self.engine.dao.get_config.return_value = json.dumps([collection_id])
+        self.engine.remote.client.request.return_value = self._response(
+            {"entries": [{"uid": collection_id, "title": "Project documents"}]}
+        )
+
+        self.api._load_collection_documents("account", 1, "")
+
+        documents = json.loads(self.finished.call_args.args[3])
+        assert documents[0]["selected"] is True
+
+    def test_applying_collection_selection_updates_sync_roots_and_scans(self):
+        old_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"
+        new_id = "11111111-1111-1111-1111-111111111111"
+        self.engine.dao.get_config.return_value = json.dumps([old_id])
+
+        self.api._apply_collection_selection("account", [new_id])
+
+        self.engine.remote.unregister_as_root.assert_called_once_with(
+            f"/collection/{old_id}"
+        )
+        self.engine.remote.register_as_root.assert_called_once_with(
+            f"/collection/{new_id}"
+        )
+        self.engine.dao.update_config.assert_any_call(
+            "collection_sync_ids", json.dumps([new_id])
+        )
+        self.engine.dao.update_config.assert_any_call("remote_need_full_scan", "/")
+
+    def test_applying_saved_collection_retries_sync_root_registration(self):
+        collection_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"
+        self.engine.dao.get_config.return_value = json.dumps([collection_id])
+
+        self.api._apply_collection_selection("account", [collection_id])
+
+        self.engine.remote.register_as_root.assert_called_once_with(
+            f"/collection/{collection_id}"
+        )
+
+    def test_collection_selection_action_is_logged(self, caplog):
+        collection_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"
+
+        self.api.log_collection_action("account", "select_collection", collection_id)
+
+        assert "action=select_collection" in caplog.text
+        assert collection_id in caplog.text
+
+    def test_collection_sync_registration_failure_is_logged(self, caplog):
+        collection_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"
+        self.engine.remote.register_as_root.side_effect = RuntimeError("network down")
+
+        self.api._apply_collection_selection("account", [collection_id])
+
+        assert "Failed to apply collection sync selection" in caplog.text
+        assert "network down" in caplog.text
+
+    def test_collection_selection_slot_uses_background_runner(self):
+        collection_ids = ["5e5f75bf-4853-488e-ac80-a6870dfcb0cc"]
+        with patch("nxdrive.drive.gui.api.QThreadPool") as pool:
+            self.api.apply_collection_selection("account", collection_ids)
+        runner = pool.globalInstance.return_value.start.call_args.args[0]
+        assert runner.fn == self.api._apply_collection_selection
+        assert runner.args == ("account", collection_ids)
 
     def test_nested_folder_children_and_pagination(self):
         collection_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"

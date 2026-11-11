@@ -604,6 +604,128 @@ def test_get_fs_children(mock_execute, mock_remote_dict, mock_filtered):
     assert output == []
 
 
+@patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
+def test_get_collection_fs_children(mock_execute):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="default",
+    )
+    root = RemoteFileInfo.from_dict(
+        {
+            "id": "collectionSyncRootFolderItemFactory#default#collection-id",
+            "parentId": "top-level",
+            "path": "/top-level/collection-root",
+            "name": "Collection",
+            "folder": True,
+        }
+    )
+
+    def document(uid, title, path, facets=None):
+        return {
+            "uid": uid,
+            "title": title,
+            "path": path,
+            "facets": facets or [],
+            "lastModified": "2026-11-11T12:00:00Z",
+            "properties": {
+                "dc:title": title,
+                "dc:created": "2026-11-10T12:00:00Z",
+                "dc:lastContributor": "user",
+                "file:content": {
+                    "name": title,
+                    "digest": f"digest-{uid}",
+                    "digestAlgorithm": "MD5",
+                    "data": f"/nuxeo/nxfile/default/{uid}/file:content/{title}",
+                },
+            },
+        }
+
+    folder_doc = document("folder-id", "Folder", "/workspace/Folder", ["Folderish"])
+    nested_doc = document("nested-id", "nested.txt", "/workspace/Folder/nested.txt")
+    standalone_doc = document("file-id", "one.txt", "/workspace/one.txt")
+    folder = RemoteFileInfo.from_dict(
+        {
+            "id": "defaultFileSystemItemFactory#default#folder-id",
+            "parentId": root.uid,
+            "path": f"{root.path}/defaultFileSystemItemFactory#default#folder-id",
+            "name": "Folder",
+            "folder": True,
+        }
+    )
+    mock_execute.side_effect = [
+        {"entries": [folder_doc, nested_doc, standalone_doc]},
+        {"entries": [nested_doc]},
+    ]
+
+    children = remote_obj.get_collection_fs_children(root)
+
+    assert [child.name for child in children] == ["Folder", "one.txt"]
+    assert all(child.parent_uid == root.uid for child in children)
+    assert children[0].uid == "defaultFileSystemItemFactory#default#folder-id"
+    assert children[1].path == f"{root.path}/{children[1].uid}"
+    assert children[1].digest == "digest-file-id"
+    assert children[1].digest_algorithm == "md5"
+    assert (
+        children[1].download_url == "/nuxeo/nxfile/default/file-id/file:content/one.txt"
+    )
+
+    nested_children = remote_obj.get_collection_fs_children(folder)
+    assert [child.name for child in nested_children] == ["nested.txt"]
+    assert nested_children[0].parent_uid == folder.uid
+    assert nested_children[0].digest == "digest-nested-id"
+
+    queries = [call.kwargs["query"] for call in mock_execute.call_args_list]
+    assert "collectionMember:collectionIds/* = 'collection-id'" in queries[0]
+    assert "ecm:parentId = 'folder-id'" in queries[1]
+
+
+@patch("nxdrive.nuxeo.client.remote_client.Remote.fetch")
+def test_get_collection_fs_info(mock_fetch):
+    remote_obj = Remote(
+        "dummy_url",
+        "dummy_user_id",
+        "dummy_device_id",
+        "dummy_version",
+        token="dummy_token",
+        repository="default",
+    )
+    mock_fetch.return_value = {
+        "uid": "document-id",
+        "title": "file.txt",
+        "path": "/workspace/file.txt",
+        "lastModified": "2026-11-11T12:00:00Z",
+        "facets": [],
+        "properties": {
+            "dc:title": "file.txt",
+            "file:content": {
+                "name": "file.txt",
+                "digest": "file-digest",
+                "digestAlgorithm": "MD5",
+                "data": "/nuxeo/nxfile/default/document-id/file:content/file.txt",
+            },
+        },
+    }
+
+    info = remote_obj.get_collection_fs_info(
+        "defaultFileSystemItemFactory#default#document-id",
+        "collection-root",
+        "/Collections/Collection",
+    )
+
+    mock_fetch.assert_called_once_with("document-id")
+    assert info.uid == "defaultFileSystemItemFactory#default#document-id"
+    assert info.parent_uid == "collection-root"
+    assert info.digest == "file-digest"
+    assert info.digest_algorithm == "md5"
+    assert (
+        info.download_url == "/nuxeo/nxfile/default/document-id/file:content/file.txt"
+    )
+
+
 @patch("nxdrive.drive.objects.RemoteFileInfo.from_dict")
 @patch("nxdrive.nuxeo.client.remote_client.Remote.execute")
 def test_scroll_descendants(mock_execute, mock_remote_dict):

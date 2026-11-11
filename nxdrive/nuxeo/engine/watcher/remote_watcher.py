@@ -3,10 +3,12 @@
 # All Hyland product names are registered or unregistered trademarks of Hyland or its affiliates.
 #
 
+import json
 import os
 from datetime import datetime, timezone
 from logging import getLogger
 from operator import attrgetter, itemgetter
+from pathlib import Path
 from time import monotonic
 from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple
 
@@ -44,6 +46,8 @@ __all__ = ("RemoteWatcher",)
 
 log = getLogger(__name__)
 COLLECTION_SYNC_ROOT_FACTORY_NAME = "collectionSyncRootFolderItemFactory"
+COLLECTIONS_FOLDER_FACTORY_NAME = "collectionSyncFolderItemFactory"
+COLLECTIONS_FOLDER_UID = f"{COLLECTIONS_FOLDER_FACTORY_NAME}#collections"
 
 
 class RemoteWatcher(RemoteWatcherBase):
@@ -338,6 +342,80 @@ class RemoteWatcher(RemoteWatcherBase):
             self.dao.delete_remote_state(deleted)
             self.remove_void_transfers(deleted)
 
+    def _get_selected_collection_roots(
+        self, collections_root: RemoteFileInfo, /
+    ) -> list[RemoteFileInfo]:
+        root_pair = self.dao.get_state_from_local(ROOT)
+        if not root_pair:
+            log.warning("Cannot list collection roots without the bound Drive root")
+            return []
+
+        prefix = f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#"
+        server_roots = self.engine.remote.get_fs_children(root_pair.remote_ref)
+        server_ids = {
+            info.uid.rsplit("#", 1)[-1]
+            for info in server_roots
+            if info.uid.startswith(prefix)
+        }
+        selected_ids_config = self.dao.get_config("collection_sync_ids", default="[]")
+        selected_ids = (
+            set(json.loads(selected_ids_config))
+            if isinstance(selected_ids_config, str)
+            else set()
+        )
+        missing_ids = selected_ids - server_ids
+        roots = []
+        for collection_id in sorted(missing_ids):
+            try:
+                collection_doc = self.engine.remote.get_info(
+                    collection_id, fetch_parent_uid=False
+                )
+                if not collection_doc:
+                    log.warning(
+                        "Cannot synthesize collection sync root: document not found for id=%s",
+                        collection_id,
+                    )
+                    continue
+
+                synthetic_uid = (
+                    f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#"
+                    f"{collection_doc.repository}#{collection_doc.uid}"
+                )
+                roots.append(
+                    RemoteFileInfo(
+                        name=collection_doc.name,
+                        uid=synthetic_uid,
+                        parent_uid=collections_root.uid,
+                        path=f"{collections_root.path.rstrip('/')}/{synthetic_uid}",
+                        folderish=True,
+                        last_modification_time=collection_doc.last_modification_time,
+                        creation_time=None,
+                        last_contributor=collection_doc.last_contributor,
+                        digest=None,
+                        digest_algorithm=None,
+                        download_url=None,
+                        can_rename=False,
+                        can_delete=False,
+                        can_update=False,
+                        can_create_child=False,
+                        lock_owner=None,
+                        lock_created=None,
+                        can_scroll_descendants=False,
+                    )
+                )
+                log.info(
+                    "Synthesized collection root under Collections: id=%s name=%r uid=%s",
+                    collection_id,
+                    collection_doc.name,
+                    synthetic_uid,
+                )
+            except Exception:
+                log.exception(
+                    "Cannot synthesize collection sync root for id=%s",
+                    collection_id,
+                )
+        return roots
+
     def _scan_remote_recursive(
         self,
         doc_pair: DocPair,
@@ -365,7 +443,86 @@ class RemoteWatcher(RemoteWatcherBase):
         children: Dict[str, DocPair] = {
             child.remote_ref: child for child in db_children
         }
-        children_info = self.engine.remote.get_fs_children(remote_info.uid)
+        if remote_info.uid == COLLECTIONS_FOLDER_UID:
+            children_info = self._get_selected_collection_roots(remote_info)
+        elif self.dao.is_collection_state(doc_pair):
+            log.info(
+                "Collection child-reader dispatch: reader=get_collection_fs_children "
+                "uid=%s path=%s",
+                remote_info.uid,
+                remote_info.path,
+            )
+            try:
+                children_info = self.engine.remote.get_collection_fs_children(
+                    remote_info
+                )
+            except Exception:
+                log.exception(
+                    "Collection child-reader failed: uid=%s",
+                    remote_info.uid,
+                )
+                raise
+        else:
+            children_info = self.engine.remote.get_fs_children(remote_info.uid)
+        if doc_pair.local_path == ROOT:
+            prefix = f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#"
+            collection_roots = {
+                info.uid.rsplit("#", 1)[-1]: info
+                for info in children_info
+                if info.uid.startswith(prefix)
+            }
+            selected_ids_config = self.dao.get_config(
+                "collection_sync_ids", default="[]"
+            )
+            selected_ids = (
+                set(json.loads(selected_ids_config))
+                if isinstance(selected_ids_config, str)
+                else set()
+            )
+            missing_ids = selected_ids - collection_roots.keys()
+            if missing_ids:
+                for child_ref in list(children):
+                    if (
+                        child_ref.startswith(prefix)
+                        and child_ref.rsplit("#", 1)[-1] in missing_ids
+                    ):
+                        children.pop(child_ref)
+                collections_root = RemoteFileInfo(
+                    name="Collections",
+                    uid=COLLECTIONS_FOLDER_UID,
+                    parent_uid=remote_info.uid,
+                    path=f"{remote_info.path.rstrip('/')}/{COLLECTIONS_FOLDER_UID}",
+                    folderish=True,
+                    last_modification_time=None,
+                    creation_time=None,
+                    last_contributor="system",
+                    digest=None,
+                    digest_algorithm=None,
+                    download_url=None,
+                    can_rename=False,
+                    can_delete=False,
+                    can_update=False,
+                    can_create_child=False,
+                    lock_owner=None,
+                    lock_created=None,
+                    can_scroll_descendants=False,
+                )
+                children_info.append(collections_root)
+            log.info(
+                "Collection root scan: selected_ids=%s returned_roots=%s "
+                "missing_ids=%s collections_parent=%s",
+                sorted(selected_ids),
+                {
+                    collection_id: {
+                        "name": info.name,
+                        "uid": info.uid,
+                        "path": info.path,
+                    }
+                    for collection_id, info in collection_roots.items()
+                },
+                sorted(missing_ids),
+                COLLECTIONS_FOLDER_UID if missing_ids else None,
+            )
 
         to_scan = []
         for child_info in children_info:
@@ -460,6 +617,80 @@ class RemoteWatcher(RemoteWatcherBase):
 
         return remote_parent_path
 
+    def _rehome_collection_root(
+        self,
+        existing: DocPair,
+        parent_pair: DocPair,
+        child_info: RemoteFileInfo,
+        local_path: Path,
+        remote_parent_path: str,
+        /,
+    ) -> Optional[Tuple[DocPair, bool]]:
+        old_path = existing.local_path
+        if not self.engine.local.exists(parent_pair.local_path):
+            parent_path = self.engine.local.make_folder(
+                parent_pair.local_path.parent, parent_pair.local_path.name
+            )
+            parent_info = self.engine.local.get_info(parent_path)
+            self.dao.update_local_state(
+                parent_pair, parent_info, versioned=False, queue=False
+            )
+            self.engine.local.set_remote_id(parent_path, parent_pair.remote_ref)
+
+        descendants = self.dao.get_states_from_partial_local(old_path)
+        if self.engine.local.exists(local_path):
+            if self.engine.local.exists(old_path):
+                log.error(
+                    "Cannot rehome collection %r: destination already exists at %r",
+                    child_info.name,
+                    local_path,
+                )
+                return None
+            local_info = self.engine.local.get_info(local_path)
+            local_path = local_info.path
+        elif self.engine.local.exists(old_path):
+            local_info = self.engine.local.move(old_path, parent_pair.local_path)
+            local_path = local_info.path
+        else:
+            local_path = self.engine.local.make_folder(
+                parent_pair.local_path, child_info.name
+            )
+            local_info = self.engine.local.get_info(local_path)
+
+        if not self.dao.update_local_state(
+            existing, local_info, versioned=False, queue=False
+        ):
+            log.warning("Could not update local state while rehoming %r", existing)
+            return None
+
+        for descendant in descendants:
+            relative_path = descendant.local_path.relative_to(old_path)
+            new_path = local_path / relative_path
+            if not self.engine.local.exists(new_path):
+                log.warning(
+                    "Collection descendant is missing after rehome: %r", new_path
+                )
+                continue
+            descendant_info = self.engine.local.get_info(new_path)
+            self.dao.update_local_state(
+                descendant, descendant_info, versioned=False, queue=False
+            )
+
+        self.engine.local.set_remote_id(local_path, child_info.uid)
+        self.dao.update_remote_state(
+            existing, child_info, remote_parent_path=remote_parent_path
+        )
+        refreshed = self.dao.get_state_from_id(existing.id, from_write=True)
+        if refreshed and refreshed.folderish:
+            self.dao.queue_children(refreshed)
+        log.info(
+            "Rehomed collection %r from %r to %r",
+            child_info.name,
+            old_path,
+            local_path,
+        )
+        return (refreshed, False) if refreshed else None
+
     def _find_remote_child_match_or_create(
         self, parent_pair: DocPair, child_info: RemoteFileInfo, /
     ) -> Optional[Tuple[DocPair, bool]]:
@@ -472,6 +703,22 @@ class RemoteWatcher(RemoteWatcherBase):
 
         existing = self.dao.get_normal_state_from_remote(child_info.uid)
         if existing:
+            if (
+                child_info.uid.startswith(f"{COLLECTION_SYNC_ROOT_FACTORY_NAME}#")
+                and parent_pair.remote_ref == COLLECTIONS_FOLDER_UID
+                and existing.local_path
+                != parent_pair.local_path / safe_filename(child_info.name)
+            ):
+                remote_parent_path = (
+                    parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+                )
+                return self._rehome_collection_root(
+                    existing,
+                    parent_pair,
+                    child_info,
+                    parent_pair.local_path / safe_filename(child_info.name),
+                    remote_parent_path,
+                )
             if (
                 self.dao.is_collection_state(existing)
                 and not self.dao.is_collection_state(parent_pair)

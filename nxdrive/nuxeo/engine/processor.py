@@ -1241,11 +1241,24 @@ class Processor(_ProcessorBase):
             finally:
                 lock_path(file_out, locker)
 
+        fs_item_info = None
+        if self.dao.is_collection_state(doc_pair):
+            parent_path = (
+                f"{doc_pair.remote_parent_path.rstrip('/')}"
+                f"/{doc_pair.remote_parent_ref}"
+            )
+            fs_item_info = self.remote.get_collection_fs_info(
+                doc_pair.remote_ref,
+                doc_pair.remote_parent_ref,
+                parent_path,
+            )
+
         return self.remote.stream_content(
             doc_pair.remote_ref,
             file_path,
             file_out,
             parent_fs_item_id=doc_pair.remote_parent_ref,
+            fs_item_info=fs_item_info,
             engine_uid=self.engine.uid,
             doc_pair_id=doc_pair.id,
         )

@@ -23,10 +23,11 @@ from typing import (
     Type,
     Union,
 )
-from urllib.parse import unquote
+from urllib.parse import unquote, urlsplit
 
 import nuxeo.constants
 import requests
+from dateutil import parser
 from nuxeo.auth import BasicAuth
 from nuxeo.client import Nuxeo
 from nuxeo.exceptions import CorruptedFile, HTTPError
@@ -737,6 +738,205 @@ class Remote(Nuxeo):
                 log.info(f"Filtering out item {info!r}")
         return filtered_infos
 
+    def get_collection_fs_children(
+        self, collection_root: RemoteFileInfo, /
+    ) -> List[RemoteFileInfo]:
+        """List collection members or folder children with full sync metadata."""
+        is_collection_root = collection_root.uid.startswith(
+            "collectionSyncRootFolderItemFactory#"
+        )
+        parent_id = collection_root.uid.rsplit("#", 1)[-1]
+        if is_collection_root:
+            query = (
+                "SELECT * FROM Document WHERE "
+                f"collectionMember:collectionIds/* = '{self.escape(parent_id)}' "
+                "AND ecm:isVersion = 0 AND ecm:isTrashed = 0"
+            )
+        else:
+            query = (
+                "SELECT * FROM Document WHERE "
+                f"ecm:parentId = '{self.escape(parent_id)}' "
+                "AND ecm:isVersion = 0 AND ecm:isTrashed = 0"
+            )
+
+        documents = []
+        page = 0
+        page_size = 40
+        while True:
+            log.info(
+                "Listing collection entries: parent_uid=%s query_kind=%s page=%d",
+                collection_root.uid,
+                "members" if is_collection_root else "children",
+                page,
+            )
+            try:
+                result = self.execute(
+                    command="Document.Query",
+                    query=query,
+                    pageSize=page_size,
+                    currentPageIndex=page,
+                )
+            except HTTPError as exc:
+                log.exception(
+                    "Collection entry query failed: parent_uid=%s page=%d status=%s",
+                    collection_root.uid,
+                    page,
+                    exc.status,
+                )
+                raise
+            entries = result.get("entries", [])
+            log.info(
+                "Collection entry query returned %d entries: parent_uid=%s page=%d",
+                len(entries),
+                collection_root.uid,
+                page,
+            )
+            documents.extend(entries)
+            if len(entries) < page_size:
+                break
+            page += 1
+
+        children = [
+            self._collection_document_to_fs_info(
+                document, collection_root.uid, collection_root.path
+            )
+            for document in documents
+        ]
+        if is_collection_root:
+            member_folder_paths = [
+                document.get("path", "").rstrip("/")
+                for document in documents
+                if "Folderish" in (document.get("facets") or [])
+                and document.get("path")
+            ]
+            children = [
+                child
+                for document, child in zip(documents, children)
+                if not any(
+                    document.get("path", "").startswith(folder_path + "/")
+                    for folder_path in member_folder_paths
+                    if document.get("path", "") != folder_path
+                )
+            ]
+
+        return [child for child in children if not self.is_filtered(child.path)]
+
+    def get_collection_fs_info(
+        self, fs_item_id: str, parent_uid: str, parent_path: str, /
+    ) -> RemoteFileInfo:
+        """Fetch collection member metadata without resolving a Drive item ID."""
+        document_id = fs_item_id.rsplit("#", 1)[-1]
+        log.info(
+            "Fetching collection download metadata: document_id=%s parent_uid=%s",
+            document_id,
+            parent_uid,
+        )
+        try:
+            document = self.fetch(document_id)
+        except Exception:
+            log.exception(
+                "Collection download metadata fetch failed: document_id=%s",
+                document_id,
+            )
+            raise
+        info = self._collection_document_to_fs_info(document, parent_uid, parent_path)
+        log.info(
+            "Fetched collection download metadata: document_id=%s "
+            "digest_present=%s download_url_present=%s",
+            document_id,
+            bool(info.digest),
+            bool(info.download_url),
+        )
+        return info
+
+    def _collection_document_to_fs_info(
+        self, document: Dict[str, Any], parent_uid: str, parent_path: str, /
+    ) -> RemoteFileInfo:
+        properties = document.get("properties") or {}
+        document_id = document["uid"]
+        repository = document.get("repository") or self.client.repository or "default"
+        fs_item_id = f"defaultFileSystemItemFactory#{repository}#{document_id}"
+        folderish = "Folderish" in (document.get("facets") or [])
+
+        blob = None
+        blob_xpath = None
+        if not folderish:
+            for xpath in (
+                "file:content",
+                "files:files/0/file",
+                "picture:views/0/content",
+            ):
+                value: Any = properties
+                for part in xpath.split("/"):
+                    key: Any = int(part) if part.isnumeric() else part
+                    if isinstance(value, dict):
+                        value = value.get(key)
+                    elif isinstance(value, list) and isinstance(key, int):
+                        value = value[key] if key < len(value) else None
+                    else:
+                        value = None
+                    if value is None:
+                        break
+                if isinstance(value, dict):
+                    blob = value
+                    blob_xpath = xpath
+                    break
+
+        download_url = None
+        if blob:
+            download_url = blob.get("data") or (
+                f"nxfile/{repository}/{document_id}/{blob_xpath}/{blob.get('name', '')}"
+            )
+            parsed_url = urlsplit(download_url)
+            client_url = urlsplit(self.client.host)
+            same_host = not parsed_url.netloc or parsed_url.netloc == client_url.netloc
+            client_path = client_url.path.rstrip("/")
+            content_path = parsed_url.path
+            includes_client_path = client_path and content_path.startswith(
+                f"{client_path}/"
+            )
+            if same_host and (parsed_url.netloc or includes_client_path):
+                if includes_client_path:
+                    content_path = content_path[len(client_path) + 1 :]
+                else:
+                    content_path = content_path.lstrip("/")
+                download_url = content_path
+                if parsed_url.query:
+                    download_url = f"{download_url}?{parsed_url.query}"
+
+        def to_milliseconds(value: Any) -> Optional[int]:
+            if isinstance(value, (int, float)):
+                return int(value)
+            if isinstance(value, str) and value:
+                return int(parser.parse(value).timestamp() * 1000)
+            return None
+
+        lock_info = None
+        if document.get("lockOwner"):
+            lock_info = {
+                "owner": document["lockOwner"],
+                "created": to_milliseconds(document.get("lockCreated")),
+            }
+
+        return RemoteFileInfo.from_dict(
+            {
+                "id": fs_item_id,
+                "parentId": parent_uid,
+                "path": f"{parent_path.rstrip('/')}/{fs_item_id}",
+                "name": document.get("title")
+                or properties.get("dc:title")
+                or document_id,
+                "folder": folderish,
+                "lastModificationDate": to_milliseconds(document.get("lastModified")),
+                "creationDate": to_milliseconds(properties.get("dc:created")),
+                "lastContributor": properties.get("dc:lastContributor"),
+                "digest": blob.get("digest") if blob else None,
+                "digestAlgorithm": blob.get("digestAlgorithm") if blob else None,
+                "downloadURL": download_url,
+                "lockInfo": lock_info,
+            }
+        )
+
     def scroll_descendants(
         self,
         fs_item_id: str,
@@ -973,19 +1173,33 @@ class Remote(Nuxeo):
         self.execute(**kwargs)
 
     def register_as_root(self, ref: str, /) -> bool:
-        self.execute(
+        checked_ref = self.check_ref(ref)
+        input_obj = f"doc:{checked_ref}"
+        log.info(
+            "Calling NuxeoDrive.SetSynchronization enable=True input_obj=%s",
+            input_obj,
+        )
+        response = self.execute(
             command="NuxeoDrive.SetSynchronization",
-            input_obj=f"doc:{self.check_ref(ref)}",
+            input_obj=input_obj,
             enable=True,
         )
+        log.info("NuxeoDrive.SetSynchronization enable=True response=%r", response)
         return True
 
     def unregister_as_root(self, ref: str, /) -> bool:
-        self.execute(
+        checked_ref = self.check_ref(ref)
+        input_obj = f"doc:{checked_ref}"
+        log.info(
+            "Calling NuxeoDrive.SetSynchronization enable=False input_obj=%s",
+            input_obj,
+        )
+        response = self.execute(
             command="NuxeoDrive.SetSynchronization",
-            input_obj=f"doc:{self.check_ref(ref)}",
+            input_obj=input_obj,
             enable=False,
         )
+        log.info("NuxeoDrive.SetSynchronization enable=False response=%r", response)
         return True
 
     def set_proxy(self, proxy: Optional[Proxy], /) -> None:

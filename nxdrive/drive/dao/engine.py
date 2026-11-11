@@ -1334,15 +1334,20 @@ class EngineDAO(BaseDAO):
         return doc_pair
 
     def is_collection_state(self, state: DocPair, /) -> bool:
-        factory = "collectionSyncRootFolderItemFactory#"
+        factories = (
+            "collectionSyncRootFolderItemFactory#",
+            "collectionSyncFolderItemFactory#",
+        )
         current = state
         visited = set()
         while current and current.id not in visited:
             visited.add(current.id)
             refs = (current.remote_ref, current.remote_parent_ref)
-            if any(ref and ref.startswith(factory) for ref in refs):
+            if any(ref and ref.startswith(factories) for ref in refs):
                 return True
-            if factory in (current.remote_parent_path or ""):
+            if any(
+                factory in (current.remote_parent_path or "") for factory in factories
+            ):
                 return True
             parent_ref = current.remote_parent_ref
             if not parent_ref:

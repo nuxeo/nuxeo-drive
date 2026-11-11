@@ -52,6 +52,15 @@ def test_normal_state_prefers_workspace_over_collection(engine_dao):
             assert dao.is_collection_state(collection)
             assert not dao.is_collection_state(workspace)
 
+        collections_root = Mock(
+            id=5,
+            remote_ref="collectionSyncFolderItemFactory#collections",
+            remote_parent_ref="defaultSyncRootFolderItemFactory#repo#root",
+            remote_parent_path="/root",
+        )
+        with patch.object(dao, "get_states_from_remote", return_value=[]):
+            assert dao.is_collection_state(collections_root)
+
         nested_document = Mock(
             id=3,
             remote_ref="document",
