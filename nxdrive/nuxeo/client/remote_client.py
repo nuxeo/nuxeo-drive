@@ -8,6 +8,7 @@ import os
 import socket
 import unicodedata
 from contextlib import suppress
+from dataclasses import replace
 from logging import getLogger
 from pathlib import Path
 from platform import machine
@@ -173,6 +174,7 @@ class Remote(Nuxeo):
         self.device_id = device_id
         self.user_id = user_id
         self.version = version
+        self._collection_fs_info_cache: Dict[str, RemoteFileInfo] = {}
 
         # Callback function used for downloads.
         # Note: the order is important, keep it!
@@ -819,12 +821,33 @@ class Remote(Nuxeo):
                 )
             ]
 
-        return [child for child in children if not self.is_filtered(child.path)]
+        children = [child for child in children if not self.is_filtered(child.path)]
+        self._collection_fs_info_cache.update(
+            {
+                child.uid: child
+                for child in children
+                if child.digest and child.download_url
+            }
+        )
+        return children
 
     def get_collection_fs_info(
         self, fs_item_id: str, parent_uid: str, parent_path: str, /
     ) -> RemoteFileInfo:
         """Fetch collection member metadata without resolving a Drive item ID."""
+        cached_info = self._collection_fs_info_cache.pop(fs_item_id, None)
+        if cached_info and cached_info.digest and cached_info.download_url:
+            log.info(
+                "Using discovered collection metadata: document_id=%s "
+                "digest_present=True download_url_present=True",
+                fs_item_id.rsplit("#", 1)[-1],
+            )
+            return replace(
+                cached_info,
+                parent_uid=parent_uid,
+                path=f"{parent_path.rstrip('/')}/{cached_info.uid}",
+            )
+
         document_id = fs_item_id.rsplit("#", 1)[-1]
         log.info(
             "Fetching collection download metadata: document_id=%s parent_uid=%s",

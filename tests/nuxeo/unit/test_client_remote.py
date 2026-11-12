@@ -673,6 +673,15 @@ def test_get_collection_fs_children(mock_execute):
         children[1].download_url == "/nuxeo/nxfile/default/file-id/file:content/one.txt"
     )
 
+    with patch.object(remote_obj, "fetch") as fetch:
+        cached_info = remote_obj.get_collection_fs_info(
+            children[1].uid, root.uid, root.path
+        )
+
+    fetch.assert_not_called()
+    assert cached_info.digest == children[1].digest
+    assert cached_info.download_url == children[1].download_url
+
     nested_children = remote_obj.get_collection_fs_children(folder)
     assert [child.name for child in nested_children] == ["nested.txt"]
     assert nested_children[0].parent_uid == folder.uid
