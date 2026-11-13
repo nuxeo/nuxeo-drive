@@ -87,6 +87,41 @@ def test_normal_state_prefers_workspace_over_collection(engine_dao):
             assert dao.get_normal_state_from_remote("missing") is None
 
 
+def test_is_collection_synced_requires_all_collection_states_synchronized(engine_dao):
+    with engine_dao("engine_migration.db") as dao:
+        root = Mock(
+            id=10,
+            remote_ref=("collectionSyncRootFolderItemFactory#default#collection-id"),
+        )
+        synchronized = [
+            Mock(pair_state="synchronized"),
+            Mock(pair_state="synchronized"),
+        ]
+        cursor = Mock()
+        cursor.execute.side_effect = [
+            Mock(fetchall=Mock(return_value=[root])),
+            Mock(fetchall=Mock(return_value=synchronized)),
+        ]
+        connection = Mock()
+        connection.cursor.return_value = cursor
+
+        with patch.object(dao, "_get_read_connection", return_value=connection):
+            assert dao.is_collection_synced("collection-id")
+
+            cursor.execute.side_effect = [
+                Mock(fetchall=Mock(return_value=[root])),
+                Mock(
+                    fetchall=Mock(
+                        return_value=[
+                            Mock(pair_state="synchronized"),
+                            Mock(pair_state="remotely_created"),
+                        ]
+                    )
+                ),
+            ]
+            assert not dao.is_collection_synced("collection-id")
+
+
 def test_acquire_processors(engine_dao):
     with engine_dao("engine_migration.db") as dao:
         assert dao.acquire_processor(666, 2)

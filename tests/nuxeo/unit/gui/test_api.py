@@ -109,6 +109,7 @@ class TestCollectionSearch:
     def test_collection_list_marks_configured_collections_selected(self):
         collection_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"
         self.engine.dao.get_config.return_value = json.dumps([collection_id])
+        self.engine.dao.is_collection_synced.return_value = False
         self.engine.remote.client.request.return_value = self._response(
             {"entries": [{"uid": collection_id, "title": "Project documents"}]}
         )
@@ -117,6 +118,7 @@ class TestCollectionSearch:
 
         documents = json.loads(self.finished.call_args.args[3])
         assert documents[0]["selected"] is True
+        assert documents[0]["sync_status"] == "not_synced"
 
     def test_applying_collection_selection_updates_sync_roots_and_scans(self):
         old_id = "5e5f75bf-4853-488e-ac80-a6870dfcb0cc"

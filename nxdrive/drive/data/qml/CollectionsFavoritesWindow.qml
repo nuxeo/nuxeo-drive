@@ -250,7 +250,7 @@ Window {
                     delegate: RowLayout {
                         required property var modelData
                         width: collectionList.width
-                        height: 44
+                        height: 48
                         spacing: 12
 
                         NuxeoCheckBox {
@@ -274,6 +274,31 @@ Window {
                             }
 
                             background: Item {}
+                        }
+
+                        RowLayout {
+                            Layout.preferredWidth: 104
+                            spacing: 4
+
+                            IconLabel {
+                                icon: modelData.sync_status === "synced"
+                                    ? MdiFont.Icon.checkCircle
+                                    : MdiFont.Icon.checkboxBlankCircleOutline
+                                iconColor: modelData.sync_status === "synced"
+                                    ? iconSuccess : secondaryIcon
+                                Layout.preferredWidth: 18
+                                Layout.preferredHeight: 24
+                            }
+
+                            ScaledText {
+                                text: modelData.sync_status === "synced"
+                                    ? qsTr("Synced") : qsTr("Not synced")
+                                color: modelData.sync_status === "synced"
+                                    ? iconSuccess : secondaryText
+                                Layout.fillWidth: true
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
                         }
 
                         ScaledText {

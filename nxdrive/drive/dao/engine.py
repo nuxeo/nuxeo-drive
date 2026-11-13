@@ -1192,6 +1192,28 @@ class EngineDAO(BaseDAO):
             "SELECT * FROM States WHERE remote_parent_ref = ?", (ref,)
         ).fetchall()
 
+    def is_collection_synced(self, collection_id: str, /) -> bool:
+        c = self._get_read_connection().cursor()
+        roots = c.execute(
+            "SELECT id, remote_ref FROM States"
+            " WHERE remote_ref LIKE ? AND remote_state != 'deleted'",
+            (f"collectionSyncRootFolderItemFactory#%#{collection_id}",),
+        ).fetchall()
+        if not roots:
+            return False
+
+        for root in roots:
+            states = c.execute(
+                "SELECT pair_state FROM States"
+                " WHERE id = ? OR remote_parent_path LIKE ?",
+                (root.id, f"%/{root.remote_ref}%"),
+            ).fetchall()
+            if not states or any(
+                state.pair_state != "synchronized" for state in states
+            ):
+                return False
+        return True
+
     def get_new_remote_children(self, ref: str, /) -> DocPairs:
         c = self._get_read_connection().cursor()
         return c.execute(

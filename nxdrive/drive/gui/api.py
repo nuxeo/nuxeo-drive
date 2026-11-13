@@ -632,6 +632,12 @@ class QMLDriveApi(QObject):
                             "path": document.get("path", ""),
                             "folderish": "Folderish" in (document.get("facets") or []),
                             "selected": document["uid"] in selected_ids,
+                            "sync_status": (
+                                "synced"
+                                if document["uid"] in selected_ids
+                                and engine.dao.is_collection_synced(document["uid"])
+                                else "not_synced"
+                            ),
                         }
                     )
                 if not result.get("isNextPageAvailable", False):
