@@ -33,12 +33,12 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.13 # XXX_PYTHON
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
@@ -72,12 +72,12 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.13 # XXX_PYTHON
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/Library/Caches/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.13 # XXX_PYTHON
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-tests.txt', 'tools/deps/requirements-tox.txt') }}
@@ -133,12 +133,12 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.13 # XXX_PYTHON
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tox.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-tox.txt') }}
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-tox.txt') }}
