@@ -40,7 +40,7 @@ jobs:
           echo "releaseType=${{ github.event.inputs.releaseType }}" >> $GITHUB_OUTPUT
           echo "signExe=${{ github.event.inputs.signExe }}" >> $GITHUB_OUTPUT
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.branch }}
 
@@ -276,7 +276,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.branch }}
 
