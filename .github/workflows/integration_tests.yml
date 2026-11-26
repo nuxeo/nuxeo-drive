@@ -32,7 +32,7 @@ jobs:
     name: integration-tests-windows(LTS 2023)
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -74,7 +74,7 @@ jobs:
     name: integration-tests-windows(LTS 2025)
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -122,7 +122,7 @@ jobs:
     name: integration-tests-macos(LTS 2025)
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: 3.13 # XXX_PYTHON
